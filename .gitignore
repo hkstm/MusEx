@@ -2,3 +2,5 @@
 .vscode
 .git
 .dccache
+regex_tmp
+*.pyc
