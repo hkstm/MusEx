@@ -25,3 +25,4 @@ bump2version = "*"
 [packages]
 Click = "*"
 Flask = "*"
+flask-cors = "*"

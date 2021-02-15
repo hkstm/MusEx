@@ -1,6 +1,8 @@
 from infovis21 import app
+from flask import jsonify
 
 
-@app.route("/")
-def hello_world():
-    return "Hello, World!"
+@app.route("/data")
+def data():
+    d = ["a", "b", "c", "d"]
+    return jsonify(d)
