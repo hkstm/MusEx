@@ -1,3 +1,0 @@
-# Ignore csv files in this directory, not sure if want to keep 'large files' on the git repository on GH itself
-*.csv
-!.gitignore
