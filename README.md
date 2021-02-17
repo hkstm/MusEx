@@ -12,6 +12,12 @@ But this might differ for you and could be something like
 pip3 install -r requirements.txt
 ``` 
 
+## MongoDB
+Starting Mongo (mongodb://root:example@localhost) and Mongo Express(http://localhost:8081/):
+```
+sudo docker-compose -f ./backend/mongodb/stack.yml up
+```
+You can use Mongo Express for administration, but personally mainly use VS Code plugin
 ## Usage Notes
 
 Please clear jupyter notebooks before committing and pushing
