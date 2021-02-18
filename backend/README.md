@@ -32,6 +32,12 @@ invoke type-check
 ```
 #### MongoDB
 
+Starting Mongo (mongodb://root:example@localhost) and Mongo Express(http://localhost:8081/):
+```
+sudo docker-compose -f ./backend/mongodb/stack.yml up
+```
+You can use Mongo Express for administration, but personally mainly use VS Code plugin
+
 A dump of the database can be made using:
 
 ```
