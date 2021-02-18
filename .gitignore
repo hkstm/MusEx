@@ -5,3 +5,4 @@
 .dccache
 regex_tmp
 *.pyc
+backend/mongodb/data/*
