@@ -1,5 +1,6 @@
-from infovis21 import app
 from flask import jsonify
+
+from infovis21 import app
 
 
 @app.route("/data")
