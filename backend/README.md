@@ -1,23 +1,41 @@
 # InfoVis 2021
 
-Note: All setup instructions are only tested under Linux.
+Note: All setup instructions are only tested under Linux and macOS.
 
 #### Prerequisites
 
-If not yet installed, get `pipenv` and activate the virtual environment for the project:
+Clone this GitHub repository and navigate to the directory:
+```bash
+git clone git@github.com:hkstm/VU.InfoVis2021.git
+git clone https://github.com/hkstm/VU.InfoVis2021.git # if you use HTTPS instead of SSH
+cd VU.InfoVis2021
+```
+
+If not yet installed, get `pipenv` 
 ```bash
 pip install pipenv
-pipenv install --dev
-pipenv shell
 ```
 
 #### Setup
 
-After you installed the prerequisites, start the backend server with 
+Activate the virtual environment for the backend, it is important that you are in the backend folder:
+```bash
+# assuming you have cloned the repo
+# and you are in the project root folder as described in the Prerequisites
+cd backend
+pipenv install --dev
+pipenv shell
+```
+
+If everything worked, your command line prompt should change to `(backend) ...`.
+This means that the virtual environment for the backend is active and you can use the python packages we will need.
+Now you can start the backend server with:
 ```bash
 invoke start --open
 ```
 This will run the server in development mode and open [http://localhost:5000](http://localhost:5000) in your browser.
+
+After you are done working on the backend and you want the `(backend) ...` thing to go away, just run `exit` in your terminal.
 
 #### Tooling
 
