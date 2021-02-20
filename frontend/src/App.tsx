@@ -36,24 +36,16 @@ class App extends Component<{}, AppState> {
     const items = this.state.data.map((char) => <li key={char}>{char}</li>);
 
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <svg className="container"></svg>
-          <ul>{items}</ul>
-          <p>
-            Edit <code>src/App.tsx</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div className="Parent">
+        <div className="Title"><h1>Insert project title!</h1></div>
+        
+        <div className="mainPlot"></div>
+        <div className="StatA"></div>
+        <div className="StatGenres"></div>
+        <div className="WordCloudArtists"></div>
+        <div className="WordCloudGenre"></div>
       </div>
+
     );
   }
 }
