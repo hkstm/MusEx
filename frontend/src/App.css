@@ -36,3 +36,42 @@
     transform: rotate(360deg);
   }
 }
+
+div.mainPlot{
+ width:60%;
+ position: relative;
+  /*width: 900px;*/
+  height: 400px;
+  display:inline-block;
+  border: 3px solid #A9A9A9;
+
+}
+
+div.WordCloudArtists{
+
+}
+
+div.WordCloudGenre{
+
+}
+
+div.StatA{
+
+
+}
+div.StatGenres{
+
+
+}
+div.Title{
+ width:60%;
+  /*width: 900px;*/
+  height: 80px;
+  display:inline-block;
+border: 3px solid #A9A9A9;
+}
+div.Parent{
+ width:1500px;
+ overflow: hidden;
+
+}
