@@ -39,36 +39,75 @@
 
 div.mainPlot{
  width:60%;
- position: relative;
-  /*width: 900px;*/
-  height: 400px;
-  display:inline-block;
+  height: 477px;
+  position: fixed;
+  z-index: 1;
+  top: 80;
+  overflow-x: hidden;
   border: 3px solid #A9A9A9;
+  left: 0;
 
 }
 
 div.WordCloudArtists{
+  width:39.3%;
+  height: 50%;
+  position: fixed;
+  z-index: 1;
+  top: 50%;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  right: 0;
+
 
 }
 
 div.WordCloudGenre{
+  width:39.3%;
+  height: 50%;
+  position: fixed;
+  z-index: 1;
+  top: 0px;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  right: 0;
 
 }
 
 div.StatA{
+  width:30%;
+  height: 300px;
+  position: fixed;
+  z-index: 1;
+  top: 480px;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  left: 30%;
 
 
 }
 div.StatGenres{
+  width:30%;
+  height: 300px;
+  position: fixed;
+  z-index: 1;
+  top: 480px;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  left: 0;
 
 
 }
 div.Title{
  width:60%;
-  /*width: 900px;*/
-  height: 80px;
-  display:inline-block;
+  height:80px;
+  position: fixed;
+    z-index: 1;
+  top: 0;
+  overflow-x: hidden;
+  /*display:inline-block;*/
 border: 3px solid #A9A9A9;
+left: 0;
 }
 div.Parent{
  width:1500px;
