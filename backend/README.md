@@ -56,6 +56,9 @@ sudo docker-compose -f ./backend/mongodb/stack.yml up
 ```
 You can use Mongo Express for administration, but personally mainly use VS Code plugin
 
+The database dump the last time I checked is about 130mb which is too big for github so I made a zip of it and it's around 40 mb. If you get any errors when dealing with the file when committing or restoring please make sure that you (un)zipped the file (db.zip <-> db.dump)
+
+
 A dump of the database can be made using:
 
 ```
