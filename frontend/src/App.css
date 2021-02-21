@@ -38,7 +38,7 @@
 }
 
 div.mainPlot{
- width:60%;
+ width:70%;
   height: 477px;
   position: fixed;
   z-index: 1;
@@ -50,7 +50,7 @@ div.mainPlot{
 }
 
 div.WordCloudArtists{
-  width:39.3%;
+  width:29.3%;
   height: 50%;
   position: fixed;
   z-index: 1;
@@ -63,7 +63,7 @@ div.WordCloudArtists{
 }
 
 div.WordCloudGenre{
-  width:39.3%;
+  width:29.3%;
   height: 50%;
   position: fixed;
   z-index: 1;
@@ -75,19 +75,19 @@ div.WordCloudGenre{
 }
 
 div.StatA{
-  width:30%;
+  width:35%;
   height: 300px;
   position: fixed;
   z-index: 1;
   top: 480px;
   overflow-x: hidden;
   border: 3px solid #A9A9A9;
-  left: 30%;
+  left: 35%;
 
 
 }
 div.StatGenres{
-  width:30%;
+  width:35%;
   height: 300px;
   position: fixed;
   z-index: 1;
@@ -99,7 +99,7 @@ div.StatGenres{
 
 }
 div.Title{
- width:60%;
+ width:70%;
   height:80px;
   position: fixed;
     z-index: 1;
