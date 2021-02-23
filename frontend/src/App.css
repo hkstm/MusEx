@@ -117,3 +117,7 @@ div.Parent{
 h3{
 	text-align: center;
 }
+h1.number{
+	text-align: center;
+	font-size: 40px;
+}
