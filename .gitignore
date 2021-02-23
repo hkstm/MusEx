@@ -6,3 +6,4 @@
 regex_tmp
 *.pyc
 backend/mongodb/data/*
+backend/mongodb/db.dump

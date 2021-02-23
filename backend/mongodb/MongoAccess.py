@@ -59,7 +59,7 @@ def get_tracks_by(query, field, pipeline=()):
     return get_collection(coll_tracks, pipeline)
 
 def get_tracks_by_ids(track_ids, pipeline=()): return get_tracks_by(track_ids, 'id', pipeline)
-def get_tracks_by_genres(track_names, pipeline=()): return get_tracks_by(track_names, 'name', pipeline)
+def get_tracks_by_genres(genres, pipeline=()): return get_tracks_by(genres, 'genres', pipeline)
 def get_tracks_by_names(track_names, pipeline=()): return get_tracks_by(track_names, 'name', pipeline)
 
 def get_all_tracks_id(pipeline=()): 
@@ -67,4 +67,3 @@ def get_all_tracks_id(pipeline=()):
         { '$project': {'_id': 1, 'id' : 1} },  # <- _id refers to mongo's internal object id, id to spotify's id
     )
     return get_from_mongo(coll_tracks, pipeline)
-
