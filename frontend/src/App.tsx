@@ -202,10 +202,12 @@ class App extends Component<{}, AppState> {
         
         <div className="mainPlot"></div>
         <div className="StatA">
-
+          <h1 className="number">80</h1>
+          <h3>Artists in dataset</h3>
         </div>
         <div className="StatGenres">
-
+        <h1 className="number">26</h1>
+          <h3>Genres in dataset</h3>
         </div>
         <div className="WordCloudArtists">
         <h3>Artists ranked by popularity</h3>
