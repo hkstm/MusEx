@@ -43,24 +43,27 @@ def get_from_mongo(collection, pipeline):
     return list(collection.aggregate(list(pipeline)))  # pipeline is a tuple until now
 
 # to make pipelines immutable for easier debugging and more intuitive default arg wise pipeline is a tuple
-def get_collection(collection, pipeline=()):
+def get_collection(collection, pipeline=(), limit=0):
     pipeline += (
         { '$unset': ['_id'] },  # <- this comma is the easiest way (I think) to make sure that what you're adding to the pipeline is a tuple as well
     )
+    if limit: pipeline += ({'$limit': limit},)
     return get_from_mongo(collection, pipeline)
 
 def single_to_list(x): return [x] if not isinstance(x, list) else x
 
-def get_tracks_by(query, field, pipeline=()):
+def get_tracks_by(query, field, pipeline=(), limit=0):
     query = single_to_list(query)
     pipeline += (
         { '$match': { field: {'$in': query}} },
     )
-    return get_collection(coll_tracks, pipeline)
+    return get_collection(coll_tracks, pipeline, limit)
 
-def get_tracks_by_ids(track_ids, pipeline=()): return get_tracks_by(track_ids, 'id', pipeline)
-def get_tracks_by_genres(genres, pipeline=()): return get_tracks_by(genres, 'genres', pipeline)
-def get_tracks_by_names(track_names, pipeline=()): return get_tracks_by(track_names, 'name', pipeline)
+def get_tracks_by_ids(track_ids, pipeline=(), limit=0): return get_tracks_by(track_ids, 'id', pipeline, limit)
+def get_tracks_by_genres(genres, pipeline=(), limit=0): return get_tracks_by(genres, 'genres', pipeline, limit)
+def get_tracks_by_labels(labels, pipeline=(), limit=0): return get_tracks_by(labels, 'album_label', pipeline, limit)
+def get_tracks_by_names(track_names, pipeline=(), limit=0): return get_tracks_by(track_names, 'name', pipeline, limit)
+def get_tracks_by_filter(pipeline, limit=0): return get_collection(coll_tracks, pipeline, limit)
 
 def get_all_tracks_id(pipeline=()): 
     pipeline += (
