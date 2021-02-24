@@ -36,3 +36,88 @@
     transform: rotate(360deg);
   }
 }
+
+div.mainPlot{
+ width:70%;
+  height: 477px;
+  position: fixed;
+  z-index: 1;
+  top: 80;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  left: 0;
+
+}
+
+div.WordCloudArtists{
+  width:29.3%;
+  height: 50%;
+  position: fixed;
+  z-index: 1;
+  top: 50%;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  right: 0;
+
+
+}
+
+div.WordCloudGenre{
+  width:29.3%;
+  height: 50%;
+  position: fixed;
+  z-index: 1;
+  top: 0px;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  right: 0;
+
+}
+
+div.StatA{
+  width:35%;
+  height: 300px;
+  position: fixed;
+  z-index: 1;
+  top: 480px;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  left: 35%;
+
+
+}
+div.StatGenres{
+  width:35%;
+  height: 300px;
+  position: fixed;
+  z-index: 1;
+  top: 480px;
+  overflow-x: hidden;
+  border: 3px solid #A9A9A9;
+  left: 0;
+
+
+}
+div.Title{
+ width:70%;
+  height:80px;
+  position: fixed;
+    z-index: 1;
+  top: 0;
+  overflow-x: hidden;
+  /*display:inline-block;*/
+border: 3px solid #A9A9A9;
+left: 0;
+}
+div.Parent{
+ width:1500px;
+ overflow: hidden;
+
+}
+h3{
+	text-align: center;
+}
+h1.number{
+	text-align: center;
+	font-size: 40px;
+}
