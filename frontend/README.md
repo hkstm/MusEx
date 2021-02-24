@@ -19,6 +19,16 @@ If not yet installed, get the `yarn` package manager:
 sudo npm install --global yarn
 ```
 
+On Debian/Ubuntu/Pop OS you might need to do something like this based on [this SO post](https://stackoverflow.com/questions/46013544/yarn-install-command-error-no-such-file-or-directory-install) and [yarn docs](https://classic.yarnpkg.com/en/docs/install#debian-stable):
+```bash
+sudo apt remove cmdtest
+sudo apt remove yarn
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt-get update
+sudo apt-get install yarn -y
+```
+
 #### Setup
 
 After you installed the prerequisites, start the frontend with 
