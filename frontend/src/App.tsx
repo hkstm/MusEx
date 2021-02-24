@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import axios from "axios";
 import Graph from "./graph/Graph";
-import { D3Graph } from "./graph/graph";
+import { D3Graph } from "./graph/model";
 import Select from "./Select";
 import "./App.sass";
 import data from "./mockdata";

@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as d3 from "d3";
-import { D3Graph, D3Node } from "./graph";
+import { D3Graph, D3Node } from "./model";
 import "./Graph.sass";
 
 interface GraphProps {
@@ -9,23 +9,36 @@ interface GraphProps {
   data: D3Graph;
 }
 
+interface GraphState {
+  zoomLevel: number;
+}
+
 type SimNode = D3Node;
 type SimLink = d3.SimulationLinkDatum<D3Node>;
 
-export default class Graph extends React.Component<GraphProps, {}> {
+export default class Graph extends React.Component<GraphProps, GraphState> {
   ref!: HTMLDivElement;
   svg!: d3.Selection<SVGSVGElement, D3Graph, null, any>;
+  graph!: d3.Selection<SVGGElement, D3Graph, null, any>;
   force: any;
 
-  // constructor(props: GraphProps) {
-  //   super(props);
-  // }
+  constructor(props: GraphProps) {
+    super(props);
+    this.state = {
+      zoomLevel: 1
+    };
+  }
 
   componentDidMount() {
-    
     this.svg = d3
       .select<HTMLDivElement, D3Graph>(this.ref)
       .append("svg")
+      .attr("width", this.props.width)
+      .attr("height", this.props.height);
+
+    this.graph = this.svg
+      .append("g")
+      .attr("class", "graph")
       .attr("width", this.props.width)
       .attr("height", this.props.height);
 
@@ -42,15 +55,17 @@ export default class Graph extends React.Component<GraphProps, {}> {
       .append("g")
       .attr("transform", `translate(0,${this.props.height - 30})`)
       .call(x_axis);
-    
+
     this.svg.append("g").attr("transform", "translate(30,0)").call(y_axis);
 
     const zoom = d3
       .zoom<SVGSVGElement, D3Graph>()
       .on("zoom", (event) => {
-        this.svg.attr("transform", event.transform);
-      })
-      .scaleExtent([1, 40]);
+        this.graph.attr("transform", event.transform);
+        // console.log(event);
+        this.setState({zoomLevel: event.transform.k});
+      });
+      // .scaleExtent([1, 40]);
 
     this.svg.call(zoom);
 
@@ -72,7 +87,7 @@ export default class Graph extends React.Component<GraphProps, {}> {
         d3.forceCenter(this.props.width / 2, this.props.height / 2)
       );
 
-    const labels = this.svg
+    const labels = this.graph
       .append("g")
       .attr("class", "labels")
       .selectAll(".labels")
@@ -83,7 +98,7 @@ export default class Graph extends React.Component<GraphProps, {}> {
       .attr("fill", "white")
       .text((d) => d.id);
 
-    const links = this.svg
+    const links = this.graph
       .append("g")
       .selectAll("line")
       .data(this.props.data.links)
@@ -94,7 +109,7 @@ export default class Graph extends React.Component<GraphProps, {}> {
       .style("stroke-width", (d) => Math.sqrt(d.value));
 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
-    const nodes = this.svg
+    const nodes = this.graph
       .append("g")
       .attr("class", "nodes")
       .selectAll(".nodes")
@@ -120,10 +135,15 @@ export default class Graph extends React.Component<GraphProps, {}> {
 
   render() {
     return (
+      <div>
       <div
         className="graph-container"
         ref={(ref: HTMLDivElement) => (this.ref = ref)}
       ></div>
+      <div className="graph-metrics">
+        <span>Zoom Level: { Math.round(this.state.zoomLevel) }</span>
+      </div>
+      </div>
     );
   }
 }
