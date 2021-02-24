@@ -49,7 +49,7 @@ def start(c, _open=False):
     """Start the flask server
     """
     if _open: webbrowser.open("http://localhost:5000")
-    c.run("FLASK_APP=main pipenv run flask run")
+    c.run("FLASK_APP=infovis21.app pipenv run flask run")
 
 @task
 def lint(c):
