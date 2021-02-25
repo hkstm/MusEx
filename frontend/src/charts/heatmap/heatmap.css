@@ -8,8 +8,8 @@
 }
 
 #heatmap-svg {
-    width: 1500;
-    height: 1500;
+    width: 480px;
+    height: 480px;
 }
 
 .heatmap-tooltip {

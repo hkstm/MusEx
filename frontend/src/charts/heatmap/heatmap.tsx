@@ -15,15 +15,15 @@ class Heatmap extends Component {
   }
 
   d3heatmap() {
-    var margin = {top: 30, right: 30, bottom: 30, left: 30},
-    width = 160 - margin.left - margin.right,
-    height = 160 - margin.top - margin.bottom;
+    var margin = {top: 60, right: 60, bottom: 60, left: 60},
+    width = 480 - margin.left - margin.right,
+    height = 480 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
     var svg = d3.select("#heatmap-svg")
     .append("svg")
-      .attr("width", width + 2 * (margin.left + margin.right))
-      .attr("height", height + 2 * (margin.top + margin.bottom))
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
     .append("g")
       .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
@@ -48,7 +48,7 @@ class Heatmap extends Component {
     svg.append("g")
       .call(d3.axisLeft(y));
 
-    var myColor = function(n: number) {var shade = n * 2.55; return `rgb(${0}, ${0}, ${shade})`}
+    var myColor = function(n: number) {var shade = n * 2.55; return `rgb(${255- shade}, ${255-shade}, ${255})`}
 
     const buildData = () => {
       let array: any = []
@@ -74,7 +74,6 @@ class Heatmap extends Component {
       tooltip.style("opacity", 1)
     }
     var mousemove = function(d: any, data: any) {
-      debugger;
       tooltip
         .html(data.value + " " + data.t + " records sold in " + data.n)
         // .style("left", (d.clientX + 20) + "px")
