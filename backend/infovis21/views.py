@@ -1,5 +1,5 @@
 from flask import jsonify, request
-
+from ..mongodb import MongoAccess as ma
 from infovis21 import app
 
 
@@ -13,12 +13,18 @@ def labels():
         d["limit"] = topk
         # sort and limit
         pass
+                # "labels": [
+            #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
+            #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
+            # ]
+
+    pipeline = [
+        { '$project': {'name': '$_id', 'total_songs': '$n_tracks', 'num_artists': '$n_artists', '_id' : 0} },
+    ]
+
     d.update(
         {
-            "labels": [
-                {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
-                {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
-            ]
+            "labels": list(ma.coll_labels.aggregate(pipeline))
         }
     )
     return jsonify(d)
@@ -34,12 +40,14 @@ def genres():
         d["limit"] = topk
         # sort the genres and limit
         pass
+
+    pipeline = [
+        { '$project': {'name' : '$genres', 'popularity' : '$popularity', '_id' : 0} },
+    ]
+
     d.update(
         {
-            "genres": [
-                {"name": "Rock", "popularity": 100},
-                {"name": "Dance", "popularity": 12},
-            ]
+            "genres": list(ma.coll_genres.aggregate(pipeline))
         }
     )
     return jsonify(d)

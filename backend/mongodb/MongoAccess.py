@@ -15,6 +15,7 @@ collnames = [
 
 coll_genres, coll_years, coll_tracks, coll_artists = [db[name] for name in collnames]
 coll_albums = db['albums']
+coll_labels = db['labels']
 
 def load_kaggle_csvs_into_mongodb():
     filenames = [
