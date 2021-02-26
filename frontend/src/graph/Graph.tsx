@@ -2,6 +2,8 @@ import * as React from "react";
 import * as d3 from "d3";
 import { D3Graph, D3Node } from "./model";
 import "./Graph.sass";
+import { LegendThreshold, LegendOrdinal } from '@vx/legend';
+import { scaleThreshold, scaleOrdinal } from '@vx/scale';
 
 interface GraphProps {
   width: number;
@@ -136,6 +138,23 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   render() {
     return (
       <div>
+                   <LegendOrdinal
+      scale={scaleOrdinal<string, string>({
+        domain: ["Rock", "R&B", "Pop", "Classical", "Reggae","Jazz"],
+        range: [
+          '#f2f0f7',
+          '#dadaeb',
+          '#bcbddc',
+          '#9e9ac8',
+          '#756bb1',
+          '#54278f',
+        ],// change the  colours for the legend  by adding the colour codes
+      })}
+      direction="column"
+      itemDirection="row"
+      labelMargin="0 30px 0 0"
+      shapeMargin="5px 10px 0"
+    />
       <div
         className="graph-container"
         ref={(ref: HTMLDivElement) => (this.ref = ref)}
