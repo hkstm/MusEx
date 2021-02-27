@@ -58,19 +58,15 @@ You can use Mongo Express for administration, but personally mainly use VS Code 
 
 The database dump the last time I checked is about 130mb which is too big for github so I made a zip of it and it's around 40 mb. If you get any errors when dealing with the file when committing or restoring please make sure that you (un)zipped the file (db.zip <-> db.dump)
 
-
-A dump of the database can be made using:
-
-```
-sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
-```
-
-And then restored by doing:
+A dump of the database can be restored by doing:
 ```
 sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
 ```
 
-The db_unmodified_csvs.dump is a replacement for the original kaggle csv's. ***After you loaded a db dump into mongodb you can do*** (the commands above use the more generic name db.dump):
+A dump of the database can be made using:
+```
+sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
+```
 
 ```
 from mongodb import MongoAccess as ma
