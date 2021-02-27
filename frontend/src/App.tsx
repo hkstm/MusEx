@@ -8,6 +8,7 @@ import "./App.css";
 import { TagCloud } from 'react-tagcloud';
 import { stats } from './mocks/stats'
 import Heatmap  from './charts/heatmap/heatmap'
+import Widget from './components/expandable-widget/widget'
 
 
 // this looks good: https://spin.atomicobject.com/2017/07/20/d3-react-typescript/
@@ -214,19 +215,26 @@ class App extends Component<{}, AppState> {
             {/* <div className="app-stats">
               { stats.map( stat => <div className='stat'>{stat.label} {stat.value} | </div>)}
             </div> */}
-            <div className="heatmap-widget">
-              <Heatmap/>
-            </div>
+            <Widget>
+              <div className="heatmap-widget">
+                <h2>Record sales for different genres</h2>
+                <Heatmap/>
+              </div>
+            </Widget>
           </div>
           <div className="side-view">
-            <div className="wordcloud-box">
-              <h3>Artists ranked by popularity</h3>
-              <ReactWordcloud words={artist_words} options={options}/> 
-            </div>
-            <div className="wordcloud-box">
-              <h3>Genres ranked by popularity</h3>
-              <ReactWordcloud words={genre_words} options={options}/> 
-            </div>
+            <Widget>
+              <div className="wordcloud-box">
+                <h3>Artists ranked by popularity</h3>
+                <ReactWordcloud words={artist_words} options={options}/> 
+              </div>
+            </Widget>
+            <Widget>
+              <div className="wordcloud-box">
+                <h3>Genres ranked by popularity</h3>
+                <ReactWordcloud words={genre_words} options={options}/> 
+              </div>
+            </Widget>
           </div>
         </div>
         <div className="mainPlot"></div>

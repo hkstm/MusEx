@@ -123,6 +123,10 @@ h1.number{
 }
 
 .app-header {
+  position:fixed;
+  width: 100vw;
+  top:0px;
+  z-index: 9999;
   background: black;
   color: white;
   padding: 0px 2px;
@@ -131,6 +135,7 @@ h1.number{
 
 .app-stats {
   display: flex;
+  margin-top: 30px;
   padding: 5px;
   border-bottom: 2px solid lightgrey;
 }
@@ -158,8 +163,7 @@ h1.number{
 
 .app-container .main-view {
   width: 70%;
-  /* border-right: 1px solid lightgrey; */
-  border-right: 1px solid lightgrey;
+  border-right: 2px solid lightgrey;
 }
 
 .app-container .side-view {
@@ -167,5 +171,8 @@ h1.number{
 }
 
 .wordcloud-box {
-  /* border: 2px solid lightgrey; */
+  margin: 10px;
+}
+.widget-container:nth-child(1) .wordcloud-box{
+  border-bottom: 1px solid lightgrey;
 }
