@@ -6,6 +6,8 @@ import * as d3 from "d3";
 import logo from "./logo.svg";
 import "./App.css";
 import { TagCloud } from 'react-tagcloud';
+import { stats } from './mocks/stats'
+import Heatmap  from './charts/heatmap/heatmap'
 
 
 // this looks good: https://spin.atomicobject.com/2017/07/20/d3-react-typescript/
@@ -195,6 +197,41 @@ class App extends Component<{}, AppState> {
 
     console.log(this.state.data);
     const items = this.state.data.map((char) => <li key={char}>{char}</li>);
+
+    return (
+      <div className="MusEx"> 
+        <div className="app-header">MusEx</div>
+        <div className="app-stats">
+          { stats.map( stat => 
+            <div className='stat'>
+              <div className="stat-value">{stat.value} </div>
+              <div className="stat-label">{stat.label}</div>
+            </div>
+          )}
+        </div>
+        <div className="app-container">
+          <div className="main-view">
+            {/* <div className="app-stats">
+              { stats.map( stat => <div className='stat'>{stat.label} {stat.value} | </div>)}
+            </div> */}
+            <div className="heatmap-widget">
+              <Heatmap/>
+            </div>
+          </div>
+          <div className="side-view">
+            <div className="wordcloud-box">
+              <h3>Artists ranked by popularity</h3>
+              <ReactWordcloud words={artist_words} options={options}/> 
+            </div>
+            <div className="wordcloud-box">
+              <h3>Genres ranked by popularity</h3>
+              <ReactWordcloud words={genre_words} options={options}/> 
+            </div>
+          </div>
+        </div>
+        <div className="mainPlot"></div>
+      </div>
+    );
 
     return (
       <div className="Parent">

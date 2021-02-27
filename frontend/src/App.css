@@ -121,3 +121,51 @@ h1.number{
 	text-align: center;
 	font-size: 40px;
 }
+
+.app-header {
+  background: black;
+  color: white;
+  padding: 0px 2px;
+  font-size: 26px;
+}
+
+.app-stats {
+  display: flex;
+  padding: 5px;
+  border-bottom: 2px solid lightgrey;
+}
+
+.app-stats .stat {
+  display: flex;
+  width: 280px;
+  /* height: 40px; */
+  /* padding: 10px; */
+}
+
+.app-stats .stat .stat-value {
+  font-size:46px;
+}
+.app-stats .stat .stat-label {
+  /* max-width: 60px; */
+  font-size: 16px;
+  margin: 28px 0 0 5px;
+}
+
+.app-container {
+  display: flex;
+  padding: 5px 0;
+}
+
+.app-container .main-view {
+  width: 70%;
+  /* border-right: 1px solid lightgrey; */
+  border-right: 1px solid lightgrey;
+}
+
+.app-container .side-view {
+  width: 30%;
+}
+
+.wordcloud-box {
+  /* border: 2px solid lightgrey; */
+}
