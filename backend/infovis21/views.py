@@ -2,6 +2,8 @@ from flask import jsonify, request
 from ..mongodb import MongoAccess as ma
 from infovis21 import app
 import numpy as np
+import itertools
+import base64
 
 @app.route("/labels")
 def labels():
@@ -93,7 +95,7 @@ def graph():
     if zoom:
         nzoom = int(zoom)
         d["zoom"] = nzoom
-
+        
     x_dim = 'acousticness'
     y_dim = 'instrumentalness'
     x_min_abs, x_max_abs = 0, 1000 # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
@@ -117,8 +119,11 @@ def graph():
         'year': {'max': 2021, 'min': 1920}
     }
 
-    zoom_modifier = 100
-    zoom = 9
+    # x = 10
+    # y = 500
+    # zoom = 2
+
+    zoom_modifier = 500
     genre_str = 'Genre'
     artist_str = 'Artist'
     track_str = 'Track' # this might be Song in the frontend not Track
@@ -133,61 +138,85 @@ def graph():
         8: track_str,
         9: track_str,
     }
-
-    x_min, x_max = np.clip([x - (zoom * zoom_modifier), x + (zoom * zoom_modifier)], x_min_abs, x_max_abs)
+    zoom_stage = zoom % 3  # Assuming 3 zoom levels per level of Genre, Artist, Track
+    x_min, x_max = np.clip([x - (zoom_stage * zoom_modifier), x + (zoom_stage * zoom_modifier)], x_min_abs, x_max_abs)
     x_min, x_max = np.interp([x_min, x_max], (x_min_abs, x_max_abs), (dim_absvals[x_dim]['min'], dim_absvals[x_dim]['max']))
-    y_min, y_max = np.clip([y - (zoom * zoom_modifier), y + (zoom * zoom_modifier)], y_min_abs, y_max_abs)
+    y_min, y_max = np.clip([y - (zoom_stage * zoom_modifier), y + (zoom_stage * zoom_modifier)], y_min_abs, y_max_abs)
     y_min, y_max = np.interp([y_min, y_max], (y_min_abs, y_max_abs), (dim_absvals[y_dim]['min'], dim_absvals[y_dim]['max']))
 
+    # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
     if zoom_map[zoom] == 'Genre':
-        pipeline = []
-        res = list(ma.coll_genres.aggregate(pipeline))
+        id_val = "$genres"
+        album_label = '$labels'
+        name = '$genres'
+        genre = ['$genres']  # genres here is just a single literal string
+        collection = ma.coll_genres
     elif zoom_map[zoom] == 'Artist':
-        pipeline = []
-        res = list(ma.coll_artists.aggregate(pipeline))
+        id_val = "$artists"
+        album_label = '$labels'
+        name = '$artists'
+        genre = {'$ifNull': [ "$genres", [] ]}
+        collection = ma.coll_artists
     elif zoom_map[zoom] == 'Track':
-        pipeline = [
-            { '$match': {
-                '$and': [
-                    { x_dim: {'$gte': x_min, '$lte': x_max } },
-                    { y_dim: {'$gte': y_min, '$lte': y_max } },
-                ] 
-            } },
-            { '$project': {
-                "id": '$id',
-                "name": "$name",
-                "size": { '$divide': [ "$popularity", dim_absvals['popularity']['max']/100 ] },
-                "type": zoom_map[zoom],  # can be one of Genre, Artist or Song
-                "genre": {'$ifNull': [ "$genres", [] ]},
-                "color": "#00000",
-                '_id': 0,
-            }}
-        ]
-        nodes = list(ma.coll_tracks.aggregate(pipeline))
-        pipeline = [
-            { '$match': {
-                '$and': [
-                    { x_dim: {'$gte': x_min, '$lte': x_max } },
-                    { y_dim: {'$gte': y_min, '$lte': y_max } },
-                ] 
-            } },
-            { '$group': {
-                "_id": '$album_label',
-                "members": { '$addToSet': "$id" },
-            }},
-            { '$unwind': '$_id'},
-            { '$project': {
-                "id": '$_id',
-                "members": "$members",
-                "color": "black",
-                'label': 1,
-                '_id': 0,
-            }}
-        ]
-        links = list(ma.coll_tracks.aggregate(pipeline))
+        id_val = "$id"
+        album_label = '$album_label'
+        name = '$name'
+        genre = {'$ifNull': [ "$genres", [] ]}
+        collection = ma.coll_tracks
     else:
         raise ValueError('Got invalid value for zoom, does not correspond to genre, artists or track level')
-
+    pipeline = [
+        { '$match': {
+            '$and': [
+                { x_dim: {'$gte': x_min, '$lte': x_max } },
+                { y_dim: {'$gte': y_min, '$lte': y_max } },
+            ] 
+        } },
+        { '$project': {
+            "id": { '$toString': "$_id"},
+            x_dim : f'${x_dim}',
+            y_dim : f'${y_dim}',
+            "name": name,
+            "size": { '$toInt': { '$divide': [ "$popularity", dim_absvals['popularity']['max']/100 ] }},
+            "type": zoom_map[zoom],  # can be one of Genre, Artist or Song
+            "genre": genre,
+            "color": "#00000",
+            '_id': 0,
+        }}
+    ]
+    nodes = list(collection.aggregate(pipeline))
+    pipeline = [
+        { '$match': {
+            '$and': [
+                { x_dim: {'$gte': x_min, '$lte': x_max } },
+                { y_dim: {'$gte': y_min, '$lte': y_max } },
+            ] 
+        } },
+        { '$unwind': album_label},
+        { '$group': {
+            "_id": album_label,
+            "members": { '$addToSet': id_val },
+        }},
+        { '$project': {
+            "id": "$_id",
+            "members": '$members',
+            "color": "black",  # needs to be set programmatically
+        }},
+    ]
+    links_data = list(collection.aggregate(pipeline))
+    links = []
+    for label in links_data[:3]:
+        for src, dest in itertools.combinations(label['members'], 2):
+            links.append(
+                {
+                    "src": src,
+                    "dest": dest,
+                    "color": label['color'],
+                    "name": label['id'],
+                    # "label": base64.b64encode(bytes(label['id'], 'utf-8')),
+                    "label": base64.b64encode(bytes(label['id'], 'utf-8')).decode('utf-8'),  # not sure if we can send bytes? if not we can decode the base64 encoded label name as utf-8 and send that, which is kinda messy. Or just use the (utf-8) label name to begin with (they are unique) but not sure how the frontend would deal with the spaces in these label names
+                }
+            )
 
     d.update(
         {
