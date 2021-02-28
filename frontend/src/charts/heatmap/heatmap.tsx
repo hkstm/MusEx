@@ -76,8 +76,8 @@ class Heatmap extends Component {
     var mousemove = function(d: any, data: any) {
       tooltip
         .html(data.value + " " + data.t + " records sold in " + data.n)
-        // .style("left", (d.clientX + 20) + "px")
-        // .style("top", (d.clientY) + "px")
+        .style("left", (d.clientX + 20) + "px")
+        .style("top", (d.clientY - 150) + "px")
         // .style("left", (d3.pointer(this)[0]+70) + "px")
         // .style("top", (d3.pointer(this)[1]) + "px")
       }
@@ -94,16 +94,25 @@ class Heatmap extends Component {
         .attr("y", function(d:any) { return y(d.n) })//d.variable
         .attr("width", x.bandwidth() )
         .attr("height", y.bandwidth() )
-        .style("fill", function(d) { return myColor(d.value)} )
+        .style("fill", "white" )
+        // .style("fill", function(d) { return myColor(d.value)} )
       .on("mouseover", mouseover)
       .on("mousemove", mousemove)
-      .on("mouseleave", mouseleave)
+      .on("mouseleave", mouseleave)   
+      .transition() // and apply changes to all of them
+        .duration(500)
+        .style("fill", function(d) { return myColor(d.value)} )
   }
 
   render() {
     return (
         <div className="heatmap-container">
           <svg id="heatmap-svg"></svg>
+          <div className="heatmap-legend">
+            <div className="heatmap-gradient-legend"/>
+            <div className="heatmap-legend-lowval">Zero Sales</div>
+            <div className="heatmap-legend-highval">Most Played</div>
+          </div>
         </div>
     );
   }

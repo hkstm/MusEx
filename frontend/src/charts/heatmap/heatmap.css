@@ -8,16 +8,31 @@
 }
 
 #heatmap-svg {
+    float: left;
     width: 480px;
     height: 480px;
 }
 
+.heatmap-legend {
+    /* float: left; */
+    margin: 400px 0 0 500px;
+}
+.heatmap-gradient-legend {
+    display: flex;
+    border: 2px solid blue;
+    height: 20px;
+    width: 180px;
+    background-image: linear-gradient(to right, white , blue);
+}
+.heatmap-legend-lowval { float: left; margin-top: 0px;}
+.heatmap-legend-highval { float: left; margin-left: 50px; margin-top: 0px;}
+
 .heatmap-tooltip {
-    /* position: absolute; */
+    position: absolute;
     background-color: white;
     font: 8px;
     color: black;
-    border: 1 px solid lightgrey;
+    border: 2px solid black;
     border-radius: 2px;
     padding: 2px;
 }
