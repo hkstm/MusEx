@@ -4,6 +4,7 @@ import { D3Graph, D3Node } from "./model";
 import "./Graph.sass";
 
 interface GraphProps {
+  enabled: boolean;
   width: number;
   height: number;
   data: D3Graph;
@@ -30,6 +31,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   }
 
   componentDidMount() {
+    if (!this.props.enabled) return;
     this.svg = d3
       .select<HTMLDivElement, D3Graph>(this.ref)
       .append("svg")

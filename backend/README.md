@@ -70,11 +70,11 @@ And then restored by doing:
 sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
 ```
 
-The db_unmodified_csvs.dump is a replacement for the original kaggle csv's. ***After you loaded this dump into mongodb you can do*** (the commands above use the more generic name db.dump):
+The db_unmodified_csvs.dump is a replacement for the original kaggle csv's. ***After you loaded a db dump into mongodb you can do*** (the commands above use the more generic name db.dump):
 
 ```
-from mongodb import MongoAccess
-csv_replacement = MongoAccess.get_collection('data')  # or any other collection name like data_by_genres
+from mongodb import MongoAccess as ma
+csv_replacement = ma.get_collection(ma.coll_tracks)  # or other collection ma.coll_[tracks|genres|years|artists|albums]
 ```
 
 Don't know if macs support all the commands (substitutions) but this

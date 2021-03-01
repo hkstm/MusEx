@@ -1,10 +1,23 @@
 import React, { Component } from "react";
+import ReactWordcloud from "react-wordcloud";
 import axios from "axios";
 import Graph from "./graph/Graph";
 import { D3Graph } from "./graph/model";
 import Select from "./Select";
 import "./App.sass";
-import data from "./mockdata";
+import { graphData, artistWords, genreWords } from "./mockdata";
+
+const options = {
+  colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
+  enableTooltip: true,
+  deterministic: false,
+  fontFamily: "impact",
+  fontStyle: "normal",
+  fontWeight: "normal",
+  padding: 1,
+  rotations: 0,
+  transitionDuration: 1000,
+};
 
 type AppState = {
   data: string[];
@@ -48,11 +61,30 @@ class App extends Component<{}, AppState> {
           </nav>
         </header>
         <div id="content">
-          <Graph
-            width={window.innerWidth}
-            height={window.innerHeight - 40}
-            data={data}
-          ></Graph>
+          <div className="tile graph">
+            <Graph
+              enabled={true}
+              width={window.innerWidth}
+              height={window.innerHeight - 40}
+              data={graphData}
+            ></Graph>
+          </div>
+          <div className="stat num-artists">
+            <span className="number">80</span>
+            <span>Artists in dataset</span>
+          </div>
+          <div className="stat num-genres">
+            <span className="number">26</span>
+            <span>Genres in dataset</span>
+          </div>
+          <div className="tile artist-wordcloud">
+            <h3>Artists ranked by popularity</h3>
+            <ReactWordcloud words={artistWords} options={options} />
+          </div>
+          <div className="tile genre-wordcloud">
+            <h3>Genres ranked by popularity</h3>
+            <ReactWordcloud words={genreWords} options={options} />
+          </div>
         </div>
       </div>
     );

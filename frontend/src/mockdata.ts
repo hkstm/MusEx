@@ -1,4 +1,153 @@
-const data = {
+export const genreWords = [
+  {
+    text: "Rock",
+    value: 364,
+  },
+  {
+    text: "Pop",
+    value: 510,
+  },
+  {
+    text: "Blues",
+    value: 490,
+  },
+  {
+    text: "Latin",
+    value: 390,
+  },
+  {
+    text: "R&B",
+    value: 550,
+  },
+  {
+    text: "Kpop",
+    value: 400,
+  },
+  {
+    text: "Afrobeat",
+    value: 512,
+  },
+  {
+    text: "Cape Jazz",
+    value: 222,
+  },
+  {
+    text: "African heavy metal",
+    value: 433,
+  },
+  {
+    text: "Chinese rock",
+    value: 555,
+  },
+  {
+    text: "Gao trance",
+    value: 470,
+  },
+  {
+    text: "Indian jazz",
+    value: 240,
+  },
+  {
+    text: "Lo-fi",
+    value: 40,
+  },
+  {
+    text: "Gospel blues",
+    value: 637,
+  },
+  {
+    text: "Electric blues",
+    value: 124,
+  },
+  {
+    text: "Mambo",
+    value: 450,
+  },
+  {
+    text: "Merengue",
+    value: 300,
+  },
+  {
+    text: "Reggae",
+    value: 700,
+  },
+];
+export const artistWords = [
+  {
+    text: "The Beatles",
+    value: 364,
+  },
+  {
+    text: "Elvis Presley",
+    value: 510,
+  },
+  {
+    text: "Michael Jackson",
+    value: 490,
+  },
+  {
+    text: "Elton John",
+    value: 390,
+  },
+  {
+    text: "Madonna",
+    value: 550,
+  },
+  {
+    text: "Led Zeppelin",
+    value: 400,
+  },
+  {
+    text: "Rihanna",
+    value: 512,
+  },
+  {
+    text: "Pink floyd",
+    value: 222,
+  },
+  {
+    text: "Eminem",
+    value: 433,
+  },
+  {
+    text: "Taylor Swift",
+    value: 555,
+  },
+  {
+    text: "Mariah Carey",
+    value: 470,
+  },
+  {
+    text: "Queen",
+    value: 240,
+  },
+  {
+    text: "Celine Dion",
+    value: 40,
+  },
+  {
+    text: "Whitney Houston",
+    value: 637,
+  },
+  {
+    text: "AC/DC",
+    value: 124,
+  },
+  {
+    text: "Drake",
+    value: 450,
+  },
+  {
+    text: "Kanye west",
+    value: 300,
+  },
+  {
+    text: "Justin Bieber",
+    value: 700,
+  },
+];
+
+export const graphData = {
   "nodes": [
     { "id": "Myriel", "group": 1 },
     { "id": "Napoleon", "group": 1 },
@@ -335,5 +484,3 @@ const data = {
     { "source": "Mme.Hucheloup", "target": "Enjolras", "value": 1 }
   ]
 };
-
-export default data;

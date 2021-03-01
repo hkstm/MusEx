@@ -1,3 +1,6 @@
+# SharonV1
+[20-02-2020  18:02]  The front  page now no longer shows the react logo but an  empty field with a title and one box for the main plot. There are also different classes for the other visualizations. The  changes  where made in app.css and app.jsx
+
 # InfoVis 2021
 
 Note: All setup instructions are only tested under Linux and macOS.
@@ -14,6 +17,16 @@ cd VU.InfoVis2021
 If not yet installed, get the `yarn` package manager:
 ```bash
 sudo npm install --global yarn
+```
+
+On Debian/Ubuntu/Pop OS you might need to do something like this based on [this SO post](https://stackoverflow.com/questions/46013544/yarn-install-command-error-no-such-file-or-directory-install) and [yarn docs](https://classic.yarnpkg.com/en/docs/install#debian-stable):
+```bash
+sudo apt remove cmdtest
+sudo apt remove yarn
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt-get update
+sudo apt-get install yarn -y
 ```
 
 #### Setup
