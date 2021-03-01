@@ -2,7 +2,6 @@
 
 """Console script for infovis21."""
 import sys
-import typing
 
 import click
 
