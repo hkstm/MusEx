@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from ..mongodb import MongoAccess as ma
+from infovis21.mongodb import MongoAccess as ma
 from infovis21 import app
 import numpy as np
 import itertools
@@ -37,19 +37,18 @@ def genres():
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
     d = {}
+    pipeline = [
+        { '$project': {'name' : '$genres', 'popularity' : '$popularity', '_id' : 0} },
+    ]
     if limit:
         topk = int(limit)
         d["limit"] = topk
         # sort the genres and limit
-        pass
-
-    pipeline = [
-        { '$project': {'name' : '$genres', 'popularity' : '$popularity', '_id' : 0} },
-    ]
-
+        pipeline.update({'$limit', topk})
     d.update(
         {
             "genres": list(ma.coll_genres.aggregate(pipeline))
+
         }
     )
     return jsonify(d)
@@ -57,7 +56,7 @@ def genres():
 
 @app.route("/select")
 def select():
-    """ Return the node ids that should be highlighted based on a user selection """
+    """ Return the node ids thae should be highlighted based on a user selection """
     d = {}
     node = request.args.get("node")
     if node:

@@ -1,7 +1,6 @@
 version: '3.1'
 
 services:
-
   mongo:
     image: mongo
     container_name: mongoinstance
@@ -9,7 +8,7 @@ services:
     ports:
       - 27017:27017
     volumes: 
-      - ./data:/data/db
+      - ./backend/infovis21/mongodb/data/:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example

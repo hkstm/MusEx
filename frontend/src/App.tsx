@@ -167,21 +167,26 @@ const options = {
   transitionDuration: 1000
 };
 
+type Genre = {
+  name: string;
+  popularity: number;
+};
+
 type AppState = {
-  data: string[];
+  genres: Genre[];
 };
 
 class App extends Component<{}, AppState> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      data: [],
+      genres: [],
     };
   }
 
   componentDidMount() {
-    axios.get(`http://localhost:5000/data`).then((res) => {
-      this.setState({ data: res.data });
+    axios.get(`http://localhost:5000/genres?limit=100`).then((res) => {
+      this.setState({ genres: res.data });
     });
   };
 
@@ -193,8 +198,8 @@ class App extends Component<{}, AppState> {
       .attr("cy", 100)
       .attr("fill", "red");
 
-    console.log(this.state.data);
-    const items = this.state.data.map((char) => <li key={char}>{char}</li>);
+    console.log(this.state.genres);
+    // const items = this.state.data.map((char) => <li key={char}>{char}</li>);
 
     return (
       <div className="Parent">
