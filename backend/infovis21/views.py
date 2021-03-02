@@ -146,7 +146,7 @@ def _select():
 
     topk = 6
     if _limit:
-        topk = int(limit)
+        topk = int(_limit)
         d["limit"] = topk
 
     zoom = 4
