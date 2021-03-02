@@ -219,6 +219,7 @@ def graph():
         nzoom = int(zoom)
         d["zoom"] = nzoom
         
+    
     x_dim = 'acousticness'
     y_dim = 'instrumentalness'
     x_min_abs, x_max_abs = 0, 1000 # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
@@ -229,30 +230,27 @@ def graph():
     # zoom = 2
 
     zoom_modifier = 500
-    genre_str = 'Genre'
-    artist_str = 'Artist'
-    track_str = 'Track' # this might be Song in the frontend not Track
-
-    zoom_stage = zoom % 3  # Assuming 3 zoom levels per level of Genre, Artist, Track
-    x_min, x_max = np.clip([x - (zoom_stage * zoom_modifier), x + (zoom_stage * zoom_modifier)], x_min_abs, x_max_abs)
+    print(type(d["x"]), type(d["y"]), type(d["zoom"]))
+    zoom_stage = d["zoom"] % 3  # Assuming 3 zoom levels per level of Genre, Artist, Track
+    x_min, x_max = np.clip([d["x"] - (zoom_stage * zoom_modifier), d["x"] + (zoom_stage * zoom_modifier)], x_min_abs, x_max_abs)
     x_min, x_max = np.interp([x_min, x_max], (x_min_abs, x_max_abs), (dim_absvals[x_dim]['min'], dim_absvals[x_dim]['max']))
-    y_min, y_max = np.clip([y - (zoom_stage * zoom_modifier), y + (zoom_stage * zoom_modifier)], y_min_abs, y_max_abs)
+    y_min, y_max = np.clip([d["y"] - (zoom_stage * zoom_modifier), d["y"] + (zoom_stage * zoom_modifier)], y_min_abs, y_max_abs)
     y_min, y_max = np.interp([y_min, y_max], (y_min_abs, y_max_abs), (dim_absvals[y_dim]['min'], dim_absvals[y_dim]['max']))
 
     # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
-    if zoom_map[zoom] == 'Genre':
+    if zoom_map[d["zoom"]] == 'Genre':
         id_val = "$genres"
         album_label = '$labels'
         name = '$genres'
         genre = ['$genres']  # genres here is just a single literal string
         collection = ma.coll_genres
-    elif zoom_map[zoom] == 'Artist':
+    elif zoom_map[d["zoom"]] == 'Artist':
         id_val = "$artists"
         album_label = '$labels'
         name = '$artists'
         genre = {'$ifNull': [ "$genres", [] ]}
         collection = ma.coll_artists
-    elif zoom_map[zoom] == 'Track':
+    elif zoom_map[d["zoom"]] == 'Track':
         id_val = "$id"
         album_label = '$album_label'
         name = '$name'
@@ -273,7 +271,7 @@ def graph():
             y_dim : f'${y_dim}',
             "name": name,
             "size": { '$toInt': { '$divide': [ "$popularity", dim_absvals['popularity']['max']/100 ] }},
-            "type": zoom_map[zoom],  # can be one of Genre, Artist or Song
+            "type": zoom_map[d["zoom"]],  # can be one of Genre, Artist or Song
             "genre": genre,
             "color": "#00000",
             '_id': 0,
