@@ -6,7 +6,7 @@ import numpy as np
 from flask import abort, jsonify, request
 from sklearn.metrics.pairwise import cosine_similarity
 
-from infovis21 import app
+from infovis21.app import app
 from infovis21.mongodb import MongoAccess as ma
 
 # I'll factor this and the mongodb related logic out of this file when we have a functional prototype
