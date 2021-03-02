@@ -5,5 +5,5 @@
 .dccache
 regex_tmp
 *.pyc
-backend/infovis21/mongodb/data/*
-backend/infovis21/mongodb/db.dump
+data/db/*
+data/db.dump

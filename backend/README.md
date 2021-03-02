@@ -60,12 +60,12 @@ The database dump the last time I checked is about 150mb which is too big for gi
 
 A dump of the database can be restored by doing:
 ```bash
-sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/infovis21/mongodb/db.dump
+sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 ```
 
 A dump of the database can be made using:
 ```bash
-sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/infovis21/mongodb/db.dump
+sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 ```
 
 ```
@@ -79,6 +79,6 @@ $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') is just the contain
 
 and this
 
-$(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/infovis21/mongodb/db.dump
+$(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 
 just the path to the db.dump file, you can store it wherever you want in principle
