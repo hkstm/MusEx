@@ -1,7 +1,11 @@
 import ast
 
 import pandas as pd
+import pymongo
 from pymongo import MongoClient
+
+ASC = pymongo.ASCENDING
+DESC = pymongo.DESCENDING
 
 client = MongoClient("mongodb://root:example@localhost:27017/")
 db = client["kaggle"]

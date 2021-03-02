@@ -2,7 +2,7 @@ import base64
 import itertools
 
 import numpy as np
-from flask import jsonify, request
+from flask import abort, jsonify, request
 from sklearn.metrics.pairwise import cosine_similarity
 
 from infovis21 import app
@@ -15,6 +15,22 @@ x_min_abs, x_max_abs = (
     1000,
 )  # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
 y_min_abs, y_max_abs = 0, 1000
+
+dimensions = [
+    "danceability",
+    "duration_ms",
+    "energy",
+    "instrumentalness",
+    "liveness",
+    "loudness",
+    "speechiness",
+    "tempo",
+    "valence",
+    "popularity",
+    "key",
+    "mode",
+    "acousticness",
+]
 
 dim_absvals = {
     "acousticness": {"max": 0.996, "min": 0.0},
@@ -51,21 +67,27 @@ zoom_map = {
 }
 
 
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify(error=str(e)), 400
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify(error=str(e)), 404
+
+
+@app.route("/dimensions")
+def _dimensions():
+    """ Return a list of all dimensions of the dataset """
+    return jsonify(dimensions)
+
+
 @app.route("/labels")
-def labels():
+def _labels():
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
     d = {}
-    if limit:
-        topk = int(limit)
-        d["limit"] = topk
-        # sort and limit
-        pass
-        # "labels": [
-        #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
-        #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
-        # ]
-
     pipeline = [
         {
             "$project": {
@@ -76,13 +98,17 @@ def labels():
             }
         },
     ]
-
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        pipeline.append({"$sort": {"total_songs": ma.DESC}})
+        pipeline.append({"$limit": topk})
     d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
     return jsonify(d)
 
 
 @app.route("/genres")
-def genres():
+def _genres():
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
     d = {}
@@ -92,61 +118,63 @@ def genres():
     if limit:
         topk = int(limit)
         d["limit"] = topk
-        # sort the genres and limit
-        pipeline.update({"$limit", topk})
+        pipeline.append({"$sort": {"popularity": ma.DESC}})
+        pipeline.append({"$limit": topk})
     d.update({"genres": list(ma.coll_genres.aggregate(pipeline))})
     return jsonify(d)
 
 
 @app.route("/select")
-def select():
+def _select():
     """ Return the node ids thae should be highlighted based on a user selection """
     d = {}
-    node = request.args.get("node")
-    # if node:
-    #     node_id = int(node)
-    #     # this is the id that we make a selection based on
-    #     d["node"] = node_id
+    node = request.args.get("node")  # either genre/artist name or track ID
+    _limit = request.args.get("limit")
+    _zoom = request.args.get("zoom")
+    dimx = request.args.get("dimx")
+    dimy = request.args.get("dimy")
 
-    top = 6  # number of similar nodes, includes the node itself
-
-    # these need to be set from the request dunno what they are called
-    zoom = 4
-    selected_id = "Husman"  # the user selection either a genre/artist name or track id
-    x_dim = "acousticness"
-    y_dim = "instrumentalness"
-
-    if zoom_map[zoom] == "Genre":
-        id_val = "$genres"
-        collection = ma.coll_genres
-    elif zoom_map[zoom] == "Artist":
-        id_val = "$artists"
-        collection = ma.coll_artists
-    elif zoom_map[zoom] == "Track":
-        id_val = "$id"
-        collection = ma.coll_tracks
-    else:
-        raise ValueError(
-            "Got invalid value for zoom, does not correspond to genre, artists or track level"
+    if node:
+        # node_id = int(node)
+        # d["node"] = node_id
+        pass
+    if not (node and dimx and dimy):
+        return abort(
+            400,
+            description="a node ID, the zoom level, and the x and y dimensions are required to make a selection, e.g. /select?node=someID&zoom=1&dimx=acousticness&dimy=loudness",
         )
 
-    dimensions = [
-        "danceability",
-        "duration_ms",
-        "energy",
-        "instrumentalness",
-        "liveness",
-        "loudness",
-        "speechiness",
-        "tempo",
-        "valence",
-        "popularity",
-        "key",
-        "mode",
-        "acousticness",
-    ]
+    topk = 6
+    if _limit:
+        topk = int(limit)
+        d["limit"] = topk
 
-    project_stage = {"$project": {"id": id_val, "_id": 0,}}
+    zoom = 4
+    if _zoom:
+        zoom = int(_zoom)
+        d["zoom"] = zoom
+
+    if zoom_map[zoom] == "Genre":
+        id_val = "genres"
+        collection = ma.coll_genres
+    elif zoom_map[zoom] == "Artist":
+        id_val = "artists"
+        collection = ma.coll_artists
+    elif zoom_map[zoom] == "Track":
+        id_val = "id"
+        collection = ma.coll_tracks
+    else:
+        return abort(
+            400,
+            description="Got invalid value for zoom, does not correspond to genre, artists or track level",
+        )
+
+    project_stage = {
+        "$project": {
+            "id": "$" + id_val,
+            "_id": 0,
+        }
+    }
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in dimensions]
     pipeline = [
@@ -155,11 +183,10 @@ def select():
     ]
 
     res = list(collection.aggregate(pipeline))
-    selected = list(
-        collection.aggregate(
-            [{"$match": {id_val.split("$")[-1]: selected_id}}, project_stage]
-        )
-    )[0]
+    selected = list(collection.aggregate([{"$match": {id_val: node}}, project_stage]))
+    if len(selected) < 1:
+        return abort(404, description=f"node with ID '{node}' was not found.")
+    selected = selected[0]
 
     # extract 'vector' that is ordered unlike python dicts
     create_vector = lambda node: [node[dim] for dim in dimensions]
@@ -175,34 +202,34 @@ def select():
     # res_cos_func = (lambda a: np.dot(a.reshape(-1, 1), selected_np)/(np.linalg.norm(a.reshape(1, -1))*np.linalg.norm(selected_np)))(np.array(list(map(lambda doc: create_vector(doc), res)), dtype=np.float64))
 
     # get indices of top n similar nodes
-    top_idx = np.argpartition(cos_sim, -top)[-top:]
+    topk_idx = np.argpartition(cos_sim, -topk)[-topk:]
 
     # retrieving doc info and actual similarity value
-    similar_nodes = [(res[i], cos_sim[i]) for i in top_idx]
+    similar_nodes = [(res[i], cos_sim[i]) for i in topk_idx]
 
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
     x_to_normspace = lambda x: np.interp(
         x,
         (x_min_abs, x_max_abs),
-        (dim_absvals[x_dim]["min"], dim_absvals[x_dim]["max"]),
+        (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
     )
     y_to_normspace = lambda y: np.interp(
         y,
         (y_min_abs, y_max_abs),
-        (dim_absvals[y_dim]["min"], dim_absvals[y_dim]["max"]),
+        (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
     )
 
     # find max and min values for dimensions for regions of interest (not sure if that is what is intended)
     for i in range(1, len(similar_nodes)):
         curr_node = similar_nodes[i][0]
-        if curr_node[x_dim] > similar_nodes[max_x_i][0][x_dim]:
+        if curr_node[dimx] > similar_nodes[max_x_i][0][dimx]:
             max_x_i = i
-        if curr_node[y_dim] > similar_nodes[max_y_i][0][y_dim]:
+        if curr_node[dimy] > similar_nodes[max_y_i][0][dimy]:
             max_y_i = i
-        if curr_node[x_dim] < similar_nodes[max_x_i][0][x_dim]:
+        if curr_node[dimx] < similar_nodes[max_x_i][0][dimx]:
             min_x_i = i
-        if curr_node[y_dim] < similar_nodes[max_y_i][0][y_dim]:
+        if curr_node[dimy] < similar_nodes[max_y_i][0][dimy]:
             min_y_i = i
 
     d.update(
@@ -211,18 +238,18 @@ def select():
             "regions_of_interest": {
                 "dimensions": {
                     "width": x_to_normspace(
-                        similar_nodes[max_x_i][0][x_dim]
-                        - similar_nodes[min_x_i][0][x_dim]
+                        similar_nodes[max_x_i][0][dimx]
+                        - similar_nodes[min_x_i][0][dimx]
                     ),
                     "height": y_to_normspace(
-                        similar_nodes[max_y_i][0][y_dim]
-                        - similar_nodes[min_y_i][0][y_dim]
+                        similar_nodes[max_y_i][0][dimy]
+                        - similar_nodes[min_y_i][0][dimy]
                     ),
                 },
                 "interest": [
                     {
-                        "x": x_to_normspace(tpl[0][x_dim]),
-                        "y": y_to_normspace(tpl[0][y_dim]),
+                        "x": x_to_normspace(tpl[0][dimx]),
+                        "y": y_to_normspace(tpl[0][dimy]),
                         "value": tpl[1],
                     }
                     for tpl in similar_nodes
@@ -234,7 +261,7 @@ def select():
 
 
 @app.route("/graph")
-def graph():
+def _graph():
     """ Return a the graph data for a specific zoom level and postion """
     d = {}
     x = request.args.get("x")
@@ -250,20 +277,22 @@ def graph():
         nzoom = int(zoom)
         d["zoom"] = nzoom
 
-    x_dim = "acousticness"
-    y_dim = "instrumentalness"
+    if not (x and y and zoom):
+        return abort(
+            400,
+            description="you need to specify x and y coordinates, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness",
+        )
+
+    dimx = request.args.get("dimx")
+    dimy = request.args.get("dimy")
+
     x_min_abs, x_max_abs = (
         0,
         1000,
     )  # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
     y_min_abs, y_max_abs = 0, 1000
 
-    # x = 10
-    # y = 500
-    # zoom = 2
-
     zoom_modifier = 500
-    print(type(d["x"]), type(d["y"]), type(d["zoom"]))
     zoom_stage = (
         d["zoom"] % 3
     )  # Assuming 3 zoom levels per level of Genre, Artist, Track
@@ -275,7 +304,7 @@ def graph():
     x_min, x_max = np.interp(
         [x_min, x_max],
         (x_min_abs, x_max_abs),
-        (dim_absvals[x_dim]["min"], dim_absvals[x_dim]["max"]),
+        (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
     )
     y_min, y_max = np.clip(
         [d["y"] - (zoom_stage * zoom_modifier), d["y"] + (zoom_stage * zoom_modifier)],
@@ -285,46 +314,47 @@ def graph():
     y_min, y_max = np.interp(
         [y_min, y_max],
         (y_min_abs, y_max_abs),
-        (dim_absvals[y_dim]["min"], dim_absvals[y_dim]["max"]),
+        (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
     )
 
     # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
     if zoom_map[d["zoom"]] == "Genre":
-        id_val = "$genres"
+        id_val = "genres"
         album_label = "$labels"
         name = "$genres"
         genre = ["$genres"]  # genres here is just a single literal string
         collection = ma.coll_genres
     elif zoom_map[d["zoom"]] == "Artist":
-        id_val = "$artists"
+        id_val = "artists"
         album_label = "$labels"
         name = "$artists"
         genre = {"$ifNull": ["$genres", []]}
         collection = ma.coll_artists
     elif zoom_map[d["zoom"]] == "Track":
-        id_val = "$id"
+        id_val = "id"
         album_label = "$album_label"
         name = "$name"
         genre = {"$ifNull": ["$genres", []]}
         collection = ma.coll_tracks
     else:
-        raise ValueError(
-            "Got invalid value for zoom, does not correspond to genre, artists or track level"
+        return abort(
+            400,
+            description="Got invalid value for zoom, does not correspond to genre, artists or track level",
         )
     pipeline = [
         {
             "$match": {
                 "$and": [
-                    {x_dim: {"$gte": x_min, "$lte": x_max}},
-                    {y_dim: {"$gte": y_min, "$lte": y_max}},
+                    {dimx: {"$gte": x_min, "$lte": x_max}},
+                    {dimy: {"$gte": y_min, "$lte": y_max}},
                 ]
             }
         },
         {
             "$project": {
                 "id": {"$toString": "$_id"},
-                x_dim: f"${x_dim}",
-                y_dim: f"${y_dim}",
+                dimx: f"${dimx}",
+                dimy: f"${dimy}",
                 "name": name,
                 "size": {
                     "$toInt": {
@@ -346,13 +376,18 @@ def graph():
         {
             "$match": {
                 "$and": [
-                    {x_dim: {"$gte": x_min, "$lte": x_max}},
-                    {y_dim: {"$gte": y_min, "$lte": y_max}},
+                    {dimx: {"$gte": x_min, "$lte": x_max}},
+                    {dimy: {"$gte": y_min, "$lte": y_max}},
                 ]
             }
         },
         {"$unwind": album_label},
-        {"$group": {"_id": album_label, "members": {"$addToSet": id_val},}},
+        {
+            "$group": {
+                "_id": album_label,
+                "members": {"$addToSet": "$" + id_val},
+            }
+        },
         {
             "$project": {
                 "id": "$_id",
@@ -379,6 +414,9 @@ def graph():
             )
 
     d.update(
-        {"nodes": nodes, "links": links,}
+        {
+            "nodes": nodes,
+            "links": links,
+        }
     )
     return jsonify(d)
