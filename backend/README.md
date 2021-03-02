@@ -51,7 +51,7 @@ invoke type-check
 #### MongoDB
 
 Starting Mongo (mongodb://root:example@localhost) and Mongo Express(http://localhost:8081/) assuming you are in the VU.InfoVis2021 root directory:
-```
+```bash
 sudo docker-compose -f stack.yml up
 ```
 You can use Mongo Express for administration, but personally mainly use VS Code plugin
@@ -59,12 +59,12 @@ You can use Mongo Express for administration, but personally mainly use VS Code 
 The database dump the last time I checked is about 150mb which is too big for github so I made a zip of it and it's around 40 mb. If you get any errors when dealing with the file when committing or restoring please make sure that you (un)zipped the file (db.zip <-> db.dump)
 
 A dump of the database can be restored by doing:
-```
+```bash
 sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/infovis21/mongodb/db.dump
 ```
 
 A dump of the database can be made using:
-```
+```bash
 sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/infovis21/mongodb/db.dump
 ```
 
