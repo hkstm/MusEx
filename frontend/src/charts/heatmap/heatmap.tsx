@@ -51,16 +51,15 @@ class Heatmap extends Component {
     var myColor = function(n: number) {var shade = n * 2.55; return `rgb(${0}, ${0}, ${shade})`}
 
     const buildData = () => {
-      let array: any = []
-      myVars.map((d) => {
+      return myVars.reduce((acc, d) => {
         const o = myGroups.map((t) => ({
           t: t,
           n: d,
           value: Math.floor(Math.random() * 100)
         }))
-        array = [...array,...o]
-      })
-      return array;
+        acc.push(o);
+        return acc;
+      }, [] as any[])
   }
 
     const data = buildData();

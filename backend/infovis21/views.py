@@ -1,5 +1,6 @@
 import base64
 import itertools
+import typing
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -169,12 +170,7 @@ def _select():
             description="Got invalid value for zoom, does not correspond to genre, artists or track level",
         )
 
-    project_stage = {
-        "$project": {
-            "id": "$" + id_val,
-            "_id": 0,
-        }
-    }
+    project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in dimensions]
     pipeline = [
@@ -210,14 +206,10 @@ def _select():
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
     x_to_normspace = lambda x: np.interp(
-        x,
-        (x_min_abs, x_max_abs),
-        (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
+        x, (x_min_abs, x_max_abs), (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
     )
     y_to_normspace = lambda y: np.interp(
-        y,
-        (y_min_abs, y_max_abs),
-        (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
+        y, (y_min_abs, y_max_abs), (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
     )
 
     # find max and min values for dimensions for regions of interest (not sure if that is what is intended)
@@ -382,12 +374,7 @@ def _graph():
             }
         },
         {"$unwind": album_label},
-        {
-            "$group": {
-                "_id": album_label,
-                "members": {"$addToSet": "$" + id_val},
-            }
-        },
+        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val},}},
         {
             "$project": {
                 "id": "$_id",
@@ -414,9 +401,6 @@ def _graph():
             )
 
     d.update(
-        {
-            "nodes": nodes,
-            "links": links,
-        }
+        {"nodes": nodes, "links": links,}
     )
     return jsonify(d)
