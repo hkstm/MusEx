@@ -2,6 +2,8 @@ import * as React from "react";
 import * as d3 from "d3";
 import { D3Graph, D3Node } from "./model";
 import "./Graph.sass";
+import {Simulate} from "react-dom/test-utils";
+import {graphData} from "../mockdata";
 
 interface GraphProps {
   enabled: boolean;
@@ -123,6 +125,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke", "#FFFFFF")
       .style("stroke-width", 1.5)
       .style("fill", (d: any) => color(d.group));
+
+    // click event
+
+
+    d3.selectAll('.nodes')
+        .on('click', function(d) {
+          console.log(d);
+          alert("We recommend artists: "); //**+ d.nodes**//); // artists in proximity
+        });
+
 
     force.on("tick", () => {
       links
