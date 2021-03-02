@@ -60,12 +60,21 @@ The database dump the last time I checked is about 150mb which is too big for gi
 
 A dump of the database can be restored by doing:
 ```bash
-sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
+cd backend
+invoke snapshot
+invoke snapshot --sudo # if you are not in the docker group
+
+# or manually
+sudo docker exec -i $(sudo docker ps -a | grep musexmongodb | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 ```
 
 A dump of the database can be made using:
 ```bash
-sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
+cd backend
+invoke restore
+invoke restore --sudo # if you are not in the docker group
+
+sudo docker exec $(sudo docker ps -a | grep musexmongodb | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 ```
 
 ```
@@ -75,7 +84,7 @@ csv_replacement = ma.get_collection(ma.coll_tracks)  # or other collection ma.co
 
 Don't know if macs support all the commands (substitutions) but this
 
-$(sudo docker ps -a | grep mongoinstance | awk '{print $1}') is just the container id of the mongo instance which you can deduce from doing sudo docker ps -a
+$(sudo docker ps -a | grep musexmongodb | awk '{print $1}') is just the container id of the mongo instance which you can deduce from doing sudo docker ps -a
 
 and this
 

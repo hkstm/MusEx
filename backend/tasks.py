@@ -1,6 +1,6 @@
 """
 Tasks for maintaining the project.
-Execute 'invoke --list' for guidance on using Invoke
+Execute 'invoke --list' for guidance on using invoke
 """
 import shutil
 import pprint
@@ -12,6 +12,7 @@ from pathlib import Path
 Path().expanduser()
 
 ROOT_DIR = Path(__file__).parent
+PROJECT_DIR = ROOT_DIR.parent
 SETUP_FILE = ROOT_DIR.joinpath("setup.py")
 TEST_DIR = ROOT_DIR.joinpath("tests")
 SOURCE_DIR = ROOT_DIR.joinpath("infovis21")
@@ -50,6 +51,20 @@ def start(c, _open=False):
     """
     if _open: webbrowser.open("http://localhost:5000")
     c.run("FLASK_APP=infovis21.app pipenv run flask run")
+
+@task(help={"sudo": "Use sudo"})
+def snapshot(c, sudo=False):
+    """Create a snapshot of the current mongodb database
+    """
+    _sudo = "sudo" if sudo else ""
+    c.run(f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump")
+
+@task(help={"sudo": "Use sudo"})
+def restore(c, sudo=False):
+    """Restore the database from a snapshot
+    """
+    _sudo = "sudo" if sudo else ""
+    c.run(f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump")
 
 @task
 def lint(c):
