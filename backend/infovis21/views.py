@@ -125,6 +125,38 @@ def _genres():
     return jsonify(d)
 
 
+@app.route("/years")
+def _years():
+    """ Return a detailed info of music through different years for heatmap """
+    limit = request.args.get("limit")
+    d = {}
+    pipeline = [
+        {"$project": {
+            "year": "$year",
+            # "key": "$key",
+            # "mode": "$mode",
+            "popularity": "$popularity",
+            "acousticness": "$acousticness",
+            "danceability": "$danceability",
+            "duration_ms": "$duration_ms",
+            "energy": "$energy",
+            "instrumentalness": "$instrumentalness",
+            "liveness": "$liveness",
+            "loudness": "$loudness",
+            "speechiness": "$speechiness",
+            "tempo": "$tempo",
+            "valence": "$valence",
+            "_id": 0}},
+    ]
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        pipeline.append({"$sort": {"year": ma.DESC}})
+        pipeline.append({"$limit": topk})
+    d.update({"data": list(ma.coll_years.aggregate(pipeline))})
+    return jsonify(d)
+
+
 @app.route("/select")
 def _select():
     """ Return the node ids thae should be highlighted based on a user selection """
