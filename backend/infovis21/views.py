@@ -9,63 +9,56 @@ from sklearn.metrics.pairwise import cosine_similarity
 from infovis21.app import app
 from infovis21.mongodb import MongoAccess as ma
 
-# I'll factor this and the mongodb related logic out of this file when we have a functional prototype
-
 x_min_abs, x_max_abs = (
     0,
     1000,
 )  # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
-y_min_abs, y_max_abs = 0, 1000
+y_min_abs, y_max_abs = (
+    0,
+    1000,
+)
 
-dimensions = [
-    "danceability",
-    "duration_ms",
-    "energy",
-    "instrumentalness",
-    "liveness",
-    "loudness",
-    "speechiness",
-    "tempo",
-    "valence",
-    "popularity",
-    "key",
-    "mode",
-    "acousticness",
-]
 
-dim_absvals = {
-    "acousticness": {"max": 0.996, "min": 0.0},
-    "danceability": {"max": 0.988, "min": 0.0},
-    "duration_ms": {"max": 5338302, "min": 4937},
-    "energy": {"max": 1.0, "min": 0.0},
-    "explicit": {"max": 1, "min": 0},
-    "instrumentalness": {"max": 1.0, "min": 0.0},
-    "key": {"max": 11, "min": 0},
-    "liveness": {"max": 1.0, "min": 0.0},
-    "loudness": {"max": 3.855, "min": -60.0},
-    "mode": {"max": 1, "min": 0},
-    "popularity": {"max": 100, "min": 0},
-    "speechiness": {"max": 0.971, "min": 0.0},
-    "tempo": {"max": 243.507, "min": 0.0},
-    "valence": {"max": 1.0, "min": 0.0},
-    "year": {"max": 2021, "min": 1920},
-}
-
-genre_str = "Genre"
-artist_str = "Artist"
-track_str = "Track"  # this might be Song in the frontend not Track
-
-zoom_map = {
-    1: genre_str,
-    2: genre_str,
-    3: genre_str,
-    4: artist_str,
-    5: artist_str,
-    6: artist_str,
-    7: track_str,
-    8: track_str,
-    9: track_str,
-}
+def map_zoom_to_mongo(zoom):
+    # I'll factor this and the mongodb related logic out of this file when we have a functional prototype
+    zoom_map = {
+        1: ma.genre_str,
+        2: ma.genre_str,
+        3: ma.genre_str,
+        4: ma.artist_str,
+        5: ma.artist_str,
+        6: ma.artist_str,
+        7: ma.track_str,
+        8: ma.track_str,
+        9: ma.track_str,
+    }
+    mongo_values = {}
+    mongo_values['coll_type'] = zoom_map[zoom]
+    # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
+    if zoom_map[zoom] == "Genre":
+        mongo_values['id_val'] = "genres"
+        mongo_values['album_label'] = "$labels"
+        mongo_values['name'] = "$genres"
+        mongo_values['genre'] = ["$genres"]  # genres here is just a single literal string
+        mongo_values['collection'] = ma.coll_genres
+    elif zoom_map[zoom] == "Artist":
+        mongo_values['id_val'] = "artists"
+        mongo_values['album_label'] = "$labels"
+        mongo_values['name'] = "$artists"
+        mongo_values['genre'] = {"$ifNull": ["$genres", []]}
+        mongo_values['collection'] = ma.coll_artists
+    elif zoom_map[zoom] == "Track":
+        mongo_values['id_val'] = "id"
+        mongo_values['album_label'] = "$album_label"
+        mongo_values['name'] = "$name"
+        mongo_values['genre'] = {"$ifNull": ["$genres", []]}
+        mongo_values['collection'] = ma.coll_tracks
+    else:
+        return abort(
+            400,
+            description="Got invalid value for zoom, does not correspond to genre, artists or track level",
+        )
+    return mongo_values
 
 
 @app.errorhandler(400)
@@ -81,7 +74,7 @@ def not_found(e):
 @app.route("/dimensions")
 def _dimensions():
     """ Return a list of all dimensions of the dataset """
-    return jsonify(dimensions)
+    return jsonify(ma.dimensions)
 
 
 @app.route("/labels")
@@ -127,7 +120,7 @@ def _genres():
 
 @app.route("/select")
 def _select():
-    """ Return the node ids thae should be highlighted based on a user selection """
+    """ Return the node ids that should be highlighted based on a user selection """
     d = {}
     node = request.args.get("node")  # either genre/artist name or track ID
     _limit = request.args.get("limit")
@@ -155,24 +148,14 @@ def _select():
         zoom = int(_zoom)
         d["zoom"] = zoom
 
-    if zoom_map[zoom] == "Genre":
-        id_val = "genres"
-        collection = ma.coll_genres
-    elif zoom_map[zoom] == "Artist":
-        id_val = "artists"
-        collection = ma.coll_artists
-    elif zoom_map[zoom] == "Track":
-        id_val = "id"
-        collection = ma.coll_tracks
-    else:
-        return abort(
-            400,
-            description="Got invalid value for zoom, does not correspond to genre, artists or track level",
-        )
+
+    mongo_values = map_zoom_to_mongo(d["zoom"])
+    id_val = mongo_values['id_val']
+    collection = mongo_values['collection']
 
     project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
     # include all dimensions/features
-    [project_stage["$project"].update({dim: 1}) for dim in dimensions]
+    [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
     pipeline = [
         # { '$limit': 10},
         project_stage,
@@ -185,7 +168,7 @@ def _select():
     selected = selected[0]
 
     # extract 'vector' that is ordered unlike python dicts
-    create_vector = lambda node: [node[dim] for dim in dimensions]
+    create_vector = lambda node: [node[dim] for dim in ma.dimensions]
 
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
@@ -206,10 +189,10 @@ def _select():
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
     x_to_normspace = lambda x: np.interp(
-        x, (x_min_abs, x_max_abs), (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
+        x, (x_min_abs, x_max_abs), (ma.dim_absvals[dimx]["min"], ma.dim_absvals[dimx]["max"]),
     )
     y_to_normspace = lambda y: np.interp(
-        y, (y_min_abs, y_max_abs), (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
+        y, (y_min_abs, y_max_abs), (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
     )
 
     # find max and min values for dimensions for regions of interest (not sure if that is what is intended)
@@ -278,12 +261,6 @@ def _graph():
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
 
-    x_min_abs, x_max_abs = (
-        0,
-        1000,
-    )  # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
-    y_min_abs, y_max_abs = 0, 1000
-
     zoom_modifier = 500
     zoom_stage = (
         d["zoom"] % 3
@@ -296,7 +273,7 @@ def _graph():
     x_min, x_max = np.interp(
         [x_min, x_max],
         (x_min_abs, x_max_abs),
-        (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
+        (ma.dim_absvals[dimx]["min"], ma.dim_absvals[dimx]["max"]),
     )
     y_min, y_max = np.clip(
         [d["y"] - (zoom_stage * zoom_modifier), d["y"] + (zoom_stage * zoom_modifier)],
@@ -306,33 +283,17 @@ def _graph():
     y_min, y_max = np.interp(
         [y_min, y_max],
         (y_min_abs, y_max_abs),
-        (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
+        (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
     )
 
-    # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
-    if zoom_map[d["zoom"]] == "Genre":
-        id_val = "genres"
-        album_label = "$labels"
-        name = "$genres"
-        genre = ["$genres"]  # genres here is just a single literal string
-        collection = ma.coll_genres
-    elif zoom_map[d["zoom"]] == "Artist":
-        id_val = "artists"
-        album_label = "$labels"
-        name = "$artists"
-        genre = {"$ifNull": ["$genres", []]}
-        collection = ma.coll_artists
-    elif zoom_map[d["zoom"]] == "Track":
-        id_val = "id"
-        album_label = "$album_label"
-        name = "$name"
-        genre = {"$ifNull": ["$genres", []]}
-        collection = ma.coll_tracks
-    else:
-        return abort(
-            400,
-            description="Got invalid value for zoom, does not correspond to genre, artists or track level",
-        )
+    mongo_values = map_zoom_to_mongo(d["zoom"])
+    id_val = mongo_values['id_val']
+    album_label = mongo_values['album_label']
+    name = mongo_values['name']
+    genre = mongo_values['genre']
+    collection = mongo_values['collection']
+    coll_type = mongo_values['coll_type']
+
     pipeline = [
         {
             "$match": {
@@ -352,11 +313,11 @@ def _graph():
                     "$toInt": {
                         "$divide": [
                             "$popularity",
-                            dim_absvals["popularity"]["max"] / 100,
+                            ma.dim_absvals["popularity"]["max"] / 100,
                         ]
                     }
                 },
-                "type": zoom_map[d["zoom"]],  # can be one of Genre, Artist or Song
+                "type": coll_type,  # can be one of Genre, Artist or Song
                 "genre": genre,
                 "color": "#00000",
                 "_id": 0,

@@ -17,6 +17,44 @@ collnames = [
     "artists",
 ]
 
+dimensions = [
+    "danceability",
+    "duration_ms",
+    "energy",
+    "instrumentalness",
+    "liveness",
+    "loudness",
+    "speechiness",
+    "tempo",
+    "valence",
+    "popularity",
+    "key",
+    "mode",
+    "acousticness",
+]
+
+dim_absvals = {
+    "acousticness": {"max": 0.996, "min": 0.0},
+    "danceability": {"max": 0.988, "min": 0.0},
+    "duration_ms": {"max": 5338302, "min": 4937},
+    "energy": {"max": 1.0, "min": 0.0},
+    "explicit": {"max": 1, "min": 0},
+    "instrumentalness": {"max": 1.0, "min": 0.0},
+    "key": {"max": 11, "min": 0},
+    "liveness": {"max": 1.0, "min": 0.0},
+    "loudness": {"max": 3.855, "min": -60.0},
+    "mode": {"max": 1, "min": 0},
+    "popularity": {"max": 100, "min": 0},
+    "speechiness": {"max": 0.971, "min": 0.0},
+    "tempo": {"max": 243.507, "min": 0.0},
+    "valence": {"max": 1.0, "min": 0.0},
+    "year": {"max": 2021, "min": 1920},
+}
+
+genre_str = "Genre"
+artist_str = "Artist"
+track_str = "Track"  # this might be Song in the frontend not Track
+
 coll_genres, coll_years, coll_tracks, coll_artists = [db[name] for name in collnames]
 coll_albums = db["albums"]
 coll_labels = db["labels"]
