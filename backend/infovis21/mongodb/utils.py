@@ -47,7 +47,7 @@ def create_album_collection():
         },
         {"$set": {"_id": "$oid", "id": "$_id"}},
         {"$unset": "oid"},
-        {"$out": "album_audio_analysis"},
+        # {"$out": "album_audio_analysis"},
     ]
     return list(ma.coll_albums.aggregate(pipeline, allowDiskUse=True))
 
@@ -68,7 +68,7 @@ def add_labels_to_genres():
         {"$unwind": "$genre_lookup"},
         {"$set": {"genre_lookup.labels": "$labels"}},
         {"$replaceRoot": {"newRoot": "$genre_lookup"}},
-        {"$out": "genres_with_labels"},
+        # {"$out": "genres_with_labels"},
     ]
     return list(ma.coll_artists.aggregate(pipeline))
 
