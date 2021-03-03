@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
-import "./heatmap.css";
+import "./Heatmap.sass";
 
 class Heatmap extends Component {
   constructor(props: {}) {

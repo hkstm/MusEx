@@ -4,8 +4,11 @@ import axios from "axios";
 import Graph from "./graph/Graph";
 import { D3Graph } from "./graph/model";
 import Select from "./Select";
+import Heatmap from "./charts/heatmap/Heatmap";
 import "./App.sass";
 import { graphData, artistWords, genreWords } from "./mockdata";
+
+const MAX_WORDCLOUD_SIZE = 100;
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -26,7 +29,7 @@ type Genre = {
 
 type AppState = {
   genres: Genre[];
-  data: string[];
+  nodes: string[];
   graph?: D3Graph;
   dimensions: string[];
 };
@@ -36,19 +39,23 @@ class App extends Component<{}, AppState> {
     super(props);
     this.state = {
       genres: [],
-      dimensions: ["Danceability", "Acousticness", "Loudness"],
-      data: [],
+      dimensions: [],
+      nodes: [],
     };
   }
 
   componentDidMount() {
-    axios.get(`http://localhost:5000/genres?limit=100`).then((res) => {
+    axios.get(`http://localhost:5000/dimensions`).then((res) => {
+      this.setState({ dimensions: res.data });
+    });
+    axios.get(`http://localhost:5000/genres?limit=${MAX_WORDCLOUD_SIZE}`).then((res) => {
       this.setState({ genres: res.data });
     });
   }
 
   render() {
     console.log(this.state.genres);
+    console.log(this.state.dimensions);
     // const items = this.state.data.map((char) => <li key={char}>{char}</li>);
     return (
       <div className="App">
@@ -69,7 +76,12 @@ class App extends Component<{}, AppState> {
         </header>
         <div id="content">
           <div className="tile graph">
-            <Graph
+            <Heatmap
+              enabled={true}
+              width={100}
+              height={100}
+            ></Heatmap>
+<Graph
               enabled={true}
               width={window.innerWidth}
               height={window.innerHeight - 40}
