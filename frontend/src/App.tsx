@@ -19,7 +19,13 @@ const options = {
   transitionDuration: 1000,
 };
 
+type Genre = {
+  name: string;
+  popularity: number;
+};
+
 type AppState = {
+  genres: Genre[];
   data: string[];
   graph?: D3Graph;
   dimensions: string[];
@@ -29,19 +35,20 @@ class App extends Component<{}, AppState> {
   constructor(props: {}) {
     super(props);
     this.state = {
+      genres: [],
       dimensions: ["Danceability", "Acousticness", "Loudness"],
       data: [],
     };
   }
 
   componentDidMount() {
-    axios.get(`http://localhost:5000/data`).then((res) => {
-      this.setState({ data: res.data });
+    axios.get(`http://localhost:5000/genres?limit=100`).then((res) => {
+      this.setState({ genres: res.data });
     });
   }
 
   render() {
-    // console.log(this.state.data);
+    console.log(this.state.genres);
     // const items = this.state.data.map((char) => <li key={char}>{char}</li>);
     return (
       <div className="App">
