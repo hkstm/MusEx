@@ -19,48 +19,6 @@ y_min_abs, y_max_abs = (
 )
 
 
-def map_zoom_to_mongo(zoom):
-    # I'll factor this and the mongodb related logic out of this file when we have a functional prototype
-    zoom_map = {
-        1: ma.genre_str,
-        2: ma.genre_str,
-        3: ma.genre_str,
-        4: ma.artist_str,
-        5: ma.artist_str,
-        6: ma.artist_str,
-        7: ma.track_str,
-        8: ma.track_str,
-        9: ma.track_str,
-    }
-    mongo_values = {}
-    mongo_values['coll_type'] = zoom_map[zoom]
-    # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
-    if zoom_map[zoom] == "Genre":
-        mongo_values['id_val'] = "genres"
-        mongo_values['album_label'] = "$labels"
-        mongo_values['name'] = "$genres"
-        mongo_values['genre'] = ["$genres"]  # genres here is just a single literal string
-        mongo_values['collection'] = ma.coll_genres
-    elif zoom_map[zoom] == "Artist":
-        mongo_values['id_val'] = "artists"
-        mongo_values['album_label'] = "$labels"
-        mongo_values['name'] = "$artists"
-        mongo_values['genre'] = {"$ifNull": ["$genres", []]}
-        mongo_values['collection'] = ma.coll_artists
-    elif zoom_map[zoom] == "Track":
-        mongo_values['id_val'] = "id"
-        mongo_values['album_label'] = "$album_label"
-        mongo_values['name'] = "$name"
-        mongo_values['genre'] = {"$ifNull": ["$genres", []]}
-        mongo_values['collection'] = ma.coll_tracks
-    else:
-        return abort(
-            400,
-            description="Got invalid value for zoom, does not correspond to genre, artists or track level",
-        )
-    return mongo_values
-
-
 @app.errorhandler(400)
 def bad_request(e):
     return jsonify(error=str(e)), 400
@@ -148,10 +106,9 @@ def _select():
         zoom = int(_zoom)
         d["zoom"] = zoom
 
-
-    mongo_values = map_zoom_to_mongo(d["zoom"])
-    id_val = mongo_values['id_val']
-    collection = mongo_values['collection']
+    mongo_values = ma.map_zoom_to_mongo(d["zoom"])
+    id_val = mongo_values["id_val"]
+    collection = mongo_values["collection"]
 
     project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
     # include all dimensions/features
@@ -189,10 +146,14 @@ def _select():
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
     x_to_normspace = lambda x: np.interp(
-        x, (x_min_abs, x_max_abs), (ma.dim_absvals[dimx]["min"], ma.dim_absvals[dimx]["max"]),
+        x,
+        (x_min_abs, x_max_abs),
+        (ma.dim_absvals[dimx]["min"], ma.dim_absvals[dimx]["max"]),
     )
     y_to_normspace = lambda y: np.interp(
-        y, (y_min_abs, y_max_abs), (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
+        y,
+        (y_min_abs, y_max_abs),
+        (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
     )
 
     # find max and min values for dimensions for regions of interest (not sure if that is what is intended)
@@ -252,14 +213,14 @@ def _graph():
         nzoom = int(zoom)
         d["zoom"] = nzoom
 
-    if not (x and y and zoom):
+    dimx = request.args.get("dimx")
+    dimy = request.args.get("dimy")
+
+    if not (x and y and zoom and dimx and dimy):
         return abort(
             400,
             description="you need to specify x and y coordinates, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness",
         )
-
-    dimx = request.args.get("dimx")
-    dimy = request.args.get("dimy")
 
     zoom_modifier = 500
     zoom_stage = (
@@ -286,13 +247,13 @@ def _graph():
         (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
     )
 
-    mongo_values = map_zoom_to_mongo(d["zoom"])
-    id_val = mongo_values['id_val']
-    album_label = mongo_values['album_label']
-    name = mongo_values['name']
-    genre = mongo_values['genre']
-    collection = mongo_values['collection']
-    coll_type = mongo_values['coll_type']
+    mongo_values = ma.map_zoom_to_mongo(d["zoom"])
+    id_val = mongo_values["id_val"]
+    album_label = mongo_values["album_label"]
+    name = mongo_values["name"]
+    genre = mongo_values["genre"]
+    collection = mongo_values["collection"]
+    coll_type = mongo_values["coll_type"]
 
     pipeline = [
         {
