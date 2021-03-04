@@ -59,7 +59,7 @@ def snapshot(c, sudo=False):
     """Create a snapshot of the current mongodb database"""
     _sudo = "sudo" if sudo else ""
     c.run(
-        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
     )
 
 
@@ -68,9 +68,8 @@ def restore(c, sudo=False):
     """Restore the database from a snapshot"""
     _sudo = "sudo" if sudo else ""
     c.run(
-        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
     )
-
 
 @task
 def compute_min_max(c):

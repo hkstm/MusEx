@@ -1,6 +1,5 @@
 import base64
 import itertools
-import typing
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -107,7 +106,44 @@ def _labels():
         d["limit"] = topk
         pipeline.append({"$sort": {"total_songs": ma.DESC}})
         pipeline.append({"$limit": topk})
+
     d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
+    return jsonify(d)
+
+
+@app.route("/artists")
+@cross_origin()
+def _artists():
+    limit = request.args.get("limit")
+    d = {}
+    pipeline = [
+        {"$project": {"name": "$artists", "popularity": "$popularity", "_id": 0}},
+    ]
+
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        pipeline.append({"$sort": {"popularity": ma.DESC}})
+        pipeline.append({"$limit": topk})
+
+    most_popular = []
+    for element in list(ma.coll_artists.aggregate(pipeline)):
+        if element["popularity"] > 70:
+            most_popular.append(element)
+
+    total_artists = len(list(ma.coll_artists.aggregate(pipeline)))
+    if len(list(ma.coll_artists.aggregate(pipeline))) > 5:
+        total_artists = (
+            str(round(len(list(ma.coll_artists.aggregate(pipeline))) / 1000)) + "K"
+        )
+
+    d.update(
+        {
+            "artists": list(ma.coll_artists.aggregate(pipeline)),
+            "total": total_artists,
+            "popular_artists": most_popular,
+        }
+    )
     return jsonify(d)
 
 
@@ -120,12 +156,62 @@ def _genres():
     pipeline = [
         {"$project": {"name": "$genres", "popularity": "$popularity", "_id": 0}},
     ]
+
     if limit:
         topk = int(limit)
         d["limit"] = topk
         pipeline.append({"$sort": {"popularity": ma.DESC}})
         pipeline.append({"$limit": topk})
-    d.update({"genres": list(ma.coll_genres.aggregate(pipeline))})
+
+    most_popular = []
+
+    for element in list(ma.coll_genres.aggregate(pipeline)):
+        if element["popularity"] > 60:
+            most_popular.append(element)
+
+    d.update(
+        {
+            "genres": list(ma.coll_genres.aggregate(pipeline)),
+            "total": len(list(ma.coll_genres.aggregate(pipeline))),
+            "popular_genres": most_popular,
+        }
+    )
+    return jsonify(d)
+
+
+@app.route("/years")
+@cross_origin()
+def _years():
+    """ Return a detailed info of music through different years for heatmap """
+    limit = request.args.get("limit")
+    d = {}
+    pipeline = [
+        {
+            "$project": {
+                "year": "$year",
+                # "key": "$key",
+                # "mode": "$mode",
+                "popularity": "$popularity",
+                "acousticness": "$acousticness",
+                "danceability": "$danceability",
+                "duration_ms": "$duration_ms",
+                "energy": "$energy",
+                "instrumentalness": "$instrumentalness",
+                "liveness": "$liveness",
+                "loudness": "$loudness",
+                "speechiness": "$speechiness",
+                "tempo": "$tempo",
+                "valence": "$valence",
+                "_id": 0,
+            }
+        },
+    ]
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        pipeline.append({"$sort": {"year": ma.DESC}})
+        pipeline.append({"$limit": topk})
+    d.update({"data": list(ma.coll_years.aggregate(pipeline))})
     return jsonify(d)
 
 

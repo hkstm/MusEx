@@ -16,8 +16,8 @@ import { faBars } from "@fortawesome/free-solid-svg-icons";
 const MAX_WORDCLOUD_SIZE = 100;
 
 const config = {
-  headers: {'Access-Control-Allow-Origin': '*'}
-}
+  headers: { "Access-Control-Allow-Origin": "*" },
+};
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -28,12 +28,11 @@ const options = {
   fontWeight: "normal",
   padding: 1,
   rotations: 0,
-  transitionDuration: 1000,
 };
 
 type Genre = {
-  name: string;
-  popularity: number;
+  text: string; // converted name to text for the wordcloud
+  value: number; // converted  popularity to value for the wordcloud
 };
 
 type Node = {};
@@ -41,6 +40,11 @@ type Node = {};
 type AppState = {
   genres: Genre[];
   graph: MusicGraph;
+  total: number;
+  popularGenres: Genre[];
+  artists: Genre[];
+  totalArtists: string;
+  popularArtists: Genre[];
   dimensions: string[];
   interests: MinimapData;
   sideviewExpanded: boolean;
@@ -74,6 +78,11 @@ class App extends Component<{}, AppState> {
       selected: undefined,
       dimx: "",
       dimy: "",
+      total: 0,
+      popularGenres: [],
+      artists: [],
+      totalArtists: "",
+      popularArtists: [],
     };
   }
 
@@ -97,7 +106,8 @@ class App extends Component<{}, AppState> {
     console.log(this.state.x, this.state.y, this.state.zoom);
     axios
       .get(
-        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&limit=1000`, config
+        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&limit=1000`,
+        config
       )
       .then((res) => {
         this.setState({ graph: res.data });
@@ -112,10 +122,27 @@ class App extends Component<{}, AppState> {
 
   updateGenres = () => {
     axios
-      .get(`http://localhost:5000/genres?limit=${MAX_WORDCLOUD_SIZE}`, config
-      )
+      .get(`http://localhost:5000/genres?limit=${MAX_WORDCLOUD_SIZE}`, config)
       .then((res) => {
-        this.setState({ genres: res.data });
+        this.setState({
+          genres: res.data.genres,
+          total: res.data.total,
+          popularGenres: res.data.popular_genres.map((g: {name: string, popularity: number}) => {
+            return { text: g.name, value: g.popularity }
+          })
+        });
+      });
+  };
+
+  updateArtists = () => {
+    axios.get(`http://localhost:5000/artists?limit=${MAX_WORDCLOUD_SIZE}`).then((res) => {
+      this.setState({
+        artists: res.data.artists,
+        totalArtists: res.data.total,
+        popularArtists: res.data.popular_artists.map((a: {name: string, popularity: number}) => {
+          return { text: a.name, value: a.popularity }
+        })
+      });
     });
   };
 
@@ -128,10 +155,14 @@ class App extends Component<{}, AppState> {
   componentDidMount() {
     this.updateDimensions().then(() => {
       this.setState((state) => {
-        return { dimx: state.dimensions[0], dimy: state.dimensions[state.dimensions.length - 1] };
+        return {
+          dimx: state.dimensions[0],
+          dimy: state.dimensions[state.dimensions.length - 1],
+        };
       });
       this.updateGraph();
       this.updateGenres();
+      this.updateArtists();
     });
   }
 
@@ -170,7 +201,11 @@ class App extends Component<{}, AppState> {
               ></Minimap>
               <Graph
                 enabled={true}
-                width={window.innerWidth * (this.state.sideviewExpanded ? 0.7 : 1.0) - 30}
+                width={
+                  window.innerWidth *
+                    (this.state.sideviewExpanded ? 0.7 : 1.0) -
+                  30
+                }
                 height={window.innerHeight - 40}
                 data={this.state.graph}
               ></Graph>
@@ -198,14 +233,20 @@ class App extends Component<{}, AppState> {
 
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
-                <h3>Artists ranked by popularity</h3>
-                <ReactWordcloud words={artistWords} options={options} />
+                <h3>Most popular artists</h3>
+                <ReactWordcloud
+                  words={this.state.popularArtists}
+                  options={options}
+                />
               </div>
             </Widget>
             <Widget>
               <div className="sideview-widget wordcloud genre-wordcloud">
-                <h3>Genres ranked by popularity</h3>
-                <ReactWordcloud words={genreWords} options={options} />
+                <h3>Most popular genres</h3>
+                <ReactWordcloud
+                  words={this.state.popularGenres}
+                  options={options}
+                />
               </div>
             </Widget>
           </div>

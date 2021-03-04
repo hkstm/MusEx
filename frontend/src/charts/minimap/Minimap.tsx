@@ -61,7 +61,8 @@ class Minimap extends Component<MinimapProps, MinimapState> {
 
   onMouseDown = (e: MouseEvent) => {
     if (e.button !== 0) return;
-    const pos = this.minimap!.current!.getBoundingClientRect();
+    const pos = this.minimap?.current?.getBoundingClientRect();
+    if (!pos) return;
     this.setState({
       dragging: true,
       rel: {
