@@ -10,6 +10,7 @@ type SelectState = {
 
 type SelectProps = {
   id?: string;
+  onChange: (dim: string) => void;
   options: string[];
 };
 
@@ -30,6 +31,7 @@ export default class Select extends Component<SelectProps, SelectState> {
   onOptionClicked = (value: string) => () => {
     this.setState({ selected: value });
     this.setState({ isOpen: false });
+    this.props.onChange(value);
   };
 
   render() {

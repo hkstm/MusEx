@@ -46,12 +46,12 @@ def format(c, check=False):
     c.run("pipenv run isort {} {}".format(isort_options, python_dirs_string))
 
 
-@task(help={"open": "Automatically opens the page in the browser"})
-def start(c, _open=False):
+@task(help={"open": "Automatically opens the page in the browser", "debug": "Enable debug mode"})
+def start(c, _open=False, debug=True):
     """Start the flask server"""
     if _open:
         webbrowser.open("http://localhost:5000")
-    c.run("FLASK_APP=infovis21.app pipenv run flask run")
+    c.run(f"{'FLASK_DEBUG=1' if debug else ''} FLASK_APP=infovis21.app pipenv run flask run")
 
 
 @task(help={"sudo": "Use sudo"})

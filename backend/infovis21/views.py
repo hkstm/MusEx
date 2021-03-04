@@ -4,6 +4,7 @@ import typing
 
 import numpy as np
 from flask import abort, jsonify, request
+from flask_cors import cross_origin
 from sklearn.metrics.pairwise import cosine_similarity
 
 from infovis21.app import app
@@ -79,12 +80,14 @@ def not_found(e):
 
 
 @app.route("/dimensions")
+@cross_origin()
 def _dimensions():
     """ Return a list of all dimensions of the dataset """
     return jsonify(dimensions)
 
 
 @app.route("/labels")
+@cross_origin()
 def _labels():
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
@@ -109,6 +112,7 @@ def _labels():
 
 
 @app.route("/genres")
+@cross_origin()
 def _genres():
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
@@ -126,6 +130,7 @@ def _genres():
 
 
 @app.route("/select")
+@cross_origin()
 def _select():
     """ Return the node ids thae should be highlighted based on a user selection """
     d = {}
@@ -253,6 +258,7 @@ def _select():
 
 
 @app.route("/graph")
+@cross_origin()
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
     d = {}
@@ -269,14 +275,21 @@ def _graph():
         nzoom = int(zoom)
         d["zoom"] = nzoom
 
+    _limit = request.args.get("limit")
+
+    dimx = request.args.get("dimx")
+    dimy = request.args.get("dimy")
+
     if not (x and y and zoom):
         return abort(
             400,
             description="you need to specify x and y coordinates, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness",
         )
 
-    dimx = request.args.get("dimx")
-    dimy = request.args.get("dimy")
+    if dimx not in dimensions or dimy not in dimensions or dimx == dimy:
+        return abort(
+            400, description=f"dimensions need different and one of {dimensions}",
+        )
 
     x_min_abs, x_max_abs = (
         0,
@@ -345,8 +358,8 @@ def _graph():
         {
             "$project": {
                 "id": {"$toString": "$_id"},
-                dimx: f"${dimx}",
-                dimy: f"${dimy}",
+                "x": f"${dimx}",
+                "y": f"${dimy}",
                 "name": name,
                 "size": {
                     "$toInt": {
@@ -357,13 +370,20 @@ def _graph():
                     }
                 },
                 "type": zoom_map[d["zoom"]],  # can be one of Genre, Artist or Song
-                "genre": genre,
+                "genres": genre,
                 "color": "#00000",
                 "_id": 0,
             }
         },
     ]
+
+    if _limit:
+        limit = int(_limit)
+        d["limit"] = limit
+        pipeline.append({"$limit": limit})
+
     nodes = list(collection.aggregate(pipeline))
+    node_ids = [n["name"] for n in nodes]
     pipeline = [
         {
             "$match": {
@@ -387,18 +407,19 @@ def _graph():
     links = []
     for label in links_data[:3]:
         for src, dest in itertools.combinations(label["members"], 2):
-            links.append(
-                {
-                    "src": src,
-                    "dest": dest,
-                    "color": label["color"],
-                    "name": label["id"],
-                    # "label": base64.b64encode(bytes(label['id'], 'utf-8')),
-                    "label": base64.b64encode(bytes(label["id"], "utf-8")).decode(
-                        "utf-8"
-                    ),  # not sure if we can send bytes? if not we can decode the base64 encoded label name as utf-8 and send that, which is kinda messy. Or just use the (utf-8) label name to begin with (they are unique) but not sure how the frontend would deal with the spaces in these label names
-                }
-            )
+            if src in node_ids and dest in node_ids:
+                links.append(
+                    {
+                        "source": src,
+                        "target": dest,
+                        "color": label["color"],
+                        "name": label["id"],
+                        # "label": base64.b64encode(bytes(label['id'], 'utf-8')),
+                        "label": base64.b64encode(bytes(label["id"], "utf-8")).decode(
+                            "utf-8"
+                        ),  # not sure if we can send bytes? if not we can decode the base64 encoded label name as utf-8 and send that, which is kinda messy. Or just use the (utf-8) label name to begin with (they are unique) but not sure how the frontend would deal with the spaces in these label names
+                    }
+                )
 
     d.update(
         {"nodes": nodes, "links": links,}

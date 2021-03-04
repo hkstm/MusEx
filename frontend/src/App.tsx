@@ -2,13 +2,22 @@ import React, { Component } from "react";
 import ReactWordcloud from "react-wordcloud";
 import axios from "axios";
 import Graph from "./graph/Graph";
-import { D3Graph } from "./graph/model";
+import { MusicGraph } from "./graph/model";
 import Select from "./Select";
-import Heatmap from "./charts/heatmap/Heatmap";
+import Minimap, { MinimapData } from "./charts/minimap/Minimap";
 import "./App.sass";
-import { graphData, artistWords, genreWords } from "./mockdata";
+import { artistWords, genreWords } from "./mockdata";
+import { TagCloud } from "react-tagcloud";
+import { stats } from "./mocks/stats";
+import Widget from "./components/expandable-widget/widget";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars } from "@fortawesome/free-solid-svg-icons";
 
 const MAX_WORDCLOUD_SIZE = 100;
+
+const config = {
+  headers: {'Access-Control-Allow-Origin': '*'}
+}
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -27,11 +36,20 @@ type Genre = {
   popularity: number;
 };
 
+type Node = {};
+
 type AppState = {
   genres: Genre[];
-  nodes: string[];
-  graph?: D3Graph;
+  graph: MusicGraph;
   dimensions: string[];
+  interests: MinimapData;
+  sideviewExpanded: boolean;
+  x: number;
+  y: number;
+  zoom: number;
+  selected?: Node;
+  dimx: string;
+  dimy: string;
 };
 
 class App extends Component<{}, AppState> {
@@ -40,69 +58,156 @@ class App extends Component<{}, AppState> {
     this.state = {
       genres: [],
       dimensions: [],
-      nodes: [],
+      graph: {
+        nodes: [],
+        links: [],
+      },
+      interests: {
+        tiles: [],
+        xSize: 20,
+        ySize: 20,
+      },
+      sideviewExpanded: true,
+      x: 0,
+      y: 0,
+      zoom: 5,
+      selected: undefined,
+      dimx: "",
+      dimy: "",
     };
   }
 
-  componentDidMount() {
-    axios.get(`http://localhost:5000/dimensions`).then((res) => {
+  handleDimYChange = (dimy: string) => {
+    this.setState({ dimy });
+    this.updateGraph();
+  };
+
+  handleDimXChange = (dimx: string) => {
+    this.setState({ dimx });
+    this.updateGraph();
+  };
+
+  toggleSideview = () => {
+    this.setState((state) => {
+      return { sideviewExpanded: !state.sideviewExpanded };
+    });
+  };
+
+  updateGraph = () => {
+    console.log(this.state.x, this.state.y, this.state.zoom);
+    axios
+      .get(
+        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&limit=1000`, config
+      )
+      .then((res) => {
+        this.setState({ graph: res.data });
+      });
+  };
+
+  updateDimensions = (): Promise<void> => {
+    return axios.get(`http://localhost:5000/dimensions`, config).then((res) => {
       this.setState({ dimensions: res.data });
     });
-    axios.get(`http://localhost:5000/genres?limit=${MAX_WORDCLOUD_SIZE}`).then((res) => {
-      this.setState({ genres: res.data });
+  };
+
+  updateGenres = () => {
+    axios
+      .get(`http://localhost:5000/genres?limit=${MAX_WORDCLOUD_SIZE}`, config
+      )
+      .then((res) => {
+        this.setState({ genres: res.data });
+    });
+  };
+
+  select(node: Node) {
+    axios.get(`http://localhost:5000/dimensions`, config).then((res) => {
+      this.setState({ dimensions: res.data.sort() });
+    });
+  }
+
+  componentDidMount() {
+    this.updateDimensions().then(() => {
+      this.setState((state) => {
+        return { dimx: state.dimensions[0], dimy: state.dimensions[state.dimensions.length - 1] };
+      });
+      this.updateGraph();
+      this.updateGenres();
     });
   }
 
   render() {
-    console.log(this.state.genres);
-    console.log(this.state.dimensions);
-    // const items = this.state.data.map((char) => <li key={char}>{char}</li>);
     return (
-      <div className="App">
+      <div className="app">
         <header>
           <nav>
             <span id="app-name">MusEx</span>
             <div className="dimension-controller">
               <Select
-                id="select-first-dim"
+                id="select-dimx"
+                onChange={this.handleDimXChange}
                 options={this.state.dimensions}
               ></Select>
               <Select
-                id="select-second-dim"
+                id="select-dimy"
+                onChange={this.handleDimYChange}
                 options={this.state.dimensions}
               ></Select>
             </div>
+            <span id="app-help">Help</span>
           </nav>
         </header>
         <div id="content">
-          <div className="tile graph">
-            <Heatmap
-              enabled={true}
-              width={100}
-              height={100}
-            ></Heatmap>
-<Graph
-              enabled={true}
-              width={window.innerWidth}
-              height={window.innerHeight - 40}
-              data={graphData}
-            ></Graph>
+          <div
+            className={this.state.sideviewExpanded ? "expanded" : ""}
+            id="main-view"
+          >
+            <Widget>
+              <Minimap
+                enabled={true}
+                data={this.state.interests}
+                width={120}
+                height={120}
+              ></Minimap>
+              <Graph
+                enabled={true}
+                width={window.innerWidth * (this.state.sideviewExpanded ? 0.7 : 1.0) - 30}
+                height={window.innerHeight - 40}
+                data={this.state.graph}
+              ></Graph>
+            </Widget>
           </div>
-          <div className="stat num-artists">
-            <span className="number">80</span>
-            <span>Artists in dataset</span>
-          </div>
-          <div className="stat num-genres">
-            <span className="number">26</span>
-            <span>Genres in dataset</span>
-          </div>
-          <div className="tile artist-wordcloud">
-            <h3>Artists ranked by popularity</h3>
-            <ReactWordcloud words={artistWords} options={options} />
-          </div>
-          <div className="tile genre-wordcloud">
-            <h3>Genres ranked by popularity</h3>
-            <ReactWordcloud words={genreWords} options={options} />
+          <div
+            className={this.state.sideviewExpanded ? "expanded" : ""}
+            id="side-view"
+          >
+            <FontAwesomeIcon
+              className="icon toggle"
+              icon={faBars}
+              onClick={this.toggleSideview}
+            />
+            <Widget>
+              <div className="sideview-widget app-stats">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="stat">
+                    <div className="stat-value">{stat.value}</div>
+                    <div className="stat-label">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </Widget>
+
+            <Widget>
+              <div className="sideview-widget wordcloud artist-wordcloud">
+                <h3>Artists ranked by popularity</h3>
+                <ReactWordcloud words={artistWords} options={options} />
+              </div>
+            </Widget>
+            <Widget>
+              <div className="sideview-widget wordcloud genre-wordcloud">
+                <h3>Genres ranked by popularity</h3>
+                <ReactWordcloud words={genreWords} options={options} />
+              </div>
+            </Widget>
           </div>
         </div>
       </div>
