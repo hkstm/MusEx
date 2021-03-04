@@ -30,6 +30,7 @@ type AppState = {
   artists: Genre[]
   totalA: string
   popular_artists: Genre[]
+  dimensions: string[];
 };
 
 class App extends Component<{}, AppState> {
@@ -41,7 +42,8 @@ class App extends Component<{}, AppState> {
       populargenres:[],
       artists:[],
       totalA : '',
-      popular_artists: []
+      popular_artists: [],
+      dimensions: ["Danceability", "Acousticness", "Loudness"],
 
     };
   }
@@ -67,7 +69,14 @@ class App extends Component<{}, AppState> {
           <nav>
             <span id="app-name">MusEx</span>
             <div className="dimension-controller">
-
+              <Select
+                id="select-first-dim"
+                options={this.state.dimensions}
+              ></Select>
+              <Select
+                id="select-second-dim"
+                options={this.state.dimensions}
+              ></Select>
             </div>
           </nav>
         </header>
