@@ -16,20 +16,19 @@ const options = {
   fontWeight: "normal",
   padding: 1,
   rotations: 0,
+  transitionDuration: 1000,
 };
 
 type Genre = {
-  text: string;  // converted name to text for the wordcloud
-  value: number; // converted  popularity to value for the wordcloud
+  name: string;
+  popularity: number;
 };
 
 type AppState = {
   genres: Genre[];
-  total: number
-  populargenres: Genre[]
-  artists: Genre[]
-  totalA: string
-  popular_artists: Genre[]
+  data: string[];
+  graph?: D3Graph;
+  dimensions: string[];
 };
 
 class App extends Component<{}, AppState> {
@@ -37,37 +36,34 @@ class App extends Component<{}, AppState> {
     super(props);
     this.state = {
       genres: [],
-      total: 0,
-      populargenres:[],
-      artists:[],
-      totalA : '',
-      popular_artists: []
-
+      dimensions: ["Danceability", "Acousticness", "Loudness"],
+      data: [],
     };
   }
 
   componentDidMount() {
-    axios.get(`http://localhost:5000/genres`).then((res) => {
-      this.setState({ genres: res.data.genres, total: res.data.total, populargenres: res.data.populargenres,
-      });
+    axios.get(`http://localhost:5000/genres?limit=100`).then((res) => {
+      this.setState({ genres: res.data });
     });
+  }
 
-    axios.get(`http://localhost:5000/artists`).then((res)=>{
-      this.setState({artists: res.data.artists, totalA: res.data.total_artists, popular_artists: res.data.popular_artists })
-    })
-  };
-
- 
   render() {
-  
-
+    console.log(this.state.genres);
+    // const items = this.state.data.map((char) => <li key={char}>{char}</li>);
     return (
       <div className="App">
         <header>
           <nav>
             <span id="app-name">MusEx</span>
             <div className="dimension-controller">
-
+              <Select
+                id="select-first-dim"
+                options={this.state.dimensions}
+              ></Select>
+              <Select
+                id="select-second-dim"
+                options={this.state.dimensions}
+              ></Select>
             </div>
           </nav>
         </header>
@@ -81,20 +77,20 @@ class App extends Component<{}, AppState> {
             ></Graph>
           </div>
           <div className="stat num-artists">
-            <span className="number">{this.state.totalA}</span>
+            <span className="number">80</span>
             <span>Artists in dataset</span>
           </div>
           <div className="stat num-genres">
-            <span className="number">{this.state.total}</span>
+            <span className="number">26</span>
             <span>Genres in dataset</span>
           </div>
           <div className="tile artist-wordcloud">
-            <h3>Most popular artists</h3>
-            <ReactWordcloud words={this.state.popular_artists} options={options} />
+            <h3>Artists ranked by popularity</h3>
+            <ReactWordcloud words={artistWords} options={options} />
           </div>
           <div className="tile genre-wordcloud">
-            <h3>Most popular genres</h3>
-            <ReactWordcloud words={this.state.populargenres} options={options} />
+            <h3>Genres ranked by popularity</h3>
+            <ReactWordcloud words={genreWords} options={options} />
           </div>
         </div>
       </div>

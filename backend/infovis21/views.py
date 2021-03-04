@@ -1,5 +1,6 @@
 import base64
 import itertools
+import typing
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -82,100 +83,47 @@ def _dimensions():
     """ Return a list of all dimensions of the dataset """
     return jsonify(dimensions)
 
- 
-
 
 @app.route("/labels")
-
-def labels():
+def _labels():
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
     d = {}
+    pipeline = [
+        {
+            "$project": {
+                "name": "$_id",
+                "total_songs": "$n_tracks",
+                "num_artists": "$n_artists",
+                "_id": 0,
+            }
+        },
+    ]
     if limit:
         topk = int(limit)
         d["limit"] = topk
-        # sort and limit
-        pass
-                # "labels": [
-            #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
-            #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
-            # ]
-
-    pipeline = [
-        { '$project': {'name': '$_id', 'total_songs': '$n_tracks', 'num_artists': '$n_artists', '_id' : 0} },
-    ]
-
-    d.update(
-        {
-            "labels": list(ma.coll_labels.aggregate(pipeline))
-        }
-    )
+        pipeline.append({"$sort": {"total_songs": ma.DESC}})
+        pipeline.append({"$limit": topk})
+    d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
     return jsonify(d)
 
 
-@app.route("/artists")
-
-def artists():
-
-	d = {}
-	pipeline = [
-        { '$project': {'text' : '$artists', 'value' : '$popularity', '_id' : 0} },
-    ]
-    
-	most_popular =[]
-	for element in list(ma.coll_artists.aggregate(pipeline)):
-		if element["value"] > 70:
-			most_popular.append(element)
-
-	len_artists = len(list(ma.coll_artists.aggregate(pipeline)))
-	if len(list(ma.coll_artists.aggregate(pipeline))) > 5:
-		len_artists = str(round(len(list(ma.coll_artists.aggregate(pipeline)))/1000))+"K"
-
-
-	d.update(
-        {
-            "artists": list(ma.coll_artists.aggregate(pipeline)),
-        	"total_artists": len_artists,
-        	"popular_artists": most_popular
-        }
-    )
-	return jsonify(d)
-
-
 @app.route("/genres")
-
-def genres():
+def _genres():
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        { '$project': {'text' : '$genres', 'value' : '$popularity', '_id' : 0} },
+        {"$project": {"name": "$genres", "popularity": "$popularity", "_id": 0}},
     ]
-
-
-
     if limit:
         topk = int(limit)
         d["limit"] = topk
-        # sort the genres and limit
-        pipeline.update({'$limit', topk})
-
-
-    most_popular =[]
-    
-    for element in list(ma.coll_genres.aggregate(pipeline)):
-     	if element["value"] > 60:
-     		most_popular.append(element)
-
-    d.update(
-        {
-            "genres": list(ma.coll_genres.aggregate(pipeline)),
-            "total": len(list(ma.coll_genres.aggregate(pipeline))),
-            "populargenres": most_popular
-
-        }
-    )
+        pipeline.append({"$sort": {"popularity": ma.DESC}})
+        pipeline.append({"$limit": topk})
+    d.update({"genres": list(ma.coll_genres.aggregate(pipeline))})
     return jsonify(d)
+
 
 @app.route("/years")
 def _years():
@@ -254,12 +202,7 @@ def _select():
             description="Got invalid value for zoom, does not correspond to genre, artists or track level",
         )
 
-    project_stage = {
-        "$project": {
-            "id": "$" + id_val,
-            "_id": 0,
-        }
-    }
+    project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in dimensions]
     pipeline = [
@@ -295,14 +238,10 @@ def _select():
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
     x_to_normspace = lambda x: np.interp(
-        x,
-        (x_min_abs, x_max_abs),
-        (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
+        x, (x_min_abs, x_max_abs), (dim_absvals[dimx]["min"], dim_absvals[dimx]["max"]),
     )
     y_to_normspace = lambda y: np.interp(
-        y,
-        (y_min_abs, y_max_abs),
-        (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
+        y, (y_min_abs, y_max_abs), (dim_absvals[dimy]["min"], dim_absvals[dimy]["max"]),
     )
 
     # find max and min values for dimensions for regions of interest (not sure if that is what is intended)
@@ -467,12 +406,7 @@ def _graph():
             }
         },
         {"$unwind": album_label},
-        {
-            "$group": {
-                "_id": album_label,
-                "members": {"$addToSet": "$" + id_val},
-            }
-        },
+        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val},}},
         {
             "$project": {
                 "id": "$_id",
@@ -499,9 +433,6 @@ def _graph():
             )
 
     d.update(
-        {
-            "nodes": nodes,
-            "links": links,
-        }
+        {"nodes": nodes, "links": links,}
     )
     return jsonify(d)
