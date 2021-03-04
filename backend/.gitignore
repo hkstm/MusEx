@@ -104,6 +104,3 @@ ENV/
 
 # mypy
 .mypy_cache/
-
-# MongoDB working files
-/mongodb/data/*

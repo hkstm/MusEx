@@ -1,162 +1,11 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 import ReactWordcloud from "react-wordcloud";
 import axios from "axios";
-import * as d3 from "d3";
-import logo from "./logo.svg";
-import "./App.css";
-import { TagCloud } from 'react-tagcloud';
-import { stats } from './mocks/stats'
-import Heatmap  from './charts/heatmap/heatmap'
-import Widget from './components/expandable-widget/widget'
-
-
-// this looks good: https://spin.atomicobject.com/2017/07/20/d3-react-typescript/
-const cloudsize = [60, 40];
-const genre_words=[{
-  text: 'Rock',
-  value: 364,
-},
-{
-  text: 'Pop',
-  value: 510,
-},
-{
-  text: 'Blues',
-  value: 490,
-},
-{
-  text: 'Latin',
-  value: 390,
-},
-{
-  text: 'R&B',
-  value: 550,
-},
-{
-  text: 'Kpop',
-  value: 400,
-},
-{
-  text: 'Afrobeat',
-  value: 512,
-},
-{
-  text: 'Cape Jazz',
-  value: 222,
-},
-{
-  text: 'African heavy metal',
-  value: 433,
-},
-{
-  text: 'Chinese rock',
-  value: 555,
-},
-{
-  text: 'Gao trance',
-  value: 470,
-},
-{
-  text: 'Indian jazz',
-  value: 240,
-},
-{
-  text: 'Lo-fi',
-  value: 40,
-},
-{
-  text: 'Gospel blues',
-  value: 637,
-},
-{
-  text: 'Electric blues',
-  value: 124,
-},
-{
-  text: 'Mambo',
-  value: 450,
-},
-{
-  text: 'Merengue',
-  value: 300,
-},
-{
-  text: 'Reggae',
-  value: 700,
-}];
-const artist_words=[{
-  text: 'The Beatles',
-  value: 364,
-},
-{
-  text: 'Elvis Presley',
-  value: 510,
-},
-{
-  text: 'Michael Jackson',
-  value: 490,
-},
-{
-  text: 'Elton John',
-  value: 390,
-},
-{
-  text: 'Madonna',
-  value: 550,
-},
-{
-  text: 'Led Zeppelin',
-  value: 400,
-},
-{
-  text: 'Rihanna',
-  value: 512,
-},
-{
-  text: 'Pink floyd',
-  value: 222,
-},
-{
-  text: 'Eminem',
-  value: 433,
-},
-{
-  text: 'Taylor Swift',
-  value: 555,
-},
-{
-  text: 'Mariah Carey',
-  value: 470,
-},
-{
-  text: 'Queen',
-  value: 240,
-},
-{
-  text: 'Celine Dion',
-  value: 40,
-},
-{
-  text: 'Whitney Houston',
-  value: 637,
-},
-{
-  text: 'AC/DC',
-  value: 124,
-},
-{
-  text: 'Drake',
-  value: 450,
-},
-{
-  text: 'Kanye west',
-  value: 300,
-},
-{
-  text: 'Justin Bieber',
-  value: 700,
-}];
+import Graph from "./graph/Graph";
+import { D3Graph } from "./graph/model";
+import Select from "./Select";
+import "./App.sass";
+import { graphData, artistWords, genreWords } from "./mockdata";
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -167,113 +16,96 @@ const options = {
   fontWeight: "normal",
   padding: 1,
   rotations: 0,
-  transitionDuration: 1000
+};
+
+type Genre = {
+  text: string;  // converted name to text for the wordcloud
+  value: number; // converted  popularity to value for the wordcloud
 };
 
 type AppState = {
-  data: string[];
+  genres: Genre[];
+  total: number
+  populargenres: Genre[]
+  artists: Genre[]
+  totalA: string
+  popular_artists: Genre[]
 };
 
 class App extends Component<{}, AppState> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      data: [],
+      genres: [],
+      total: 0,
+      populargenres:[],
+      artists:[],
+      totalA : '',
+      popular_artists: []
+
     };
   }
 
   componentDidMount() {
-    axios.get(`http://localhost:5000/data`).then((res) => {
-      this.setState({ data: res.data });
+    axios.get(`http://localhost:5000/genres`).then((res) => {
+      this.setState({ genres: res.data.genres, total: res.data.total, populargenres: res.data.populargenres,
+      });
     });
+
+    axios.get(`http://localhost:5000/artists`).then((res)=>{
+      this.setState({artists: res.data.artists, totalA: res.data.total_artists, popular_artists: res.data.popular_artists })
+    })
   };
 
+ 
   render() {
-    d3.select("svg")
-      .append("circle")
-      .attr("r", 50)
-      .attr("cx", 100)
-      .attr("cy", 100)
-      .attr("fill", "red");
-
-    console.log(this.state.data);
-    const items = this.state.data.map((char) => <li key={char}>{char}</li>);
+  
 
     return (
-      <div className="MusEx"> 
-        <div className="app-header">MusEx</div>
-        <div className="app-stats">
-          { stats.map( stat => 
-            <div className='stat'>
-              <div className="stat-value">{stat.value} </div>
-              <div className="stat-label">{stat.label}</div>
+      <div className="App">
+        <header>
+          <nav>
+            <span id="app-name">MusEx</span>
+            <div className="dimension-controller">
+
             </div>
-          )}
-        </div>
-        <div className="app-container">
-          <div className="main-view">
-            {/* <div className="app-stats">
-              { stats.map( stat => <div className='stat'>{stat.label} {stat.value} | </div>)}
-            </div> */}
+          </nav>
+        </header>
+        <div id="content">
+          <div className="tile graph">
+            <Graph
+              enabled={true}
+              width={window.innerWidth}
+              height={window.innerHeight - 40}
+              data={graphData}
+            ></Graph>
+          </div>
+          <div className="stat num-artists">
+            <span className="number">{this.state.totalA}</span>
+            <span>Artists in dataset</span>
+          </div>
+          <div className="stat num-genres">
+            <span className="number">{this.state.total}</span>
+            <span>Genres in dataset</span>
+          </div>
+          <div className="tile artist-wordcloud">
+            <h3>Most popular artists</h3>
+            <ReactWordcloud words={this.state.popular_artists} options={options} />
+          </div>
+          <div className="tile genre-wordcloud">
             <Widget>
-              <div className="heatmap-widget">
-                <h2>Record sales for different genres</h2>
-                <Heatmap/>
-              </div>
+            <h3>Genres ranked by popularity</h3>
+            <ReactWordcloud words={genreWords} options={options} />
             </Widget>
           </div>
-          <div className="side-view">
-            <Widget>
-              <div className="wordcloud-box">
-                <h3>Artists ranked by popularity</h3>
-                <ReactWordcloud words={artist_words} options={options}/> 
-              </div>
-            </Widget>
-            <Widget>
-              <div className="wordcloud-box">
-                <h3>Genres ranked by popularity</h3>
-                <ReactWordcloud words={genre_words} options={options}/> 
-              </div>
-            </Widget>
+          <div className="heatmap-widget">
+            <h3>Stats through different years</h3>
+            <Heatmap/>
           </div>
         </div>
-        <div className="mainPlot"></div>
       </div>
     );
-
-    return (
-      <div className="Parent">
-        <div className="Title"><h1>Insert project title!</h1></div>
-        
-        <div className="mainPlot"></div>
-        <div className="StatA">
-          <h1 className="number">80</h1>
-          <h3>Artists in dataset</h3>
-        </div>
-        <div className="StatGenres">
-        <h1 className="number">26</h1>
-          <h3>Genres in dataset</h3>
-        </div>
-        <div className="WordCloudArtists">
-        <h3>Artists ranked by popularity</h3>
-        <ReactWordcloud   
-  
-          words={artist_words}
-          options={options}
-          /> 
-        </div>
-        <div className="WordCloudGenre">
-        <h3>Genres ranked by popularity</h3>
-         <ReactWordcloud   
-        
-          words={genre_words}
-          options={options}
-          /> 
-        </div>
-      </div>
-
-    );
-  
-}};
+  }
+}
 
 export default App;

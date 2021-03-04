@@ -1,0 +1,73 @@
+$stat-bar-height: 35px;
+$nav-bar-height: 35px;
+$border-width: 2px;
+
+a
+  color: #61dafb
+
+nav
+  height: $nav-bar-height
+  background-color: black
+  position: relative
+
+  #app-name
+    font-weight: 700
+    font-size: 1.5rem
+    line-height: $nav-bar-height
+    position: absolute
+    left: 20px
+
+
+#content
+  width: 100%
+  height: calc(100vh - #{$nav-bar-height})
+  overflow: hidden
+  position: relative
+
+  .tile
+    overflow: hidden
+    outline: $border-width solid #a9a9a9
+
+  .graph
+    position: absolute
+    width: 70%
+    height: calc(100% - #{$stat-bar-height})
+    top: $stat-bar-height
+    left: 0
+
+  .artist-wordcloud
+    position: absolute
+    width: 30%
+    height: 50%
+    bottom: 0
+    right: 0
+
+  .genre-wordcloud
+    position: absolute
+    width: 30%
+    height: calc(50% - 35px)
+    top: $stat-bar-height
+    right: 0
+
+  .num-artists
+    position: absolute
+    width: 35%
+    height: $stat-bar-height
+    top: 0
+    left: 35%
+
+  .num-genres
+    position: absolute
+    width: 35%
+    height: $stat-bar-height
+    top: 0
+    left: 0
+
+  .stat
+    font-size: 20px
+    vertical-align: middle
+    line-height: $stat-bar-height
+
+    .number
+      font-weight: bolder
+      padding: 0 5px

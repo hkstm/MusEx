@@ -50,27 +50,32 @@ invoke type-check
 ```
 #### MongoDB
 
-Starting Mongo (mongodb://root:example@localhost) and Mongo Express(http://localhost:8081/):
-```
-sudo docker-compose -f ./backend/mongodb/stack.yml up
+Starting Mongo (mongodb://root:example@localhost) and Mongo Express(http://localhost:8081/) assuming you are in the VU.InfoVis2021 root directory:
+```bash
+sudo docker-compose -f stack.yml up
 ```
 You can use Mongo Express for administration, but personally mainly use VS Code plugin
 
-The database dump the last time I checked is about 130mb which is too big for github so I made a zip of it and it's around 40 mb. If you get any errors when dealing with the file when committing or restoring please make sure that you (un)zipped the file (db.zip <-> db.dump)
+The database dump the last time I checked is about 150mb which is too big for github so I made a zip of it and it's around 40 mb. If you get any errors when dealing with the file when committing or restoring please make sure that you (un)zipped the file (db.zip <-> db.dump)
 
+A dump of the database can be restored by doing:
+```bash
+cd backend
+invoke snapshot
+invoke snapshot --sudo # if you are not in the docker group
+
+# or manually
+sudo docker exec -i $(sudo docker ps -a | grep musexmongodb | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
+```
 
 A dump of the database can be made using:
+```bash
+cd backend
+invoke restore
+invoke restore --sudo # if you are not in the docker group
 
+sudo docker exec $(sudo docker ps -a | grep musexmongodb | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 ```
-sudo docker exec $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
-```
-
-And then restored by doing:
-```
-sudo docker exec -i $(sudo docker ps -a | grep mongoinstance | awk '{print $1}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < $(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
-```
-
-The db_unmodified_csvs.dump is a replacement for the original kaggle csv's. ***After you loaded a db dump into mongodb you can do*** (the commands above use the more generic name db.dump):
 
 ```
 from mongodb import MongoAccess as ma
@@ -79,10 +84,10 @@ csv_replacement = ma.get_collection(ma.coll_tracks)  # or other collection ma.co
 
 Don't know if macs support all the commands (substitutions) but this
 
-$(sudo docker ps -a | grep mongoinstance | awk '{print $1}') is just the container id of the mongo instance which you can deduce from doing sudo docker ps -a
+$(sudo docker ps -a | grep musexmongodb | awk '{print $1}') is just the container id of the mongo instance which you can deduce from doing sudo docker ps -a
 
 and this
 
-$(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/backend/mongodb/db.dump
+$(find ~ -type d -name VU.InfoVis2021 2> /dev/null)/data/db.dump
 
 just the path to the db.dump file, you can store it wherever you want in principle
