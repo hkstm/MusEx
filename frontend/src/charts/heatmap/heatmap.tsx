@@ -209,14 +209,15 @@ class Heatmap extends Component<{}, any> {
 
   render() {
     debugger;
-    return <div>{this.draw()}</div>;
+    // return <div>{this.draw()}</div>;
     return (
         <div className="heatmap-container">
-          <svg id="heatmap-svg"></svg>
+          {/* <svg id="heatmap-svg"></svg> */}
+          <div>{this.draw()}</div>
           <div className="heatmap-legend">
             <div className="heatmap-gradient-legend"/>
-            <div className="heatmap-legend-lowval">Zero Sales</div>
-            <div className="heatmap-legend-highval">Most Played</div>
+            <div className="heatmap-legend-lowval">Min Value</div>
+            <div className="heatmap-legend-highval">Max Value</div>
           </div>
         </div>
     );

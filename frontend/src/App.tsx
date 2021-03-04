@@ -103,8 +103,10 @@ class App extends Component<{}, AppState> {
             </Widget>
           </div>
           <div className="heatmap-widget">
+            <Widget>
             <h3>Stats through different years</h3>
             <Heatmap/>
+            </Widget>
           </div>
         </div>
       </div>
