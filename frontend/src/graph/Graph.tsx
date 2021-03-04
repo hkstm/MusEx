@@ -133,6 +133,20 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .on('click', function(d) {
           console.log(d);
           alert("We recommend artists: "); //**+ d.nodes**//); // artists in proximity
+
+          //
+
+          //// insert recommender system
+
+          // var thisNode = d.id
+          //
+          //     d3.selectAll(".circleNode").attr("r", 6);
+          //     d3.select(this).attr("r", 12);
+          //
+          //     link.attr("opacity", function(d) {
+          //         return (d.source.id == thisNode || d.target.id == thisNode) ? 1 : 0.1
+          //     });
+
         });
 
 
