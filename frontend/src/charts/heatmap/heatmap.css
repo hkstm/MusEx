@@ -36,3 +36,67 @@
     border-radius: 2px;
     padding: 2px;
 }
+
+
+/* custom-heatmap-css */
+
+.heatmap-grid {
+    margin-right: 4vw;
+}
+
+.heatmap-row {
+    display: flex;
+}
+
+.heatmap-cell {
+    position: relative;
+    display: flex;
+    width: 25px; 
+    height: 25px;
+    border: 1px solid #242424;
+    border-radius: 0px;
+    /* border: 0.5px solid white; */
+}
+.heatmap-cell-tooltip {
+    position: absolute;
+    z-index: 9999;
+    color: black;
+    top: -40px;
+    left: 40px;
+    padding: 5px;
+    background: white;
+    display: none
+}
+.heatmap-cell:hover {
+    /* border: 1px solid red; */
+}
+.heatmap-cell:hover .heatmap-cell-tooltip {
+    display: block;
+}
+
+.heatmap-tick {
+    width: 25px;
+    font-size:10px;
+    padding: 2px 1.2px;
+    text-align: center;
+}
+.heatmap-tick-y {
+    position: relative;
+    min-width: 130px;
+    text-transform: capitalize;
+    text-align: right;
+    padding:5px;
+}
+.y-tooltip {
+    position: absolute;
+    z-index: 9999;
+    color: black;
+    top: -40px;
+    left: 40px;
+    padding: 5px;
+    background: white;
+    display: none
+}
+.heatmap-tick-y:hover .y-tooltip {
+    display: block;
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@marialuisacp/heatmap",
+  "main": "90bab46f95409e6e@124.js",
+  "version": "124.0.0",
+  "homepage": "https://observablehq.com/@marialuisacp/heatmap",
+  "author": {
+    "name": "Maria Luísa",
+    "url": "https://observablehq.com/@marialuisacp"
+  },
+  "type": "module",
+  "peerDependencies": {
+    "@observablehq/runtime": "4"
+  }
+}

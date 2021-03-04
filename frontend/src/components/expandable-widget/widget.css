@@ -1,11 +1,11 @@
 .widget-fullscreen {
-    width: 98vw;
+    width: 99vw;
     height: 99vh;
     position: fixed;
     top: 34px;
     left: 0;
     z-index: 9999;
-    background: white;
+    background: #242424;
     transition: all .15s linear;
     /* border: 1px solid lightgray; */
     /* opacity: 0.9; */
