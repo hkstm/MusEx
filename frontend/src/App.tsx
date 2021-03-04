@@ -6,6 +6,8 @@ import { D3Graph } from "./graph/model";
 import Select from "./Select";
 import "./App.sass";
 import { graphData, artistWords, genreWords } from "./mockdata";
+import Heatmap  from './charts/heatmap/heatmap'
+import Widget from './components/expandable-widget/widget'
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -98,12 +100,22 @@ class App extends Component<{}, AppState> {
             <span>Genres in dataset</span>
           </div>
           <div className="tile artist-wordcloud">
+            <Widget>
             <h3>Most popular artists</h3>
             <ReactWordcloud words={this.state.popular_artists} options={options} />
+            </Widget>
           </div>
           <div className="tile genre-wordcloud">
+            <Widget>
             <h3>Most popular genres</h3>
             <ReactWordcloud words={this.state.populargenres} options={options} />
+            </Widget>
+          </div>
+          <div className="heatmap-widget">
+            <Widget>
+            <h3>Stats through different years</h3>
+            <Heatmap/>
+            </Widget>
           </div>
         </div>
       </div>
