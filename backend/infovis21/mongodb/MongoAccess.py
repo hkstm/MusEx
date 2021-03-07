@@ -32,6 +32,7 @@ dimensions = [
     "key",
     "mode",
     "acousticness",
+    # "year"  # year not included in genre and artist collection by default, lots of values seem to default to the year 1920 so I haven't manually calculated them for year and artist by grouping and taking average for example
 ]
 
 genre_str = "Genre"
@@ -65,7 +66,7 @@ def map_zoom_to_mongo(zoom):
     mongo_values = {}
     mongo_values["coll_type"] = zoom_map[zoom]
     # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
-    if zoom_map[zoom] == "Genre":
+    if mongo_values["coll_type"] == genre_str:
         mongo_values["id_val"] = "genres"
         mongo_values["album_label"] = "$labels"
         mongo_values["name"] = "$genres"
@@ -73,13 +74,13 @@ def map_zoom_to_mongo(zoom):
             "$genres"
         ]  # genres here is just a single literal string
         mongo_values["collection"] = coll_genres
-    elif zoom_map[zoom] == "Artist":
+    elif mongo_values["coll_type"] == artist_str:
         mongo_values["id_val"] = "artists"
         mongo_values["album_label"] = "$labels"
         mongo_values["name"] = "$artists"
         mongo_values["genre"] = {"$ifNull": ["$genres", []]}
         mongo_values["collection"] = coll_artists
-    elif zoom_map[zoom] == "Track":
+    elif mongo_values["coll_type"] == track_str:
         mongo_values["id_val"] = "id"
         mongo_values["album_label"] = "$album_label"
         mongo_values["name"] = "$name"

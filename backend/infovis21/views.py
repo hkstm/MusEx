@@ -110,18 +110,11 @@ def genres():
         # sort the genres and limit
         pipeline.update({"$limit", topk})
 
-    most_popular = []
-
-    for element in list(ma.coll_genres.aggregate(pipeline)):
-        if element["value"] > 60:
-            most_popular.append(element)
+    res = list(ma.coll_genres.aggregate(pipeline))
+    most_popular = [element for element in res if element["value"] > 60]
 
     d.update(
-        {
-            "genres": list(ma.coll_genres.aggregate(pipeline)),
-            "total": len(list(ma.coll_genres.aggregate(pipeline))),
-            "populargenres": most_popular,
-        }
+        {"genres": res, "total": len(res), "populargenres": most_popular,}
     )
     return jsonify(d)
 
@@ -196,7 +189,7 @@ def _select():
     d = {}
     node_id = request.args.get("node")  # either genre/artist name or track ID
     _limit = request.args.get("limit")
-    # _zoom = request.args.get("zoom") # don;t think zoom makes sense here if we have a way to determine genre/artist/track level
+    # _zoom = request.args.get("zoom") # don't think zoom makes sense here if we have a way to determine genre/artist/track level
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
     d["type"] = request.args.get("type")
@@ -219,7 +212,7 @@ def _select():
     if not (node_id and dimx and dimy and d["type"]):
         return abort(
             400,
-            description="a node ID, the zoom level, type, and the x and y dimensions are required to make a selection, e.g. /select?node=someID&zoom=1&dimx=acousticness&dimy=loudness&type=track",
+            description="a node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudness&type=track",
         )
 
     mongo_values = ma.map_zoom_to_mongo(d["type"])
@@ -304,31 +297,33 @@ def _select():
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
     d = {}
-    x = request.args.get("x")
-    if x:
-        nx = int(x)
-        d["x"] = nx
-    y = request.args.get("y")
-    if y:
-        ny = int(y)
-        d["y"] = ny
-    zoom = request.args.get("zoom")
-    if zoom:
-        nzoom = float(zoom)
-        d["zoom"] = nzoom
+    _x = request.args.get("x")
+    if _x:
+        d["x"] = float(_x)
+    _y = request.args.get("y")
+    if _y:
+        d["y"] = float(_y)
+    _zoom = request.args.get("zoom")
+    if _zoom:
+        d["zoom"] = float(_zoom)
 
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
     d["type"] = request.args.get("type")
 
-    if not (d["x"] and d["y"] and d["zoom"] and dimx and dimy and d["type"]):
+    if not (_x and _y and _zoom and dimx and dimy and d["type"]):
         return abort(
             400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness&type=track",
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=&y=200&zoom=0&dimx=acousticness&dimy=loudness&type=track",
         )
 
-    x_min, x_max = viszoomregion_to_mongo(dimx, d["x"], d["zoom"])
-    y_min, y_max = viszoomregion_to_mongo(dimy, d["y"], d["zoom"])
+    # this assumes that x and y are normalized to range 0, 1 also called normalized frontend visualization space
+    # x_min, x_max = viszoomregion_to_mongo(dimx, d["x"], d["zoom"])
+    # y_min, y_max = viszoomregion_to_mongo(dimy, d["y"], d["zoom"])
+
+    # this assumes x and y are in MongoDB space, for scaling and zoom it is easier to normalize to this space
+    x_min, x_max = viszoomregion_to_mongo(dimx, mongo_to_vis(dimx, d["x"]), d["zoom"])
+    y_min, y_max = viszoomregion_to_mongo(dimy, mongo_to_vis(dimy, d["y"]), d["zoom"])
 
     mongo_values = ma.map_zoom_to_mongo(d["type"])
     id_val = mongo_values["id_val"]
@@ -350,7 +345,7 @@ def _graph():
         {
             "$project": {
                 "id": {"$toString": "$_id"},
-                dimx: f"${dimx}",
+                dimx: f"${dimx}",  # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
                 dimy: f"${dimy}",
                 "name": name,
                 "size": "$popularity",
