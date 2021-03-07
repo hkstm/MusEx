@@ -17,6 +17,8 @@ zoom_min, zoom_max = (
     1,
 )
 
+dim_minmax = ma.get_dim_minmax()
+
 
 @app.errorhandler(400)
 def bad_request(e):
@@ -162,18 +164,14 @@ def _years():
 def vis_to_mongo(dim, val_vis):
     """ Converts from normalized frontend visualization space to backend MongoDB space """
     return np.interp(
-        val_vis,
-        (vis_min, vis_max),
-        (ma.dim_absvals[dim]["min"], ma.dim_absvals[dim]["max"]),
+        val_vis, (vis_min, vis_max), (dim_minmax[dim]["min"], dim_minmax[dim]["max"]),
     )
 
 
 def mongo_to_vis(dim, val_mongo):
     """ Converts from backend MongoDB space to normalized frontend visualization space """
     return np.interp(
-        val_mongo,
-        (ma.dim_absvals[dim]["min"], ma.dim_absvals[dim]["max"]),
-        (vis_min, vis_max),
+        val_mongo, (dim_minmax[dim]["min"], dim_minmax[dim]["max"]), (vis_min, vis_max),
     )
 
 
@@ -250,7 +248,7 @@ def _select():
 
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
-        np.array(list(map(lambda doc: create_vector(doc), res))),
+        np.array([create_vector(doc) for doc in res]),
         np.array([create_vector(selected)]),
     ).squeeze()
 
@@ -273,9 +271,9 @@ def _select():
             max_x_i = i
         if curr_node[dimy] > similar_nodes[max_y_i][0][dimy]:
             max_y_i = i
-        if curr_node[dimx] < similar_nodes[max_x_i][0][dimx]:
+        if curr_node[dimx] < similar_nodes[min_x_i][0][dimx]:
             min_x_i = i
-        if curr_node[dimy] < similar_nodes[max_y_i][0][dimy]:
+        if curr_node[dimy] < similar_nodes[min_y_i][0][dimy]:
             min_y_i = i
 
     d.update(
@@ -283,10 +281,14 @@ def _select():
             "nodes": [tpl[0]["id"] for tpl in similar_nodes],
             "regions_of_interest": {
                 "dimensions": {
-                    "width": similar_nodes[max_x_i][0][dimx]
-                    - similar_nodes[min_x_i][0][dimx],
-                    "height": similar_nodes[max_y_i][0][dimy]
-                    - similar_nodes[min_y_i][0][dimy],
+                    "width": (
+                        similar_nodes[max_x_i][0][dimx]
+                        - similar_nodes[min_x_i][0][dimx]
+                    ),
+                    "height": (
+                        similar_nodes[max_y_i][0][dimy]
+                        - similar_nodes[min_y_i][0][dimy]
+                    ),
                 },
                 "interest": [
                     {"x": tpl[0][dimx], "y": tpl[0][dimy], "value": tpl[1],}
