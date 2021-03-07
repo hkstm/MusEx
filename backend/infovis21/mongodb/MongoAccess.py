@@ -75,9 +75,9 @@ def map_zoom_to_mongo(zoom):
     #     9: track_str,
     # }
     zoom_map = {
-        'genre': genre_str,
-        'artist': artist_str,
-        'track': track_str,
+        "genre": genre_str,
+        "artist": artist_str,
+        "track": track_str,
     }
     mongo_values = {}
     mongo_values["coll_type"] = zoom_map[zoom]

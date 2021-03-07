@@ -33,11 +33,8 @@ def _dimensions():
     """ Return a list of all dimensions of the dataset """
     return jsonify(ma.dimensions)
 
- 
-
 
 @app.route("/labels")
-
 def labels():
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
@@ -47,86 +44,85 @@ def labels():
         d["limit"] = topk
         # sort and limit
         pass
-                # "labels": [
-            #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
-            #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
-            # ]
+        # "labels": [
+        #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
+        #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
+        # ]
 
     pipeline = [
-        { '$project': {'name': '$_id', 'total_songs': '$n_tracks', 'num_artists': '$n_artists', '_id' : 0} },
+        {
+            "$project": {
+                "name": "$_id",
+                "total_songs": "$n_tracks",
+                "num_artists": "$n_artists",
+                "_id": 0,
+            }
+        },
     ]
+
+    d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
+    return jsonify(d)
+
+
+@app.route("/artists")
+def artists():
+
+    d = {}
+    pipeline = [
+        {"$project": {"text": "$artists", "value": "$popularity", "_id": 0}},
+    ]
+
+    most_popular = []
+    for element in list(ma.coll_artists.aggregate(pipeline)):
+        if element["value"] > 70:
+            most_popular.append(element)
+
+    len_artists = len(list(ma.coll_artists.aggregate(pipeline)))
+    if len(list(ma.coll_artists.aggregate(pipeline))) > 5:
+        len_artists = (
+            str(round(len(list(ma.coll_artists.aggregate(pipeline))) / 1000)) + "K"
+        )
 
     d.update(
         {
-            "labels": list(ma.coll_labels.aggregate(pipeline))
+            "artists": list(ma.coll_artists.aggregate(pipeline)),
+            "total_artists": len_artists,
+            "popular_artists": most_popular,
         }
     )
     return jsonify(d)
 
 
-@app.route("/artists")
-
-def artists():
-
-	d = {}
-	pipeline = [
-        { '$project': {'text' : '$artists', 'value' : '$popularity', '_id' : 0} },
-    ]
-    
-	most_popular =[]
-	for element in list(ma.coll_artists.aggregate(pipeline)):
-		if element["value"] > 70:
-			most_popular.append(element)
-
-	len_artists = len(list(ma.coll_artists.aggregate(pipeline)))
-	if len(list(ma.coll_artists.aggregate(pipeline))) > 5:
-		len_artists = str(round(len(list(ma.coll_artists.aggregate(pipeline)))/1000))+"K"
-
-
-	d.update(
-        {
-            "artists": list(ma.coll_artists.aggregate(pipeline)),
-        	"total_artists": len_artists,
-        	"popular_artists": most_popular
-        }
-    )
-	return jsonify(d)
-
-
 @app.route("/genres")
-
 def genres():
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        { '$project': {'text' : '$genres', 'value' : '$popularity', '_id' : 0} },
+        {"$project": {"text": "$genres", "value": "$popularity", "_id": 0}},
     ]
-
-
 
     if limit:
         topk = int(limit)
         d["limit"] = topk
         # sort the genres and limit
-        pipeline.update({'$limit', topk})
+        pipeline.update({"$limit", topk})
 
+    most_popular = []
 
-    most_popular =[]
-    
     for element in list(ma.coll_genres.aggregate(pipeline)):
-     	if element["value"] > 60:
-     		most_popular.append(element)
+        if element["value"] > 60:
+            most_popular.append(element)
 
     d.update(
         {
             "genres": list(ma.coll_genres.aggregate(pipeline)),
             "total": len(list(ma.coll_genres.aggregate(pipeline))),
-            "populargenres": most_popular
-
+            "populargenres": most_popular,
         }
     )
     return jsonify(d)
+
 
 @app.route("/years")
 def _years():
@@ -134,22 +130,25 @@ def _years():
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        {"$project": {
-            "year": "$year",
-            # "key": "$key",
-            # "mode": "$mode",
-            "popularity": "$popularity",
-            "acousticness": "$acousticness",
-            "danceability": "$danceability",
-            "duration_ms": "$duration_ms",
-            "energy": "$energy",
-            "instrumentalness": "$instrumentalness",
-            "liveness": "$liveness",
-            "loudness": "$loudness",
-            "speechiness": "$speechiness",
-            "tempo": "$tempo",
-            "valence": "$valence",
-            "_id": 0}},
+        {
+            "$project": {
+                "year": "$year",
+                # "key": "$key",
+                # "mode": "$mode",
+                "popularity": "$popularity",
+                "acousticness": "$acousticness",
+                "danceability": "$danceability",
+                "duration_ms": "$duration_ms",
+                "energy": "$energy",
+                "instrumentalness": "$instrumentalness",
+                "liveness": "$liveness",
+                "loudness": "$loudness",
+                "speechiness": "$speechiness",
+                "tempo": "$tempo",
+                "valence": "$valence",
+                "_id": 0,
+            }
+        },
     ]
     if limit:
         topk = int(limit)
@@ -178,9 +177,11 @@ def mongo_to_vis(dim, val_mongo):
     )
 
 
-def viszoomregion_to_mongo(dim, val, zoom, screen_min=0, screen_max=1, zoom_func=(lambda zoom: zoom)):
+def viszoomregion_to_mongo(
+    dim, val, zoom, screen_min=0, screen_max=1, zoom_func=(lambda zoom: zoom)
+):
     """ Creates dimension limits in MongoDB space based on normalized frontend visualization """
-    zoom_val = (1 - zoom_func(zoom))
+    zoom_val = 1 - zoom_func(zoom)
     val_zoom_min = val - zoom_val
     val_zoom_max = val + zoom_val
     val_zoom_min, val_zoom_max = np.clip(
@@ -200,8 +201,7 @@ def _select():
     # _zoom = request.args.get("zoom") # don;t think zoom makes sense here if we have a way to determine genre/artist/track level
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
-    d['type'] = request.args.get('type')
-
+    d["type"] = request.args.get("type")
 
     if node_id:
         # node_id = int(node)
@@ -218,7 +218,7 @@ def _select():
     #     zoom = float(_zoom)
     #     d["zoom"] = zoom
 
-    if not (node_id and dimx and dimy and d['type']):
+    if not (node_id and dimx and dimy and d["type"]):
         return abort(
             400,
             description="a node ID, the zoom level, type, and the x and y dimensions are required to make a selection, e.g. /select?node=someID&zoom=1&dimx=acousticness&dimy=loudness&type=track",
@@ -228,12 +228,7 @@ def _select():
     id_val = mongo_values["id_val"]
     collection = mongo_values["collection"]
 
-    project_stage = {
-        "$project": {
-            "id": "$" + id_val,
-            "_id": 0,
-        }
-    }
+    project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
     pipeline = [
@@ -242,14 +237,16 @@ def _select():
     ]
 
     res = list(collection.aggregate(pipeline))
-    selected = list(collection.aggregate(
-        [{"$match": {id_val: node_id}}, project_stage]))
+    selected = list(
+        collection.aggregate([{"$match": {id_val: node_id}}, project_stage])
+    )
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
     selected = selected[0]
 
     # extract 'vector' that is ordered unlike python dicts
-    def create_vector(node): return [node[dim] for dim in ma.dimensions]
+    def create_vector(node):
+        return [node[dim] for dim in ma.dimensions]
 
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
@@ -286,19 +283,13 @@ def _select():
             "nodes": [tpl[0]["id"] for tpl in similar_nodes],
             "regions_of_interest": {
                 "dimensions": {
-                    "width":             similar_nodes[max_x_i][0][dimx]
-                                          - similar_nodes[min_x_i][0][dimx]
-                                          ,
-                    "height":             similar_nodes[max_y_i][0][dimy]
-                                           - similar_nodes[min_y_i][0][dimy]
-                                           ,
+                    "width": similar_nodes[max_x_i][0][dimx]
+                    - similar_nodes[min_x_i][0][dimx],
+                    "height": similar_nodes[max_y_i][0][dimy]
+                    - similar_nodes[min_y_i][0][dimy],
                 },
                 "interest": [
-                    {
-                        "x": tpl[0][dimx],
-                        "y": tpl[0][dimy],
-                        "value": tpl[1],
-                    }
+                    {"x": tpl[0][dimx], "y": tpl[0][dimy], "value": tpl[1],}
                     for tpl in similar_nodes
                 ],
             },
@@ -326,9 +317,9 @@ def _graph():
 
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
-    d['type'] = request.args.get('type')
+    d["type"] = request.args.get("type")
 
-    if not (d['x'] and d['y'] and d['zoom'] and dimx and dimy and d['type']):
+    if not (d["x"] and d["y"] and d["zoom"] and dimx and dimy and d["type"]):
         return abort(
             400,
             description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness&type=track",
@@ -379,12 +370,7 @@ def _graph():
             }
         },
         {"$unwind": album_label},
-        {
-            "$group": {
-                "_id": album_label,
-                "members": {"$addToSet": "$" + id_val},
-            }
-        },
+        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val},}},
         {
             "$project": {
                 "id": "$_id",
@@ -407,9 +393,6 @@ def _graph():
             )
 
     d.update(
-        {
-            "nodes": nodes,
-            "links": links,
-        }
+        {"nodes": nodes, "links": links,}
     )
     return jsonify(d)
