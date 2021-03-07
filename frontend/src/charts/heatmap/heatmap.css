@@ -1,23 +1,119 @@
 .heatmap-container {
-    position: relative;
-    padding: 5px;
-    color: white;
-    background: black;
-    color:black;
-    background: white;
+    /* position: relative; */
+    /* padding: 5px; */
+    /* color: white; */
+    /* background: black; */
+    /* color:black; */
+    /* background: white; */
 }
 
 #heatmap-svg {
-    width: 1500;
-    height: 1500;
+    float: left;
+    width: 480px;
+    height: 480px;
 }
 
+.heatmap-legend {
+    display: none;
+    float: left;
+    margin: -40px 0 0 700px;
+}
+.widget-fullscreen .heatmap-legend {
+    display: block;
+}
+
+.heatmap-gradient-legend {
+    display: flex;
+    border: 2px solid red;
+    height: 20px;
+    width: 280px;
+    background-image: linear-gradient(to right, white , red);
+}
+.heatmap-legend-lowval { float: left; margin-top: 0px;}
+.heatmap-legend-highval { float: left; margin-left: 140px; margin-top: 0px;}
+
 .heatmap-tooltip {
-    /* position: absolute; */
+    position: absolute;
     background-color: white;
     font: 8px;
     color: black;
-    border: 1 px solid lightgrey;
+    border: 2px solid black;
     border-radius: 2px;
     padding: 2px;
+}
+
+
+/* custom-heatmap-css */
+
+.heatmap-grid {
+    margin-right: 4vw;
+}
+
+.widget-fullscreen .heatmap-grid {
+    margin-top: 160px;
+}
+
+.heatmap-row {
+    display: flex;
+}
+
+.heatmap-cell {
+    position: relative;
+    display: flex;
+    width: 25px; 
+    height: 25px;
+    border: 1px solid #242424;
+    border-radius: 0px;
+    /* border: 0.5px solid white; */
+}
+.widget-fullscreen .heatmap-cell {
+    width: 40px;
+    height: 40px;
+}
+.heatmap-cell-tooltip {
+    position: absolute;
+    z-index: 9999;
+    color: black;
+    top: -40px;
+    left: 40px;
+    padding: 5px;
+    background: white;
+    display: none
+}
+.heatmap-cell:hover {
+    /* border: 1px solid red; */
+}
+.heatmap-cell:hover .heatmap-cell-tooltip {
+    display: block;
+}
+
+.heatmap-tick {
+    width: 25px;
+    font-size:10px;
+    padding: 2px 1.2px;
+    text-align: center;
+}
+.widget-fullscreen .heatmap-tick {
+    width: 40px;
+    font-size: initial;
+}
+.heatmap-tick-y {
+    position: relative;
+    min-width: 130px;
+    text-transform: capitalize;
+    text-align: right;
+    padding:5px;
+}
+.y-tooltip {
+    position: absolute;
+    z-index: 9999;
+    color: black;
+    top: -40px;
+    left: 40px;
+    padding: 5px;
+    background: white;
+    display: none
+}
+.heatmap-tick-y:hover .y-tooltip {
+    display: block;
 }

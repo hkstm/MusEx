@@ -1,6 +1,5 @@
 import base64
 import itertools
-import typing
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -34,45 +33,130 @@ def _dimensions():
     """ Return a list of all dimensions of the dataset """
     return jsonify(ma.dimensions)
 
+ 
+
 
 @app.route("/labels")
-def _labels():
+
+def labels():
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
     d = {}
-    pipeline = [
-        {
-            "$project": {
-                "name": "$_id",
-                "total_songs": "$n_tracks",
-                "num_artists": "$n_artists",
-                "_id": 0,
-            }
-        },
-    ]
     if limit:
         topk = int(limit)
         d["limit"] = topk
-        pipeline.append({"$sort": {"total_songs": ma.DESC}})
-        pipeline.append({"$limit": topk})
-    d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
+        # sort and limit
+        pass
+                # "labels": [
+            #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
+            #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
+            # ]
+
+    pipeline = [
+        { '$project': {'name': '$_id', 'total_songs': '$n_tracks', 'num_artists': '$n_artists', '_id' : 0} },
+    ]
+
+    d.update(
+        {
+            "labels": list(ma.coll_labels.aggregate(pipeline))
+        }
+    )
     return jsonify(d)
 
 
+@app.route("/artists")
+
+def artists():
+
+	d = {}
+	pipeline = [
+        { '$project': {'text' : '$artists', 'value' : '$popularity', '_id' : 0} },
+    ]
+    
+	most_popular =[]
+	for element in list(ma.coll_artists.aggregate(pipeline)):
+		if element["value"] > 70:
+			most_popular.append(element)
+
+	len_artists = len(list(ma.coll_artists.aggregate(pipeline)))
+	if len(list(ma.coll_artists.aggregate(pipeline))) > 5:
+		len_artists = str(round(len(list(ma.coll_artists.aggregate(pipeline)))/1000))+"K"
+
+
+	d.update(
+        {
+            "artists": list(ma.coll_artists.aggregate(pipeline)),
+        	"total_artists": len_artists,
+        	"popular_artists": most_popular
+        }
+    )
+	return jsonify(d)
+
+
 @app.route("/genres")
-def _genres():
+
+def genres():
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        {"$project": {"name": "$genres", "popularity": "$popularity", "_id": 0}},
+        { '$project': {'text' : '$genres', 'value' : '$popularity', '_id' : 0} },
+    ]
+
+
+
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        # sort the genres and limit
+        pipeline.update({'$limit', topk})
+
+
+    most_popular =[]
+    
+    for element in list(ma.coll_genres.aggregate(pipeline)):
+     	if element["value"] > 60:
+     		most_popular.append(element)
+
+    d.update(
+        {
+            "genres": list(ma.coll_genres.aggregate(pipeline)),
+            "total": len(list(ma.coll_genres.aggregate(pipeline))),
+            "populargenres": most_popular
+
+        }
+    )
+    return jsonify(d)
+
+@app.route("/years")
+def _years():
+    """ Return a detailed info of music through different years for heatmap """
+    limit = request.args.get("limit")
+    d = {}
+    pipeline = [
+        {"$project": {
+            "year": "$year",
+            # "key": "$key",
+            # "mode": "$mode",
+            "popularity": "$popularity",
+            "acousticness": "$acousticness",
+            "danceability": "$danceability",
+            "duration_ms": "$duration_ms",
+            "energy": "$energy",
+            "instrumentalness": "$instrumentalness",
+            "liveness": "$liveness",
+            "loudness": "$loudness",
+            "speechiness": "$speechiness",
+            "tempo": "$tempo",
+            "valence": "$valence",
+            "_id": 0}},
     ]
     if limit:
         topk = int(limit)
         d["limit"] = topk
-        pipeline.append({"$sort": {"popularity": ma.DESC}})
+        pipeline.append({"$sort": {"year": ma.DESC}})
         pipeline.append({"$limit": topk})
-    d.update({"genres": list(ma.coll_genres.aggregate(pipeline))})
+    d.update({"data": list(ma.coll_years.aggregate(pipeline))})
     return jsonify(d)
 
 
@@ -144,7 +228,12 @@ def _select():
     id_val = mongo_values["id_val"]
     collection = mongo_values["collection"]
 
-    project_stage = {"$project": {"id": "$" + id_val, "_id": 0, }}
+    project_stage = {
+        "$project": {
+            "id": "$" + id_val,
+            "_id": 0,
+        }
+    }
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
     pipeline = [
@@ -290,7 +379,12 @@ def _graph():
             }
         },
         {"$unwind": album_label},
-        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val}, }},
+        {
+            "$group": {
+                "_id": album_label,
+                "members": {"$addToSet": "$" + id_val},
+            }
+        },
         {
             "$project": {
                 "id": "$_id",
@@ -313,6 +407,9 @@ def _graph():
             )
 
     d.update(
-        {"nodes": nodes, "links": links, }
+        {
+            "nodes": nodes,
+            "links": links,
+        }
     )
     return jsonify(d)

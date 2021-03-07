@@ -6,6 +6,8 @@ import { D3Graph } from "./graph/model";
 import Select from "./Select";
 import "./App.sass";
 import { graphData, artistWords, genreWords } from "./mockdata";
+import Heatmap  from './charts/heatmap/heatmap'
+import Widget from './components/expandable-widget/widget'
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -16,18 +18,20 @@ const options = {
   fontWeight: "normal",
   padding: 1,
   rotations: 0,
-  transitionDuration: 1000,
 };
 
 type Genre = {
-  name: string;
-  popularity: number;
+  text: string;  // converted name to text for the wordcloud
+  value: number; // converted  popularity to value for the wordcloud
 };
 
 type AppState = {
   genres: Genre[];
-  data: string[];
-  graph?: D3Graph;
+  total: number
+  populargenres: Genre[]
+  artists: Genre[]
+  totalA: string
+  popular_artists: Genre[]
   dimensions: string[];
 };
 
@@ -36,20 +40,31 @@ class App extends Component<{}, AppState> {
     super(props);
     this.state = {
       genres: [],
+      total: 0,
+      populargenres:[],
+      artists:[],
+      totalA : '',
+      popular_artists: [],
       dimensions: ["Danceability", "Acousticness", "Loudness"],
-      data: [],
+
     };
   }
 
   componentDidMount() {
-    axios.get(`http://localhost:5000/genres?limit=100`).then((res) => {
-      this.setState({ genres: res.data });
+    axios.get(`http://localhost:5000/genres`).then((res) => {
+      this.setState({ genres: res.data.genres, total: res.data.total, populargenres: res.data.populargenres,
+      });
     });
-  }
 
+    axios.get(`http://localhost:5000/artists`).then((res)=>{
+      this.setState({artists: res.data.artists, totalA: res.data.total_artists, popular_artists: res.data.popular_artists })
+    })
+  };
+
+ 
   render() {
-    console.log(this.state.genres);
-    // const items = this.state.data.map((char) => <li key={char}>{char}</li>);
+  
+
     return (
       <div className="App">
         <header>
@@ -77,20 +92,30 @@ class App extends Component<{}, AppState> {
             ></Graph>
           </div>
           <div className="stat num-artists">
-            <span className="number">80</span>
+            <span className="number">{this.state.totalA}</span>
             <span>Artists in dataset</span>
           </div>
           <div className="stat num-genres">
-            <span className="number">26</span>
+            <span className="number">{this.state.total}</span>
             <span>Genres in dataset</span>
           </div>
           <div className="tile artist-wordcloud">
-            <h3>Artists ranked by popularity</h3>
-            <ReactWordcloud words={artistWords} options={options} />
+            <Widget>
+            <h3>Most popular artists</h3>
+            <ReactWordcloud words={this.state.popular_artists} options={options} />
+            </Widget>
           </div>
           <div className="tile genre-wordcloud">
-            <h3>Genres ranked by popularity</h3>
-            <ReactWordcloud words={genreWords} options={options} />
+            <Widget>
+            <h3>Most popular genres</h3>
+            <ReactWordcloud words={this.state.populargenres} options={options} />
+            </Widget>
+          </div>
+          <div className="heatmap-widget">
+            <Widget>
+            <h3>Stats through different years</h3>
+            <Heatmap/>
+            </Widget>
           </div>
         </div>
       </div>
