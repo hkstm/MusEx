@@ -63,16 +63,21 @@ coll_labels = db["labels"]
 
 def map_zoom_to_mongo(zoom):
     # I'll factor this and the mongodb related logic out of this file when we have a functional prototype
+    # zoom_map = {
+    #     1: genre_str,
+    #     2: genre_str,
+    #     3: genre_str,
+    #     4: artist_str,
+    #     5: artist_str,
+    #     6: artist_str,
+    #     7: track_str,
+    #     8: track_str,
+    #     9: track_str,
+    # }
     zoom_map = {
-        1: genre_str,
-        2: genre_str,
-        3: genre_str,
-        4: artist_str,
-        5: artist_str,
-        6: artist_str,
-        7: track_str,
-        8: track_str,
-        9: track_str,
+        'genre': genre_str,
+        'artist': artist_str,
+        'track': track_str,
     }
     mongo_values = {}
     mongo_values["coll_type"] = zoom_map[zoom]

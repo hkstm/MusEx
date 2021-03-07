@@ -9,13 +9,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 from infovis21.app import app
 from infovis21.mongodb import MongoAccess as ma
 
-x_min_abs, x_max_abs = (
+vis_min, vis_max = (
     0,
-    1000,
-)  # Arbitrary, not sure in which space/units these are in the frontend, pixels? If so, we need to handle different screen sizes/resizing at some point
-y_min_abs, y_max_abs = (
+    1,
+)
+zoom_min, zoom_max = (
     0,
-    1000,
+    1,
 )
 
 
@@ -76,41 +76,75 @@ def _genres():
     return jsonify(d)
 
 
+def vis_to_mongo(dim, val_vis):
+    """ Converts from normalized frontend visualization space to backend MongoDB space """
+    return np.interp(
+        val_vis,
+        (vis_min, vis_max),
+        (ma.dim_absvals[dim]["min"], ma.dim_absvals[dim]["max"]),
+    )
+
+
+def mongo_to_vis(dim, val_mongo):
+    """ Converts from backend MongoDB space to normalized frontend visualization space """
+    return np.interp(
+        val_mongo,
+        (ma.dim_absvals[dim]["min"], ma.dim_absvals[dim]["max"]),
+        (vis_min, vis_max),
+    )
+
+
+def viszoomregion_to_mongo(dim, val, zoom, screen_min=0, screen_max=1, zoom_func=(lambda zoom: zoom)):
+    """ Creates dimension limits in MongoDB space based on normalized frontend visualization """
+    zoom_val = (1 - zoom_func(zoom))
+    val_zoom_min = val - zoom_val
+    val_zoom_max = val + zoom_val
+    val_zoom_min, val_zoom_max = np.clip(
+        [val_zoom_min, val_zoom_max],
+        screen_min,  # screen_min and screen_max would need to be given by the frontend if dealing with aspect ratio's that cut a part of the screen off
+        screen_max,
+    )
+    return vis_to_mongo(dim, val_zoom_min), vis_to_mongo(dim, val_zoom_max)
+
+
 @app.route("/select")
 def _select():
     """ Return the node ids that should be highlighted based on a user selection """
     d = {}
-    node = request.args.get("node")  # either genre/artist name or track ID
+    node_id = request.args.get("node")  # either genre/artist name or track ID
     _limit = request.args.get("limit")
-    _zoom = request.args.get("zoom")
+    # _zoom = request.args.get("zoom") # don;t think zoom makes sense here if we have a way to determine genre/artist/track level
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
+    d['type'] = request.args.get('type')
 
-    if node:
+
+    if node_id:
         # node_id = int(node)
         # d["node"] = node_id
         pass
-    if not (node and dimx and dimy):
-        return abort(
-            400,
-            description="a node ID, the zoom level, and the x and y dimensions are required to make a selection, e.g. /select?node=someID&zoom=1&dimx=acousticness&dimy=loudness",
-        )
 
     topk = 6
     if _limit:
         topk = int(_limit)
         d["limit"] = topk
 
-    zoom = 4
-    if _zoom:
-        zoom = int(_zoom)
-        d["zoom"] = zoom
+    # zoom = 4
+    # if _zoom:
+    #     zoom = float(_zoom)
+    #     d["zoom"] = zoom
 
-    mongo_values = ma.map_zoom_to_mongo(d["zoom"])
+    if not (node_id and dimx and dimy and d['type']):
+        return abort(
+            400,
+            description="a node ID, the zoom level, type, and the x and y dimensions are required to make a selection, e.g. /select?node=someID&zoom=1&dimx=acousticness&dimy=loudness&type=track",
+        )
+
+    mongo_values = ma.map_zoom_to_mongo(d["type"])
     id_val = mongo_values["id_val"]
     collection = mongo_values["collection"]
 
-    project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
+    project_stage = {"$project": {"id": "$" + id_val, "_id": 0, }}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
     pipeline = [
@@ -119,13 +153,14 @@ def _select():
     ]
 
     res = list(collection.aggregate(pipeline))
-    selected = list(collection.aggregate([{"$match": {id_val: node}}, project_stage]))
+    selected = list(collection.aggregate(
+        [{"$match": {id_val: node_id}}, project_stage]))
     if len(selected) < 1:
-        return abort(404, description=f"node with ID '{node}' was not found.")
+        return abort(404, description=f"node with ID '{node_id}' was not found.")
     selected = selected[0]
 
     # extract 'vector' that is ordered unlike python dicts
-    create_vector = lambda node: [node[dim] for dim in ma.dimensions]
+    def create_vector(node): return [node[dim] for dim in ma.dimensions]
 
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
@@ -145,17 +180,6 @@ def _select():
 
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
-    x_to_normspace = lambda x: np.interp(
-        x,
-        (x_min_abs, x_max_abs),
-        (ma.dim_absvals[dimx]["min"], ma.dim_absvals[dimx]["max"]),
-    )
-    y_to_normspace = lambda y: np.interp(
-        y,
-        (y_min_abs, y_max_abs),
-        (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
-    )
-
     # find max and min values for dimensions for regions of interest (not sure if that is what is intended)
     for i in range(1, len(similar_nodes)):
         curr_node = similar_nodes[i][0]
@@ -173,19 +197,17 @@ def _select():
             "nodes": [tpl[0]["id"] for tpl in similar_nodes],
             "regions_of_interest": {
                 "dimensions": {
-                    "width": x_to_normspace(
-                        similar_nodes[max_x_i][0][dimx]
-                        - similar_nodes[min_x_i][0][dimx]
-                    ),
-                    "height": y_to_normspace(
-                        similar_nodes[max_y_i][0][dimy]
-                        - similar_nodes[min_y_i][0][dimy]
-                    ),
+                    "width":             similar_nodes[max_x_i][0][dimx]
+                                          - similar_nodes[min_x_i][0][dimx]
+                                          ,
+                    "height":             similar_nodes[max_y_i][0][dimy]
+                                           - similar_nodes[min_y_i][0][dimy]
+                                           ,
                 },
                 "interest": [
                     {
-                        "x": x_to_normspace(tpl[0][dimx]),
-                        "y": y_to_normspace(tpl[0][dimy]),
+                        "x": tpl[0][dimx],
+                        "y": tpl[0][dimy],
                         "value": tpl[1],
                     }
                     for tpl in similar_nodes
@@ -210,44 +232,23 @@ def _graph():
         d["y"] = ny
     zoom = request.args.get("zoom")
     if zoom:
-        nzoom = int(zoom)
+        nzoom = float(zoom)
         d["zoom"] = nzoom
 
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
+    d['type'] = request.args.get('type')
 
-    if not (x and y and zoom and dimx and dimy):
+    if not (d['x'] and d['y'] and d['zoom'] and dimx and dimy and d['type']):
         return abort(
             400,
-            description="you need to specify x and y coordinates, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness",
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=100&y=200&zoom=3&dimx=acousticness&dimy=loudness&type=track",
         )
 
-    zoom_modifier = 500
-    zoom_stage = (
-        d["zoom"] % 3
-    )  # Assuming 3 zoom levels per level of Genre, Artist, Track
-    x_min, x_max = np.clip(
-        [d["x"] - (zoom_stage * zoom_modifier), d["x"] + (zoom_stage * zoom_modifier)],
-        x_min_abs,
-        x_max_abs,
-    )
-    x_min, x_max = np.interp(
-        [x_min, x_max],
-        (x_min_abs, x_max_abs),
-        (ma.dim_absvals[dimx]["min"], ma.dim_absvals[dimx]["max"]),
-    )
-    y_min, y_max = np.clip(
-        [d["y"] - (zoom_stage * zoom_modifier), d["y"] + (zoom_stage * zoom_modifier)],
-        y_min_abs,
-        y_max_abs,
-    )
-    y_min, y_max = np.interp(
-        [y_min, y_max],
-        (y_min_abs, y_max_abs),
-        (ma.dim_absvals[dimy]["min"], ma.dim_absvals[dimy]["max"]),
-    )
+    x_min, x_max = viszoomregion_to_mongo(dimx, d["x"], d["zoom"])
+    y_min, y_max = viszoomregion_to_mongo(dimy, d["y"], d["zoom"])
 
-    mongo_values = ma.map_zoom_to_mongo(d["zoom"])
+    mongo_values = ma.map_zoom_to_mongo(d["type"])
     id_val = mongo_values["id_val"]
     album_label = mongo_values["album_label"]
     name = mongo_values["name"]
@@ -270,14 +271,7 @@ def _graph():
                 dimx: f"${dimx}",
                 dimy: f"${dimy}",
                 "name": name,
-                "size": {
-                    "$toInt": {
-                        "$divide": [
-                            "$popularity",
-                            ma.dim_absvals["popularity"]["max"] / 100,
-                        ]
-                    }
-                },
+                "size": "$popularity",
                 "type": coll_type,  # can be one of Genre, Artist or Song
                 "genre": genre,
                 "color": "#00000",
@@ -296,7 +290,7 @@ def _graph():
             }
         },
         {"$unwind": album_label},
-        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val},}},
+        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val}, }},
         {
             "$project": {
                 "id": "$_id",
@@ -307,7 +301,7 @@ def _graph():
     ]
     links_data = list(collection.aggregate(pipeline))
     links = []
-    for label in links_data[:3]:
+    for label in links_data:
         for src, dest in itertools.combinations(label["members"], 2):
             links.append(
                 {
@@ -315,14 +309,10 @@ def _graph():
                     "dest": dest,
                     "color": label["color"],
                     "name": label["id"],
-                    # "label": base64.b64encode(bytes(label['id'], 'utf-8')),
-                    "label": base64.b64encode(bytes(label["id"], "utf-8")).decode(
-                        "utf-8"
-                    ),  # not sure if we can send bytes? if not we can decode the base64 encoded label name as utf-8 and send that, which is kinda messy. Or just use the (utf-8) label name to begin with (they are unique) but not sure how the frontend would deal with the spaces in these label names
                 }
             )
 
     d.update(
-        {"nodes": nodes, "links": links,}
+        {"nodes": nodes, "links": links, }
     )
     return jsonify(d)
