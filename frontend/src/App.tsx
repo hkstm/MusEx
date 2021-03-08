@@ -125,9 +125,9 @@ class App extends Component<{}, AppState> {
           </div>
           <div className="tile artist-wordcloud">
             <Widget>
-            <h3>Show wordcloud about the most popular:</h3>
-            <button onClick={this._genreButtonClick}>Genres</button>
-            <button onClick={this._artistButtonClick}>Artists</button>
+            <h3>Show wordcloud about the most popular:
+            <button className="button" onClick={this._genreButtonClick}>Genres</button>
+            <button className="button" onClick={this._artistButtonClick}>Artists</button></h3>
             {this.state.showGenre ? <ReactWordcloud words={this.state.populargenres} options={options} ></ReactWordcloud> : null}
             {this.state.showArtist ? <ReactWordcloud words={this.state.popular_artists} options={options} ></ReactWordcloud> : null}
             </Widget>
@@ -138,7 +138,7 @@ class App extends Component<{}, AppState> {
               type="text"
               placeholder="Search artist or genre"
               name="s"></input>
-              <button type="submit">Search</button>
+              <button className="button" type="submit">Search</button>
     
             </Widget>
           </div>
