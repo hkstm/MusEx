@@ -136,7 +136,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
           //
 
-          //// insert recommender system
+          //// insert playlist recommender system
 
           // var thisNode = d.id
           //
