@@ -1,29 +1,93 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
+import axios from 'axios';
 import "./heatmap.css";
 
-class Heatmap extends Component {
-  constructor(props: {}) {
+// type Year = {
+//   acousticness: number,
+//   danceability: number,
+//   duration_ms: number,
+//   energy: number,
+//   instrumentalness: number,
+//   liveness: number,
+//   loudness: number,
+//   popularity: number,
+//   speechiness: number,
+//   tempo: number,
+//   valence: number,
+//   year: number
+// }
+
+class Heatmap extends Component<{}, any> {
+  constructor(props: any) {
     super(props);
     this.state = {
-      data: [],
+      x: [],
+      y: [],
+      max: {}, //currentMin
+      min: {}, //currentMax
+      hash: {
+        "acousticness": {"max": 0.996, "min": 0.0},
+        "danceability": {"max": 0.988, "min": 0.0},
+        "duration_ms": {"max": 5338302, "min": 4937},
+        "energy": {"max": 1.0, "min": 0.0},
+        "explicit": {"max": 1, "min": 0},
+        "instrumentalness": {"max": 1.0, "min": 0.0},
+        "key": {"max": 11, "min": 0},
+        "liveness": {"max": 1.0, "min": 0.0},
+        "loudness": {"max": 3.855, "min": -60.0},
+        "mode": {"max": 1, "min": 0},
+        "popularity": {"max": 100, "min": 0},
+        "speechiness": {"max": 0.971, "min": 0.0},
+        "tempo": {"max": 243.507, "min": 0.0},
+        "valence": {"max": 1.0, "min": 0.0},
+        "year": {"max": 2021, "min": 1920},
+      }
     };
   }
 
   componentDidMount() {
-    setTimeout(this.d3heatmap, 0)
+    // setTimeout(this.d3heatmap, 0);
+    axios.get(`http://localhost:5000/years?limit=10`).then((res) => {
+      this.setState({ data: res.data.data });
+      var x:number[] = [], y:any[] = [];
+      var min: any = this.state.min, max: any = this.state.max;
+      res.data.data.forEach((d:any) => {
+        x.push(d.year);
+        var info = d;
+        delete info['year'];
+        delete info['loudness'];
+        delete info['duration_ms'];
+
+        // Set 2 cells to min/max shade
+        // var maxKey = Object.keys(d)[Math.floor(Math.random() * Object.keys(d).length)];
+        // info[maxKey] = this.state.hash[maxKey].max;
+        // var minKey = Object.keys(d)[Math.floor(Math.random() * Object.keys(d).length)];
+        // info[minKey] = this.state.hash[minKey].min;
+
+        Object.keys(d).forEach((k:any) => {
+          if (!max[k] || max[k] < d[k])
+            max[k] = d[k]          
+          if (!min[k] || min[k] > d[k])
+            min[k] = d[k]
+        });
+        y.push(info);
+      })
+      this.setState({x, y, min, max})
+    });
+
   }
 
   d3heatmap() {
-    var margin = {top: 30, right: 30, bottom: 30, left: 30},
-    width = 160 - margin.left - margin.right,
-    height = 160 - margin.top - margin.bottom;
+    var margin = {top: 60, right: 60, bottom: 60, left: 60},
+    width = 480 - margin.left - margin.right,
+    height = 480 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
     var svg = d3.select("#heatmap-svg")
     .append("svg")
-      .attr("width", width + 2 * (margin.left + margin.right))
-      .attr("height", height + 2 * (margin.top + margin.bottom))
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
     .append("g")
       .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
@@ -48,7 +112,7 @@ class Heatmap extends Component {
     svg.append("g")
       .call(d3.axisLeft(y));
 
-    var myColor = function(n: number) {var shade = n * 2.55; return `rgb(${0}, ${0}, ${shade})`}
+    var myColor = function(n: number) {var shade = n * 2.55; return `rgb(${255- shade}, ${255-shade}, ${255})`}
 
     const buildData = () => {
       return myVars.reduce((acc, d) => {
@@ -73,11 +137,10 @@ class Heatmap extends Component {
       tooltip.style("opacity", 1)
     }
     var mousemove = function(d: any, data: any) {
-      debugger;
       tooltip
         .html(data.value + " " + data.t + " records sold in " + data.n)
-        // .style("left", (d.clientX + 20) + "px")
-        // .style("top", (d.clientY) + "px")
+        .style("left", (d.clientX + 20) + "px")
+        .style("top", (d.clientY - 150) + "px")
         // .style("left", (d3.pointer(this)[0]+70) + "px")
         // .style("top", (d3.pointer(this)[1]) + "px")
       }
@@ -88,22 +151,74 @@ class Heatmap extends Component {
     // add the squares
     svg.selectAll()
       .data(data, function(d:any) { return d.t+':'+d.n;})
+      // .data(data, function(d:any, i:any, j: any) { debugger;return d[0].t+','+d[0].n;})
       .enter()
       .append("rect")
         .attr("x", function(d:any) { return x(d.t) })//d.group
         .attr("y", function(d:any) { return y(d.n) })//d.variable
+        // .attr("x", function(d:any, i:any, j:any) { return x(d[i].t) })//d.group
+        // .attr("y", function(d:any, i:any, j: any) { return y(d[i].n) })//d.variable
         .attr("width", x.bandwidth() )
         .attr("height", y.bandwidth() )
-        .style("fill", function(d) { return myColor(d.value)} )
+        .style("fill", "white" )
+        // .style("fill", function(d) { return myColor(d.value)} )
       .on("mouseover", mouseover)
       .on("mousemove", mousemove)
-      .on("mouseleave", mouseleave)
+      .on("mouseleave", mouseleave)   
+      .transition() // and apply changes to all of them
+        .duration(500)
+        .style("fill", function(d) { return myColor(d.value)} )
+        // .style("fill", function(d:any,i:any) { return myColor(d[i].value)} )
+  }
+
+  getShade(key:string, val:number) {
+    // var min = this.state.min[key] / 1.2, max = this.state.max[key] * 1.2;
+    var min = this.state.hash[key].min, max = this.state.hash[key].max;
+    var range = max - min;
+    var shade = 255 * (val - min) / (range)
+    return `rgb(${(255) + ',' + (255-shade) + ',' + (255-shade)})`  
+  }
+  
+  draw() {
+    return (
+      <div className="heatmap-grid">
+        {Object.keys(this.state.y[0] || {}).map( (key:string) => 
+          <div className='heatmap-row'>
+            <div className="heatmap-tick-y">
+              {key}
+              <div className="y-tooltip"> {key} Range[{this.state.hash[key].min},{this.state.hash[key].max}]</div>
+            </div>
+            {this.state.x.map( (year:any, i: number) => 
+              <div className='heatmap-row'>
+                <div className="heatmap-cell" style={{background: this.getShade(key, this.state.y[i][key])}}>
+                  <div className="heatmap-cell-tooltip"> {`${key} in ${year} is ${this.state.y[i][key].toFixed(3)}`}</div>
+                </div> 
+              </div>
+              )}
+          </div>
+        )}
+        <div className='heatmap-row'>
+          <div className="heatmap-tick-y"/>
+          {this.state.x.map( (year:any, i: number) => 
+              <div className="heatmap-tick"> {year} </div>
+          )}
+        </div>
+    </div>
+)
   }
 
   render() {
+    debugger;
+    // return <div>{this.draw()}</div>;
     return (
         <div className="heatmap-container">
-          <svg id="heatmap-svg"></svg>
+          {/* <svg id="heatmap-svg"></svg> */}
+          <div>{this.draw()}</div>
+          <div className="heatmap-legend">
+            <div className="heatmap-gradient-legend"/>
+            <div className="heatmap-legend-lowval">Min Value</div>
+            <div className="heatmap-legend-highval">Max Value</div>
+          </div>
         </div>
     );
   }

@@ -32,25 +32,8 @@ dimensions = [
     "key",
     "mode",
     "acousticness",
+    # "year"  # year not included in genre and artist collection by default, lots of values seem to default to the year 1920 so I haven't manually calculated them for year and artist by grouping and taking average for example
 ]
-
-dim_absvals = {
-    "acousticness": {"max": 0.996, "min": 0.0},
-    "danceability": {"max": 0.988, "min": 0.0},
-    "duration_ms": {"max": 5338302, "min": 4937},
-    "energy": {"max": 1.0, "min": 0.0},
-    "explicit": {"max": 1, "min": 0},
-    "instrumentalness": {"max": 1.0, "min": 0.0},
-    "key": {"max": 11, "min": 0},
-    "liveness": {"max": 1.0, "min": 0.0},
-    "loudness": {"max": 3.855, "min": -60.0},
-    "mode": {"max": 1, "min": 0},
-    "popularity": {"max": 100, "min": 0},
-    "speechiness": {"max": 0.971, "min": 0.0},
-    "tempo": {"max": 243.507, "min": 0.0},
-    "valence": {"max": 1.0, "min": 0.0},
-    "year": {"max": 2021, "min": 1920},
-}
 
 genre_str = "Genre"
 artist_str = "Artist"
@@ -59,25 +42,31 @@ track_str = "Track"  # this might be Song in the frontend not Track
 coll_genres, coll_years, coll_tracks, coll_artists = [db[name] for name in collnames]
 coll_albums = db["albums"]
 coll_labels = db["labels"]
+coll_dim_minmax = db["dim_minmax"]
 
 
 def map_zoom_to_mongo(zoom):
     # I'll factor this and the mongodb related logic out of this file when we have a functional prototype
+    # zoom_map = {
+    #     1: genre_str,
+    #     2: genre_str,
+    #     3: genre_str,
+    #     4: artist_str,
+    #     5: artist_str,
+    #     6: artist_str,
+    #     7: track_str,
+    #     8: track_str,
+    #     9: track_str,
+    # }
     zoom_map = {
-        1: genre_str,
-        2: genre_str,
-        3: genre_str,
-        4: artist_str,
-        5: artist_str,
-        6: artist_str,
-        7: track_str,
-        8: track_str,
-        9: track_str,
+        "genre": genre_str,
+        "artist": artist_str,
+        "track": track_str,
     }
     mongo_values = {}
     mongo_values["coll_type"] = zoom_map[zoom]
     # the schema of the collections isn't completely the same thats why we have to change some names. Probably want to clean that up at some point, but should be fine for now
-    if zoom_map[zoom] == "Genre":
+    if mongo_values["coll_type"] == genre_str:
         mongo_values["id_val"] = "genres"
         mongo_values["album_label"] = "$labels"
         mongo_values["name"] = "$genres"
@@ -85,13 +74,13 @@ def map_zoom_to_mongo(zoom):
             "$genres"
         ]  # genres here is just a single literal string
         mongo_values["collection"] = coll_genres
-    elif zoom_map[zoom] == "Artist":
+    elif mongo_values["coll_type"] == artist_str:
         mongo_values["id_val"] = "artists"
         mongo_values["album_label"] = "$labels"
         mongo_values["name"] = "$artists"
         mongo_values["genre"] = {"$ifNull": ["$genres", []]}
         mongo_values["collection"] = coll_artists
-    elif zoom_map[zoom] == "Track":
+    elif mongo_values["coll_type"] == track_str:
         mongo_values["id_val"] = "id"
         mongo_values["album_label"] = "$album_label"
         mongo_values["name"] = "$name"
@@ -193,7 +182,7 @@ def get_all_tracks_id(pipeline=()):
     return get_from_mongo(coll_tracks, pipeline)
 
 
-def find_dim_absvals():
+def update_dim_minmax():
     pipeline = [
         {
             "$group": {
@@ -259,5 +248,10 @@ def find_dim_absvals():
                 "_id": 0,
             }
         },
+        {"$out": "dim_minmax"},
     ]
-    return list(coll_tracks.aggregate(pipeline))[0]
+    coll_tracks.aggregate(pipeline)
+
+
+def get_dim_minmax():
+    return list(coll_dim_minmax.aggregate([{"$unset": ["_id"]}]))[0]
