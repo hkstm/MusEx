@@ -6,6 +6,9 @@ import { D3Graph } from "./graph/model";
 import Select from "./Select";
 import "./App.sass";
 import { graphData, artistWords, genreWords } from "./mockdata";
+import Heatmap  from './charts/heatmap/heatmap'
+import Widget from './components/expandable-widget/widget'
+import { tsvFormatValue } from "d3";
 
 const options = {
   colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
@@ -17,6 +20,7 @@ const options = {
   padding: 1,
   rotations: 0,
 };
+
 
 type Genre = {
   text: string;  // converted name to text for the wordcloud
@@ -30,6 +34,9 @@ type AppState = {
   artists: Genre[]
   totalA: string
   popular_artists: Genre[]
+  dimensions: string[];
+  showGenre: Boolean;
+  showArtist: Boolean;
 };
 
 class App extends Component<{}, AppState> {
@@ -41,9 +48,30 @@ class App extends Component<{}, AppState> {
       populargenres:[],
       artists:[],
       totalA : '',
-      popular_artists: []
+      popular_artists: [],
+      dimensions: ["Danceability", "Acousticness", "Loudness"],
+      showGenre: false,
+      showArtist: false,
+    }
+    this._genreButtonClick = this._genreButtonClick.bind(this);
+    this._artistButtonClick = this._artistButtonClick.bind(this);
 
-    };
+
+  }
+
+  _genreButtonClick(){
+    this.setState({
+      showArtist: false,
+      showGenre: true,
+    });
+  }
+
+  _artistButtonClick(){
+    this.setState({
+      showGenre: false,
+      showArtist: true,
+    })
+
   }
 
   componentDidMount() {
@@ -67,7 +95,14 @@ class App extends Component<{}, AppState> {
           <nav>
             <span id="app-name">MusEx</span>
             <div className="dimension-controller">
-
+              <Select
+                id="select-first-dim"
+                options={this.state.dimensions}
+              ></Select>
+              <Select
+                id="select-second-dim"
+                options={this.state.dimensions}
+              ></Select>
             </div>
           </nav>
         </header>
@@ -89,12 +124,29 @@ class App extends Component<{}, AppState> {
             <span>Genres in dataset</span>
           </div>
           <div className="tile artist-wordcloud">
-            <h3>Most popular artists</h3>
-            <ReactWordcloud words={this.state.popular_artists} options={options} />
+            <Widget>
+            <h3>Show wordcloud about the most popular:</h3>
+            <button onClick={this._genreButtonClick}>Genres</button>
+            <button onClick={this._artistButtonClick}>Artists</button>
+            {this.state.showGenre ? <ReactWordcloud words={this.state.populargenres} options={options} ></ReactWordcloud> : null}
+            {this.state.showArtist ? <ReactWordcloud words={this.state.popular_artists} options={options} ></ReactWordcloud> : null}
+            </Widget>
           </div>
           <div className="tile genre-wordcloud">
-            <h3>Most popular genres</h3>
-            <ReactWordcloud words={this.state.populargenres} options={options} />
+            <Widget>
+            <input
+              type="text"
+              placeholder="Search artist or genre"
+              name="s"></input>
+              <button type="submit">Search</button>
+    
+            </Widget>
+          </div>
+          <div className="heatmap-widget">
+            <Widget>
+            <h3>Stats through different years</h3>
+            <Heatmap/>
+            </Widget>
           </div>
         </div>
       </div>
