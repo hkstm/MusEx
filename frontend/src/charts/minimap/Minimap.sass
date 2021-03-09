@@ -1,0 +1,13 @@
+@import "../../global.scss"
+
+.minimap
+  position: relative
+
+  .minimap-selection
+    position: absolute
+    outline: 2px solid black
+    background-color: white
+    opacity: 0.5
+    cursor: move
+    @include transition(width 0.2s ease-in)
+    @include transition(height 0.2s ease-in)

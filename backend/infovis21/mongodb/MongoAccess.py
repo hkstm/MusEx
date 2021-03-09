@@ -254,4 +254,8 @@ def update_dim_minmax():
 
 
 def get_dim_minmax():
-    return list(coll_dim_minmax.aggregate([{"$unset": ["_id"]}]))[0]
+    try:
+        return list(coll_dim_minmax.aggregate([{"$unset": ["_id"]}]))[0]
+    except IndexError:
+        update_dim_minmax()
+        return list(coll_dim_minmax.aggregate([{"$unset": ["_id"]}]))[0]

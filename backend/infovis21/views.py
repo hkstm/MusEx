@@ -3,6 +3,7 @@ import itertools
 
 import numpy as np
 from flask import abort, jsonify, request
+from flask_cors import cross_origin
 from sklearn.metrics.pairwise import cosine_similarity
 
 from infovis21.app import app
@@ -31,26 +32,18 @@ def not_found(e):
 
 
 @app.route("/dimensions")
+@cross_origin()
 def _dimensions():
     """ Return a list of all dimensions of the dataset """
     return jsonify(ma.dimensions)
 
 
 @app.route("/labels")
-def labels():
+@cross_origin()
+def _labels():
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
     d = {}
-    if limit:
-        topk = int(limit)
-        d["limit"] = topk
-        # sort and limit
-        pass
-        # "labels": [
-        #     {"name": "Warner", "num_artists": 1000, "total_songs": 10000},
-        #     {"name": "Transgressive", "num_artists": 1000, "total_songs": 10000},
-        # ]
-
     pipeline = [
         {
             "$project": {
@@ -61,65 +54,67 @@ def labels():
             }
         },
     ]
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        pipeline.append({"$sort": {"total_songs": ma.DESC}})
+        pipeline.append({"$limit": topk})
 
     d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
     return jsonify(d)
 
 
 @app.route("/artists")
-def artists():
-
-    d = {}
-    pipeline = [
-        {"$project": {"text": "$artists", "value": "$popularity", "_id": 0}},
-    ]
-
-    most_popular = []
-    for element in list(ma.coll_artists.aggregate(pipeline)):
-        if element["value"] > 70:
-            most_popular.append(element)
-
-    len_artists = len(list(ma.coll_artists.aggregate(pipeline)))
-    if len(list(ma.coll_artists.aggregate(pipeline))) > 5:
-        len_artists = (
-            str(round(len(list(ma.coll_artists.aggregate(pipeline))) / 1000)) + "K"
-        )
-
-    d.update(
-        {
-            "artists": list(ma.coll_artists.aggregate(pipeline)),
-            "total_artists": len_artists,
-            "popular_artists": most_popular,
-        }
-    )
-    return jsonify(d)
-
-
-@app.route("/genres")
-def genres():
-    """ Return a list of all genres and their popularity for the wordcloud """
+@cross_origin()
+def _artists():
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        {"$project": {"text": "$genres", "value": "$popularity", "_id": 0}},
+        {"$project": {"name": "$artists", "popularity": "$popularity", "_id": 0}},
     ]
 
     if limit:
         topk = int(limit)
         d["limit"] = topk
-        # sort the genres and limit
-        pipeline.update({"$limit", topk})
+        pipeline.append({"$sort": {"popularity": ma.DESC}})
+        pipeline.append({"$limit": topk})
 
-    res = list(ma.coll_genres.aggregate(pipeline))
-    most_popular = [element for element in res if element["value"] > 60]
+    artists = list(ma.coll_artists.aggregate(pipeline))
+
+    # TODO: pre compute the number of distinct artists
+    # str(round(len(list(ma.coll_artists.aggregate(pipeline))) / 1000)) + "K"
 
     d.update(
-        {"genres": res, "total": len(res), "populargenres": most_popular,}
+        {"artists": artists, "total": len(artists),}
+    )
+    return jsonify(d)
+
+
+@app.route("/genres")
+@cross_origin()
+def _genres():
+    """ Return a list of all genres and their popularity for the wordcloud """
+    limit = request.args.get("limit")
+    d = {}
+    pipeline = [
+        {"$project": {"name": "$genres", "popularity": "$popularity", "_id": 0}},
+    ]
+
+    if limit:
+        topk = int(limit)
+        d["limit"] = topk
+        pipeline.append({"$sort": {"popularity": ma.DESC}})
+        pipeline.append({"$limit": topk})
+
+    genres = list(ma.coll_genres.aggregate(pipeline))
+    d.update(
+        {"genres": genres, "total": len(genres),}
     )
     return jsonify(d)
 
 
 @app.route("/years")
+@cross_origin()
 def _years():
     """ Return a detailed info of music through different years for heatmap """
     limit = request.args.get("limit")
@@ -184,6 +179,7 @@ def viszoomregion_to_mongo(
 
 
 @app.route("/select")
+@cross_origin()
 def _select():
     """ Return the node ids that should be highlighted based on a user selection """
     d = {}
@@ -193,11 +189,6 @@ def _select():
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
     d["type"] = request.args.get("type")
-
-    if node_id:
-        # node_id = int(node)
-        # d["node"] = node_id
-        pass
 
     topk = 6
     if _limit:
@@ -294,6 +285,7 @@ def _select():
 
 
 @app.route("/graph")
+@cross_origin()
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
     d = {}
@@ -306,15 +298,24 @@ def _graph():
     _zoom = request.args.get("zoom")
     if _zoom:
         d["zoom"] = float(_zoom)
+    _limit = request.args.get("limit")
+    if _limit:
+        d["limit"] = float(_limit)
 
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
     d["type"] = request.args.get("type")
 
-    if not (_x and _y and _zoom and dimx and dimy and d["type"]):
+    if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
         return abort(
             400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=&y=200&zoom=0&dimx=acousticness&dimy=loudness&type=track",
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0&y=0&zoom=0&dimx=acousticness&dimy=loudness&type=track",
+        )
+
+    if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
+        return abort(
+            400,
+            description=f"dimensions need to be different and one of {ma.dimensions}",
         )
 
     # this assumes that x and y are normalized to range 0, 1 also called normalized frontend visualization space
@@ -356,7 +357,13 @@ def _graph():
             }
         },
     ]
+
+    if _limit:
+        pipeline.append({"$limit": d["limit"]})
+
+    print(pipeline)
     nodes = list(collection.aggregate(pipeline))
+    node_ids = [n["name"] for n in nodes]
     pipeline = [
         {
             "$match": {
