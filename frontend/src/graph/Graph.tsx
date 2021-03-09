@@ -15,8 +15,8 @@ interface GraphState {
   zoomLevel: number;
 }
 
-type SimNode = MusicGraphNode;
-type SimLink = d3.SimulationLinkDatum<MusicGraphNode>;
+// type SimNode = MusicGraphNode;
+// type SimLink = d3.SimulationLinkDatum<MusicGraphNode>;
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
   ref!: HTMLDivElement;
@@ -71,23 +71,22 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     this.svg.call(zoom);
 
     if (this.props.useForce ?? false) {
-      const forceLink = d3
-        .forceLink<SimNode, SimLink>(this.props.data.links)
-        .id((d: MusicGraphNode) => {
-          return d.name;
-        })
-        .distance(50)
-        .links(this.props.data.links);
-
-      const force = d3
-        .forceSimulation<SimNode, SimLink>(this.props.data.nodes)
-        .nodes(this.props.data.nodes)
-        .force("link", forceLink)
-        .force("charge", d3.forceManyBody().strength(-120))
-        .force(
-          "center",
-          d3.forceCenter(this.props.width / 2, this.props.height / 2)
-        );
+      // const forceLink = d3
+      //   .forceLink<SimNode, SimLink>(this.props.data.links)
+      //   .id((d: MusicGraphNode) => {
+      //     return d.name;
+      //   })
+      //   .distance(50)
+      //   .links(this.props.data.links);
+      // const force = d3
+      //   .forceSimulation<SimNode, SimLink>(this.props.data.nodes)
+      //   .nodes(this.props.data.nodes)
+      //   .force("link", forceLink)
+      //   .force("charge", d3.forceManyBody().strength(-120))
+      //   .force(
+      //     "center",
+      //     d3.forceCenter(this.props.width / 2, this.props.height / 2)
+      //   );
     }
 
     const enlarge = 4000;
@@ -138,12 +137,18 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     if (this.props.useForce ?? false) {
       this.force.on("tick", () => {
         links
-          .attr("x1", (d: MusicGraphLink) => (d.source.x ?? 0) * this.props.width)
+          .attr(
+            "x1",
+            (d: MusicGraphLink) => (d.source.x ?? 0) * this.props.width
+          )
           .attr(
             "y1",
             (d: MusicGraphLink) => (d.source.y ?? 0) * this.props.height
           )
-          .attr("x2", (d: MusicGraphLink) => (d.target.x ?? 0) * this.props.width)
+          .attr(
+            "x2",
+            (d: MusicGraphLink) => (d.target.x ?? 0) * this.props.width
+          )
           .attr(
             "y2",
             (d: MusicGraphLink) => (d.target.y ?? 0) * this.props.height
@@ -155,7 +160,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
           .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height);
       });
-    };
+    }
   };
 
   componentDidUpdate(prevProps: GraphProps) {

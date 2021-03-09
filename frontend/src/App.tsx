@@ -1,13 +1,12 @@
 import React, { Component } from "react";
 import ReactWordcloud from "react-wordcloud";
 import axios from "axios";
+import { Size, Position } from "./common";
 import Graph from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select from "./Select";
 import Minimap, { MinimapData } from "./charts/minimap/Minimap";
 import "./App.sass";
-import { artistWords, genreWords } from "./mockdata";
-import { TagCloud } from "react-tagcloud";
 import { stats } from "./mocks/stats";
 import Widget from "./components/expandable-widget/widget";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -31,8 +30,8 @@ const options = {
 };
 
 type Genre = {
-  text: string; // converted name to text for the wordcloud
-  value: number; // converted  popularity to value for the wordcloud
+  text: string;
+  value: number;
 };
 
 type Node = {};
@@ -127,23 +126,33 @@ class App extends Component<{}, AppState> {
         this.setState({
           genres: res.data.genres,
           total: res.data.total,
-          popularGenres: res.data.popular_genres.map((g: {name: string, popularity: number}) => {
-            return { text: g.name, value: g.popularity }
-          })
+          popularGenres: res.data.popular_genres.map(
+            (g: { name: string; popularity: number }) => {
+              return { text: g.name, value: g.popularity };
+            }
+          ),
         });
       });
   };
 
   updateArtists = () => {
-    axios.get(`http://localhost:5000/artists?limit=${MAX_WORDCLOUD_SIZE}`).then((res) => {
-      this.setState({
-        artists: res.data.artists,
-        totalArtists: res.data.total,
-        popularArtists: res.data.popular_artists.map((a: {name: string, popularity: number}) => {
-          return { text: a.name, value: a.popularity }
-        })
+    axios
+      .get(`http://localhost:5000/artists?limit=${MAX_WORDCLOUD_SIZE}`)
+      .then((res) => {
+        this.setState({
+          artists: res.data.artists,
+          totalArtists: res.data.total,
+          popularArtists: res.data.popular_artists.map(
+            (a: { name: string; popularity: number }) => {
+              return { text: a.name, value: a.popularity };
+            }
+          ),
+        });
       });
-    });
+  };
+
+  handleMinimapUpdate = (pos: Position, size: Size) => {
+    console.log(pos, size);
   };
 
   select(node: Node) {
@@ -195,6 +204,7 @@ class App extends Component<{}, AppState> {
             <Widget>
               <Minimap
                 enabled={true}
+                onUpdate={this.handleMinimapUpdate}
                 data={this.state.interests}
                 width={120}
                 height={120}

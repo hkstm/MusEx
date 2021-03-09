@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import "./Select.sass";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCaretDown } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 
 type SelectState = {
   isOpen: boolean;
@@ -58,5 +58,5 @@ export default class Select extends Component<SelectProps, SelectState> {
         )}
       </div>
     );
-  };
+  }
 }

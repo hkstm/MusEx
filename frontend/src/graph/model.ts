@@ -1,4 +1,4 @@
-import * as d3 from 'd3';
+import * as d3 from "d3";
 
 export interface MusicGraphNode extends d3.SimulationNodeDatum {
   id: string;
@@ -9,7 +9,7 @@ export interface MusicGraphNode extends d3.SimulationNodeDatum {
   genres?: string[];
   size?: number;
   color?: number;
-};
+}
 
 export interface MusicGraphLink {
   source: MusicGraphNode;
@@ -17,10 +17,10 @@ export interface MusicGraphLink {
   name?: string;
   label?: string;
   color?: string;
-};
+}
 
 export interface MusicGraph {
   limit?: number;
   nodes: MusicGraphNode[];
   links: MusicGraphLink[];
-};
+}

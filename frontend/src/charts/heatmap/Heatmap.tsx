@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
 import "./Heatmap.sass";
-import {Margin} from "../../common"
+import { Margin } from "../../common";
 
 export type HeatmapTile = {
   x: number;
@@ -49,7 +49,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
     console.log("updating the heatmap");
     console.log(this.props.data);
 
-   const x = d3
+    const x = d3
       .scaleBand<number>()
       .padding(0.01)
       .range([0, this.props.width])
@@ -59,7 +59,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
           .map((_, idx) => idx)
       );
 
-   const y = d3
+    const y = d3
       .scaleBand<number>()
       .padding(0.01)
       .range([0, this.props.height])
@@ -70,10 +70,8 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
       );
 
     if (this.props.showAxis) {
-      this.svg
-        .append("g")
-        .call(d3.axisBottom(x));
-        
+      this.svg.append("g").call(d3.axisBottom(x));
+
       this.svg.append("g").call(d3.axisLeft(y));
     }
 
@@ -86,10 +84,10 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
       let data: HeatmapTile[] = [];
       Array(this.props.data.xSize)
         .fill(0)
-        .map((_, wi) => {
+        .forEach((_, wi) => {
           Array(this.props.data.ySize)
             .fill(0)
-            .map((_, hi) => {
+            .forEach((_, hi) => {
               data.push({
                 x: wi,
                 y: hi,
@@ -173,6 +171,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
   render() {
     return (
       <div className="heatmap-container">
+        {this.props.children}
         <svg id="heatmap-svg"></svg>
         <div className="heatmap-legend">
           <div className="heatmap-gradient-legend" />
