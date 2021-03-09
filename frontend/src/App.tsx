@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import ReactWordcloud from "react-wordcloud";
 import axios from "axios";
-import { Size, Position } from "./common";
+import { Size, Position, Genre, Node, NodeType } from "./common";
 import Graph from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select from "./Select";
@@ -29,13 +29,6 @@ const options = {
   rotations: 0,
 };
 
-type Genre = {
-  text: string;
-  value: number;
-};
-
-type Node = {};
-
 type AppState = {
   genres: Genre[];
   graph: MusicGraph;
@@ -50,6 +43,7 @@ type AppState = {
   x: number;
   y: number;
   zoom: number;
+  type: NodeType;
   selected?: Node;
   dimx: string;
   dimy: string;
@@ -74,6 +68,7 @@ class App extends Component<{}, AppState> {
       x: 0,
       y: 0,
       zoom: 5,
+      type: "genre",
       selected: undefined,
       dimx: "",
       dimy: "",
@@ -102,10 +97,10 @@ class App extends Component<{}, AppState> {
   };
 
   updateGraph = () => {
-    console.log(this.state.x, this.state.y, this.state.zoom);
+    console.log(this.state.x, this.state.y, this.state.zoom, this.state.type);
     axios
       .get(
-        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&limit=1000`,
+        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`,
         config
       )
       .then((res) => {
@@ -126,7 +121,7 @@ class App extends Component<{}, AppState> {
         this.setState({
           genres: res.data.genres,
           total: res.data.total,
-          popularGenres: res.data.popular_genres.map(
+          popularGenres: res.data.genres.map(
             (g: { name: string; popularity: number }) => {
               return { text: g.name, value: g.popularity };
             }
@@ -142,7 +137,7 @@ class App extends Component<{}, AppState> {
         this.setState({
           artists: res.data.artists,
           totalArtists: res.data.total,
-          popularArtists: res.data.popular_artists.map(
+          popularArtists: res.data.artists.map(
             (a: { name: string; popularity: number }) => {
               return { text: a.name, value: a.popularity };
             }

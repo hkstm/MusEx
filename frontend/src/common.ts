@@ -14,3 +14,11 @@ export type Size = {
   width: number;
   height: number;
 };
+
+export type NodeType = "genre" | "artist" | "track";
+export type Genre = {
+  text: string;
+  value: number;
+};
+
+export type Node = {};
