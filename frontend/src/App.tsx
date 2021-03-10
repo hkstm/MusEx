@@ -6,9 +6,11 @@ import Graph from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select from "./Select";
 import Minimap, { MinimapData } from "./charts/minimap/Minimap";
+
 import "./App.sass";
-import { stats } from "./mocks/stats";
+
 import Widget from "./components/expandable-widget/widget";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
 
@@ -32,10 +34,8 @@ const options = {
 type AppState = {
   genres: Genre[];
   graph: MusicGraph;
-  total: number;
   popularGenres: Genre[];
   artists: Genre[];
-  totalArtists: string;
   popularArtists: Genre[];
   dimensions: string[];
   interests: MinimapData;
@@ -47,6 +47,8 @@ type AppState = {
   selected?: Node;
   dimx: string;
   dimy: string;
+  showGenre: Boolean;
+  showArtist: Boolean;
 };
 
 class App extends Component<{}, AppState> {
@@ -72,12 +74,29 @@ class App extends Component<{}, AppState> {
       selected: undefined,
       dimx: "",
       dimy: "",
-      total: 0,
       popularGenres: [],
       artists: [],
-      totalArtists: "",
       popularArtists: [],
-    };
+      showGenre: false,
+      showArtist: false,
+    }
+    this._genreButtonClick = this._genreButtonClick.bind(this);
+    this._artistButtonClick = this._artistButtonClick.bind(this);
+  }
+
+  _genreButtonClick(){
+    this.setState({
+      showArtist: false,
+      showGenre: true,
+    });
+  }
+
+  _artistButtonClick(){
+    this.setState({
+      showGenre: false,
+      showArtist: true,
+    })
+
   }
 
   handleDimYChange = (dimy: string) => {
@@ -120,7 +139,6 @@ class App extends Component<{}, AppState> {
       .then((res) => {
         this.setState({
           genres: res.data.genres,
-          total: res.data.total,
           popularGenres: res.data.genres.map(
             (g: { name: string; popularity: number }) => {
               return { text: g.name, value: g.popularity };
@@ -136,7 +154,6 @@ class App extends Component<{}, AppState> {
       .then((res) => {
         this.setState({
           artists: res.data.artists,
-          totalArtists: res.data.total,
           popularArtists: res.data.artists.map(
             (a: { name: string; popularity: number }) => {
               return { text: a.name, value: a.popularity };
@@ -227,31 +244,27 @@ class App extends Component<{}, AppState> {
             />
             <Widget>
               <div className="sideview-widget app-stats">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="stat">
-                    <div className="stat-value">{stat.value}</div>
-                    <div className="stat-label">{stat.label}</div>
-                  </div>
-                ))}
+              <input
+              type="text"
+              placeholder="Search artist or genre"
+              name="s"></input>
+              <button className="button" type="submit">Search</button>
               </div>
             </Widget>
 
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
-                <h3>Most popular artists</h3>
-                <ReactWordcloud
-                  words={this.state.popularArtists}
-                  options={options}
-                />
+              <h3>Show wordcloud about the most popular:</h3>
+            <button className="button" onClick={this._genreButtonClick}>Genres</button>
+            <button className="button" onClick={this._artistButtonClick}>Artists</button>
+            {this.state.showGenre ? <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud> : null}
+            {this.state.showArtist ? <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud> : null}         
               </div>
             </Widget>
             <Widget>
               <div className="sideview-widget wordcloud genre-wordcloud">
-                <h3>Most popular genres</h3>
-                <ReactWordcloud
-                  words={this.state.popularGenres}
-                  options={options}
-                />
+                <h3>Stats through different years</h3>
+
               </div>
             </Widget>
           </div>
