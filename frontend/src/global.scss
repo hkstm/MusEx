@@ -1,2 +1,13 @@
- $base-color: #242424;
- $highlight-color: #3faffa;
+$base-color: #242424;
+$highlight-color: #3faffa;
+
+$stat-bar-height: 35px;
+$nav-bar-height: 35px;
+$border-width: 2px;
+
+/* Transitions with all browsers */
+@mixin transition($property) {
+  -webkit-transition: $property;
+      -ms-transition: $property;
+          transition: $property;
+}
