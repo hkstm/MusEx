@@ -6,10 +6,13 @@ import Graph from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select from "./Select";
 import Minimap, { MinimapData } from "./charts/minimap/Minimap";
+import Heatmap from "./charts/musicheatmap/heatmap";
+import Slider from '@material-ui/core/Slider';
 
 import "./App.sass";
 
 import Widget from "./components/expandable-widget/widget";
+
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars } from "@fortawesome/free-solid-svg-icons";
@@ -204,7 +207,14 @@ class App extends Component<{}, AppState> {
                 onChange={this.handleDimYChange}
                 options={this.state.dimensions}
               ></Select>
-            </div>
+            </div>  
+              <div id="app-stats">
+              <input
+              type="text"
+              placeholder="Search artist or genre"
+              name="s"></input>
+              <button className="button" type="submit">Search</button>
+              </div>        
             <span id="app-help">Help</span>
           </nav>
         </header>
@@ -242,28 +252,22 @@ class App extends Component<{}, AppState> {
               icon={faBars}
               onClick={this.toggleSideview}
             />
-            <Widget>
-              <div className="sideview-widget app-stats">
-              <input
-              type="text"
-              placeholder="Search artist or genre"
-              name="s"></input>
-              <button className="button" type="submit">Search</button>
-              </div>
-            </Widget>
+   
 
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
               <h3>Show wordcloud about the most popular:</h3>
             <button className="button" onClick={this._genreButtonClick}>Genres</button>
             <button className="button" onClick={this._artistButtonClick}>Artists</button>
-            {this.state.showGenre ? <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud> : null}
-            {this.state.showArtist ? <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud> : null}         
-              </div>
+            {this.state.showGenre ? <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud>  : null}
+            {this.state.showArtist ? <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud> : null} 
+            </div>
+          
             </Widget>
             <Widget>
               <div className="sideview-widget wordcloud genre-wordcloud">
                 <h3>Stats through different years</h3>
+               <Heatmap></Heatmap> 
 
               </div>
             </Widget>
