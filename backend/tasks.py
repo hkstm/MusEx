@@ -59,7 +59,7 @@ def snapshot(c, sudo=False):
     """Create a snapshot of the current mongodb database"""
     _sudo = "sudo" if sudo else ""
     c.run(
-        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --db kaggle --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
     )
 
 
@@ -77,7 +77,7 @@ def restore(c, sudo=False):
         print("make sure you have installed unzip (e.g. sudo apt-get install unzip)")
         print("proceeding without unzipping...")
     c.run(
-        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore --drop --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --db kaggle --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
     )
 
 @task

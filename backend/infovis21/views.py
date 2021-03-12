@@ -21,6 +21,17 @@ zoom_min, zoom_max = (
 dim_minmax = ma.get_dim_minmax()
 
 
+def get_collection(type_str):
+    if type_str == "genre":
+        return ma.coll_genres
+    elif type_str == "artist":
+        return ma.coll_artists
+    elif type_str == "track":
+        return ma.coll_tracks
+    else:
+        return abort(400, description="invalid node type not: genre, artist, track",)
+
+
 @app.errorhandler(400)
 def bad_request(e):
     return jsonify(error=str(e)), 400
@@ -38,6 +49,55 @@ def _dimensions():
     return jsonify(ma.dimensions)
 
 
+@app.route("/search")
+def search():
+    searchterm = request.args.get("searchterm")
+    coll_type = request.args.get("type")
+    dimx = request.args.get("dimx")
+    dimy = request.args.get("dimy")
+    collection = get_collection(coll_type)
+    d = {}
+    if not (searchterm and coll_type and dimx and dimy):
+        return abort(
+            400,
+            description="a searchterm and type are required, e.g. /search?searchterm=Marvin%20Sease&type=artist&dimx=acousticness&dimy=tempo",
+        )
+    pipeline = [
+        {
+            "$match": {
+                "$expr": {
+                    "$regexMatch": {
+                        "input": "$name",
+                        # "regex": f"/{searchterm}/",
+                        "regex": searchterm,
+                        "options": "i",  # case insensitive match
+                    }
+                }
+            }
+        },
+        # {'$match': {'name': searchterm}},
+        {
+            "$project": {
+                "id": "$id",
+                # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
+                dimx: f"${dimx}",
+                dimy: f"${dimy}",
+                "name": "$name",
+                "size": "$popularity",
+                "preview_url": "$preview_url",
+                # can be one of Genre, Artist or Track (does this need to be capitalized)
+                "type": coll_type.capitalize(),
+                "genres": "genres",
+                "color": "#00000",
+                "_id": 0,
+            }
+        },
+    ]
+
+    d.update({"matches": list(collection.aggregate(pipeline))})
+    return jsonify(d)
+
+
 @app.route("/labels")
 @cross_origin()
 def _labels():
@@ -47,7 +107,7 @@ def _labels():
     pipeline = [
         {
             "$project": {
-                "name": "$_id",
+                "name": "$name",
                 "total_songs": "$n_tracks",
                 "num_artists": "$n_artists",
                 "_id": 0,
@@ -70,7 +130,7 @@ def _artists():
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        {"$project": {"name": "$artists", "popularity": "$popularity", "_id": 0}},
+        {"$project": {"name": "$name", "popularity": "$popularity", "_id": 0}},
     ]
 
     if limit:
@@ -97,7 +157,7 @@ def _genres():
     limit = request.args.get("limit")
     d = {}
     pipeline = [
-        {"$project": {"name": "$genres", "popularity": "$popularity", "_id": 0}},
+        {"$project": {"name": "$name", "popularity": "$popularity", "_id": 0}},
     ]
 
     if limit:
@@ -206,11 +266,9 @@ def _select():
             description="a node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudness&type=track",
         )
 
-    mongo_values = ma.map_zoom_to_mongo(d["type"])
-    id_val = mongo_values["id_val"]
-    collection = mongo_values["collection"]
+    collection = get_collection(d["type"])
 
-    project_stage = {"$project": {"id": "$" + id_val, "_id": 0,}}
+    project_stage = {"$project": {"id": "$id", "_id": 0,}}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
     pipeline = [
@@ -219,9 +277,7 @@ def _select():
     ]
 
     res = list(collection.aggregate(pipeline))
-    selected = list(
-        collection.aggregate([{"$match": {id_val: node_id}}, project_stage])
-    )
+    selected = list(collection.aggregate([{"$match": {"id": node_id}}, project_stage]))
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
     selected = selected[0]
@@ -309,8 +365,8 @@ def _graph():
     if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
         return abort(
             400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0&y=0&zoom=0&dimx=acousticness&dimy=loudness&type=track",
-        )
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=genre",
+      )
 
     if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
         return abort(
@@ -326,13 +382,8 @@ def _graph():
     x_min, x_max = viszoomregion_to_mongo(dimx, mongo_to_vis(dimx, d["x"]), d["zoom"])
     y_min, y_max = viszoomregion_to_mongo(dimy, mongo_to_vis(dimy, d["y"]), d["zoom"])
 
-    mongo_values = ma.map_zoom_to_mongo(d["type"])
-    id_val = mongo_values["id_val"]
-    album_label = mongo_values["album_label"]
-    name = mongo_values["name"]
-    genre = mongo_values["genre"]
-    collection = mongo_values["collection"]
-    coll_type = mongo_values["coll_type"]
+    # strings correspond to names of fields in {genre,artist,track}_api collections
+    collection = get_collection(d["type"])
 
     pipeline = [
         {
@@ -345,13 +396,18 @@ def _graph():
         },
         {
             "$project": {
-                "id": {"$toString": "$_id"},
-                dimx: f"${dimx}",  # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
+                "id": "$id",
+                # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
+                dimx: f"${dimx}",
                 dimy: f"${dimy}",
-                "name": name,
+                "name": "$name",
                 "size": "$popularity",
-                "type": coll_type,  # can be one of Genre, Artist or Song
-                "genre": genre,
+                "preview_url": "$preview_url",
+                "type": d[
+                    "type"
+                ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
+                "genre": "$genres",
+                "labels": "$labels",
                 "color": "#00000",
                 "_id": 0,
             }
@@ -373,8 +429,8 @@ def _graph():
                 ]
             }
         },
-        {"$unwind": album_label},
-        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_val},}},
+        {"$unwind": "$labels"},
+        {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"},}},
         {
             "$project": {
                 "id": "$_id",
