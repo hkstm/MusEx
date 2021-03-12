@@ -30,6 +30,13 @@ nav
     position: absolute
     left: 20px
 
+  #app-stats
+    top: 0
+    position: absolute
+    line-height: $nav-bar-height
+    height: 30px
+    right: 100px
+
   #app-help
     font-size: 0.5rem
     position: absolute
@@ -106,22 +113,10 @@ nav
     .sideview-widget
       width: 100%
       overflow: hidden
-      border-bottom: $border-width solid #a9a9a9
+      
 
-    .app-stats
-      padding-top: 50px
-      position: relative
-      height: 30px
+   
 
-      .stat
-        position: relative
-        padding: 5px
-        float: left
-        width: calc(50% - 10px)
-
-        .stat-value
-          font-weight: bold
-          font-size: 1rem
 
     .genre-wordcloud
       position: relative
@@ -130,6 +125,12 @@ nav
 
     .artist-wordcloud
       position: relative
-      height:  300px
+      height:  250px
+
+    .slider
+      position: relative
+      height: 50px
+      bottom: 10
+      border-bottom: $border-width solid #a9a9a9
 
 
