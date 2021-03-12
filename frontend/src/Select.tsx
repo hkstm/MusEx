@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import "./Select.sass";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCaretDown } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 
 type SelectState = {
   isOpen: boolean;
@@ -10,6 +10,7 @@ type SelectState = {
 
 type SelectProps = {
   id?: string;
+  onChange: (dim: string) => void;
   options: string[];
 };
 
@@ -30,6 +31,7 @@ export default class Select extends Component<SelectProps, SelectState> {
   onOptionClicked = (value: string) => () => {
     this.setState({ selected: value });
     this.setState({ isOpen: false });
+    this.props.onChange(value);
   };
 
   render() {
@@ -56,5 +58,5 @@ export default class Select extends Component<SelectProps, SelectState> {
         )}
       </div>
     );
-  };
+  }
 }
