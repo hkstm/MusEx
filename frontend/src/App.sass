@@ -1,9 +1,22 @@
-$stat-bar-height: 35px;
-$nav-bar-height: 35px;
-$border-width: 2px;
+@import "./global.scss"
+
 
 a
   color: #61dafb
+
+.button
+  background-color: #e7e7e7;
+  border: none;
+  color: black;
+  padding: 4px 8px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  margin: 4px 2px;
+  cursor: pointer;
+
+
 
 nav
   height: $nav-bar-height
@@ -17,67 +30,108 @@ nav
     position: absolute
     left: 20px
 
+  #app-stats
+    top: 0
+    position: absolute
+    line-height: $nav-bar-height
+    height: 30px
+    right: 100px
 
+  #app-help
+    font-size: 0.5rem
+    position: absolute
+    line-height: $nav-bar-height
+    right: 10px
+    top: 0
+
+  .dimension-controller
+    .dropdown-container
+      width: 200px
+
+  
 #content
   width: 100%
   height: calc(100vh - #{$nav-bar-height})
   overflow: hidden
   position: relative
+  
 
-  .tile
+  #main-view
+    z-index: 10
+    @include transition(width 0.2s ease-in)
+    width: calc(100% - 30px)
+    position: absolute
+    // background-color: blue
+    height: 100%
     overflow: hidden
+
+    &.expanded
+      width: 70%
+
+    .minimap
+      z-index: 100
+      position: absolute
+      right: 0
+      bottom: 0
+      padding: 30px
+
+    .graph
+      z-index: 100
+      position: absolute
+      width: 70%
+      height: calc(100% - #{$stat-bar-height})
+      top: $stat-bar-height
+      left: 0
+
+  #side-view
+    z-index: 20
+    position: absolute
     outline: $border-width solid #a9a9a9
-
-  .graph
-    position: absolute
-    width: 70%
-    height: calc(100% - #{$stat-bar-height})
-    top: $stat-bar-height
-    left: 0
-
-  .artist-wordcloud
-    position: absolute
+    // background-color: red
     width: 30%
-    /* height: 50% */
-    /* bottom: 0 */
-    height: 30%
-    top: 30%
-    right: 0
-
-  .genre-wordcloud
-    position: absolute
-    width: 30%
-    /* height: calc(50% - 35px) */
-    height: calc(30% - 35px)
-    top: $stat-bar-height
-    right: 0
-
-  .heatmap-widget
-    position: absolute
-    height: 39%
-    width: 30%
-    bottom: 0
-    right: 0
-
-  .num-artists
-    position: absolute
-    width: 35%
-    height: $stat-bar-height
+    height: 100%
+    float: right
+    @include transition(right 0.2s ease-in)
+    right: calc(30px - 30%)
+    overflow-x: hidden
+    overflow-y: scroll
     top: 0
-    left: 35%
+    font-size: 0.7rem
 
-  .num-genres
-    position: absolute
-    width: 35%
-    height: $stat-bar-height
-    top: 0
-    left: 0
+    &.expanded
+      right: 0
 
-  .stat
-    font-size: 20px
-    vertical-align: middle
-    line-height: $stat-bar-height
+    .toggle
+      position: absolute
+      font-size: 40px
+      left: 0
+      top: 0
+      font-size: 1rem
+      padding: 5px
+      z-index: 500
 
-    .number
-      font-weight: bolder
-      padding: 0 5px
+    .sideview-widget
+      width: 100%
+      overflow: hidden
+      border-bottom: $border-width solid #a9a9a9
+      
+
+   
+
+
+    .genre-wordcloud
+      position: relative
+      height: calc(50% - 35px)
+      height:  300px
+
+    .artist-wordcloud
+      position: relative
+      height:  250px
+
+    .slider
+      position: relative
+      height: 50px
+      bottom: 10
+      border-bottom: $border-width solid #a9a9a9
+
+

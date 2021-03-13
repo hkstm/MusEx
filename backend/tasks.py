@@ -9,12 +9,12 @@ import datetime
 from invoke import task
 import webbrowser
 from pathlib import Path
-from infovis21.mongodb import utils as dbutils
 
 Path().expanduser()
 
 ROOT_DIR = Path(__file__).parent
 PROJECT_DIR = ROOT_DIR.parent
+DATA_DIR = PROJECT_DIR.joinpath("data")
 SETUP_FILE = ROOT_DIR.joinpath("setup.py")
 TEST_DIR = ROOT_DIR.joinpath("tests")
 SOURCE_DIR = ROOT_DIR.joinpath("infovis21")
@@ -46,12 +46,12 @@ def format(c, check=False):
     c.run("pipenv run isort {} {}".format(isort_options, python_dirs_string))
 
 
-@task(help={"open": "Automatically opens the page in the browser"})
-def start(c, _open=False):
+@task(help={"open": "Automatically opens the page in the browser", "debug": "Enable debug mode"})
+def start(c, _open=False, debug=True):
     """Start the flask server"""
     if _open:
         webbrowser.open("http://localhost:5000")
-    c.run("FLASK_APP=infovis21.app FLASK_ENV=development pipenv run flask run")
+    c.run(f"{'FLASK_DEBUG=1 FLASK_ENV=development' if debug else ''} FLASK_APP=infovis21.app pipenv run flask run")
 
 
 @task(help={"sudo": "Use sudo"})
@@ -59,7 +59,7 @@ def snapshot(c, sudo=False):
     """Create a snapshot of the current mongodb database"""
     _sudo = "sudo" if sudo else ""
     c.run(
-        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --db kaggle --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
     )
 
 
@@ -67,13 +67,23 @@ def snapshot(c, sudo=False):
 def restore(c, sudo=False):
     """Restore the database from a snapshot"""
     _sudo = "sudo" if sudo else ""
+    data_archive = DATA_DIR / "db.zip"
+    try:
+        print(f"unzipping {data_archive}")
+        c.run(f"unzip -o {data_archive} -d {DATA_DIR}")
+    except Exception as e:
+        print(e)
+        print(f"failed to unzip {data_archive}")
+        print("make sure you have installed unzip (e.g. sudo apt-get install unzip)")
+        print("proceeding without unzipping...")
     c.run(
-        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --db kaggle --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
     )
 
 @task
 def compute_min_max(c):
     """Compute min and max ranges of values in the dataset"""
+    from infovis21.mongodb import utils as dbutils
     res = dbutils.compute_min_max()
     pprint(res)
 
@@ -81,6 +91,7 @@ def compute_min_max(c):
 @task
 def add_labels_to_genres(c):
     """Add labels to genres"""
+    from infovis21.mongodb import utils as dbutils
     res = dbutils.add_labels_to_genres()
     pprint(res)
 
@@ -88,6 +99,7 @@ def add_labels_to_genres(c):
 @task
 def create_album_collection(c):
     """Create album collection"""
+    from infovis21.mongodb import utils as dbutils
     pprint(f"Started at {datetime.datetime.now()}")
     res = dbutils.create_album_collection()
     pprint(res)

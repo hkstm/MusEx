@@ -1,18 +1,26 @@
-import * as d3 from 'd3';
+import * as d3 from "d3";
 
-export interface D3Node extends d3.SimulationNodeDatum {
+export interface MusicGraphNode extends d3.SimulationNodeDatum {
   id: string;
-  group: number;
-  r?: number;
-};
+  x: number;
+  y: number;
+  name: string;
+  type: "Artist" | "Track" | "Genre";
+  genres?: string[];
+  size?: number;
+  color?: number;
+}
 
-export interface D3Link {
-  source: string;
-  target: string;
-  value: number;
-};
+export interface MusicGraphLink {
+  source: MusicGraphNode;
+  target: MusicGraphNode;
+  name?: string;
+  label?: string;
+  color?: string;
+}
 
-export interface D3Graph {
-  nodes: D3Node[];
-  links: D3Link[];
-};
+export interface MusicGraph {
+  limit?: number;
+  nodes: MusicGraphNode[];
+  links: MusicGraphLink[];
+}
