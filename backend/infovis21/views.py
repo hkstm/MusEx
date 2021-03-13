@@ -1,6 +1,8 @@
 import base64
 import itertools
-
+import sys
+from datetime import datetime
+from pprint import pprint
 import numpy as np
 from flask import abort, jsonify, request
 from flask_cors import cross_origin
@@ -395,7 +397,7 @@ def _graph():
             }
         },
         {
-            "$project": {
+            "$set": {'nodes': {
                 "id": "$id",
                 # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
                 dimx: f"${dimx}",
@@ -410,37 +412,40 @@ def _graph():
                 "labels": "$labels",
                 "color": "#00000",
                 "_id": 0,
+            }}
+        },
+        {'$project': {
+            'nodes': 1,
+            'labels': 1,
+            'id': 1,
+        }},
+        {"$unwind": "$labels"},
+        {"$group": {
+            "_id": "$labels",
+             "members": {"$addToSet": "$id"},
+             'nodes': {'$first': '$nodes'},
+        }},
+        {
+            "$set": {'links_data': {
+                "id": "$_id",
+                "members": "$members",
+                "color": "black",  # needs to be set programmatically
+            }
             }
         },
+        {'$project': {
+            'nodes': 1,
+            'links_data': 1,
+            '_id': 0,
+        }},
     ]
 
     if _limit:
         pipeline.append({"$limit": d["limit"]})
 
-    print(pipeline)
-    nodes = list(collection.aggregate(pipeline))
-    node_ids = [n["name"] for n in nodes]
-    pipeline = [
-        {
-            "$match": {
-                "$and": [
-                    {dimx: {"$gte": x_min, "$lte": x_max}},
-                    {dimy: {"$gte": y_min, "$lte": y_max}},
-                ]
-            }
-        },
-        {"$unwind": "$labels"},
-        {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"},}},
-        {
-            "$project": {
-                "id": "$_id",
-                "members": "$members",
-                "color": "black",  # needs to be set programmatically
-            }
-        },
-    ]
-    links_data = list(collection.aggregate(pipeline))
+    nodes, links_data = zip(*[tuple(d.values()) for d in collection.aggregate(pipeline)])
     links = []
+    # start = datetime.now()
     for label in links_data:
         for src, dest in itertools.combinations(label["members"], 2):
             links.append(
@@ -455,4 +460,12 @@ def _graph():
     d.update(
         {"nodes": nodes, "links": links,}
     )
-    return jsonify(d)
+    
+    # print(f'Size of d {sys.getsizeof(d)}')
+    # pprint(d)
+    # mid = datetime.now()
+    # print(f'Before jsonify {mid - start}', flush=True)
+    d = jsonify(d)
+    # end = datetime.now()
+    # print(f'Took {end - start}', flush=True)
+    return d
