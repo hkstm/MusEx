@@ -3,6 +3,7 @@ import itertools
 import sys
 from datetime import datetime
 from pprint import pprint
+
 import numpy as np
 from flask import abort, jsonify, request
 from flask_cors import cross_origin
@@ -368,7 +369,7 @@ def _graph():
         return abort(
             400,
             description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=genre",
-      )
+        )
 
     if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
         return abort(
@@ -397,53 +398,52 @@ def _graph():
             }
         },
         {
-            "$set": {'nodes': {
-                "id": "$id",
-                # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
-                dimx: f"${dimx}",
-                dimy: f"${dimy}",
-                "name": "$name",
-                "size": "$popularity",
-                "preview_url": "$preview_url",
-                "type": d[
-                    "type"
-                ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
-                "genre": "$genres",
-                "labels": "$labels",
-                "color": "#00000",
-                "_id": 0,
-            }}
+            "$set": {
+                "nodes": {
+                    "id": "$id",
+                    # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
+                    dimx: f"${dimx}",
+                    dimy: f"${dimy}",
+                    "name": "$name",
+                    "size": "$popularity",
+                    "preview_url": "$preview_url",
+                    "type": d[
+                        "type"
+                    ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
+                    "genre": "$genres",
+                    "labels": "$labels",
+                    "color": "#00000",
+                    "_id": 0,
+                }
+            }
         },
-        {'$project': {
-            'nodes': 1,
-            'labels': 1,
-            'id': 1,
-        }},
+        {"$project": {"nodes": 1, "labels": 1, "id": 1,}},
         {"$unwind": "$labels"},
-        {"$group": {
-            "_id": "$labels",
-             "members": {"$addToSet": "$id"},
-             'nodes': {'$first': '$nodes'},
-        }},
         {
-            "$set": {'links_data': {
-                "id": "$_id",
-                "members": "$members",
-                "color": "black",  # needs to be set programmatically
-            }
+            "$group": {
+                "_id": "$labels",
+                "members": {"$addToSet": "$id"},
+                "nodes": {"$first": "$nodes"},
             }
         },
-        {'$project': {
-            'nodes': 1,
-            'links_data': 1,
-            '_id': 0,
-        }},
+        {
+            "$set": {
+                "links_data": {
+                    "id": "$_id",
+                    "members": "$members",
+                    "color": "black",  # needs to be set programmatically
+                }
+            }
+        },
+        {"$project": {"nodes": 1, "links_data": 1, "_id": 0,}},
     ]
 
     if _limit:
         pipeline.append({"$limit": d["limit"]})
 
-    nodes, links_data = zip(*[tuple(d.values()) for d in collection.aggregate(pipeline)])
+    nodes, links_data = zip(
+        *[tuple(d.values()) for d in collection.aggregate(pipeline)]
+    )
     links = []
     # start = datetime.now()
     for label in links_data:
@@ -460,7 +460,7 @@ def _graph():
     d.update(
         {"nodes": nodes, "links": links,}
     )
-    
+
     # print(f'Size of d {sys.getsizeof(d)}')
     # pprint(d)
     # mid = datetime.now()
