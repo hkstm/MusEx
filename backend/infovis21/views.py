@@ -1,6 +1,7 @@
 import base64
 import itertools
 import sys
+from operator import itemgetter
 from datetime import datetime
 from pprint import pprint
 
@@ -359,7 +360,7 @@ def _graph():
         d["zoom"] = float(_zoom)
     _limit = request.args.get("limit")
     if _limit:
-        d["limit"] = float(_limit)
+        d["limit"] = int(_limit)
 
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
@@ -398,8 +399,7 @@ def _graph():
             }
         },
         {
-            "$set": {
-                "nodes": {
+            "$project": {
                     "id": "$id",
                     # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
                     dimx: f"${dimx}",
@@ -413,39 +413,45 @@ def _graph():
                     "genre": "$genres",
                     "labels": "$labels",
                     "color": "#00000",
+                    'dist': {'$add': [{ '$pow': [{ '$subtract': [ f"${dimx}",  d['x']]}, 2 ]}, { '$pow': [{ '$subtract': [ f"${dimy}",  d['y']]}, 2 ]}]},
                     "_id": 0,
-                }
+                
             }
         },
-        {"$project": {"nodes": 1, "labels": 1, "id": 1,}},
+    ]
+
+    if d['limit']:
+        pipeline.append({ '$sort' : { 'dist' : 1}})  # 1 is ascending, -1 descending)
+
+    nodes_sorted = list(collection.aggregate(pipeline))
+
+    if d['limit']:
+        d['limit'] = min(d['limit'], len(nodes_sorted))  # limit doesn't make sense otherwise and choice call will error out
+        indices = list(np.random.choice(len(nodes_sorted), d["limit"]-1, replace=False, p=np.linspace(0, 2/len(nodes_sorted), len(nodes_sorted))))
+        indices.append(0)  # always add node closest to current position, will have prob 0 in choice so no chance of dups
+        nodes_keep = list(itemgetter(*indices)(nodes_sorted)) 
+    else:
+        nodes_keep = nodes_sorted
+
+    id_list = [doc['id'] for doc in nodes_keep]
+    pipeline = [
+        {"$match": {'$expr':{'$in':['$id', id_list]}}},
         {"$unwind": "$labels"},
-        {
-            "$group": {
+        {"$group": {
                 "_id": "$labels",
                 "members": {"$addToSet": "$id"},
                 "nodes": {"$first": "$nodes"},
-            }
-        },
-        {
-            "$set": {
-                "links_data": {
-                    "id": "$_id",
-                    "members": "$members",
-                    "color": "black",  # needs to be set programmatically
-                }
-            }
-        },
-        {"$project": {"nodes": 1, "links_data": 1, "_id": 0,}},
+        }},
+        {"$project": {
+                "id": "$_id",
+                "members": "$members",
+                "color": "black",  # needs to be set programmatically   
+        }},
+        {"$project": {"_id": 0}},
     ]
 
-    if _limit:
-        pipeline.append({"$limit": d["limit"]})
-
-    nodes, links_data = zip(
-        *[tuple(d.values()) for d in collection.aggregate(pipeline)]
-    )
+    links_data = list(collection.aggregate(pipeline))
     links = []
-    # start = datetime.now()
     for label in links_data:
         for src, dest in itertools.combinations(label["members"], 2):
             links.append(
@@ -458,9 +464,11 @@ def _graph():
             )
 
     d.update(
-        {"nodes": nodes, "links": links,}
+        {"nodes": nodes_keep, "links": links}
     )
 
+    # print(len(nodes_keep))
+    # print(len(links), flush=True)
     # print(f'Size of d {sys.getsizeof(d)}')
     # pprint(d)
     # mid = datetime.now()
