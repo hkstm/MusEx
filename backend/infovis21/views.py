@@ -1,8 +1,8 @@
 import base64
 import itertools
 import sys
-from operator import itemgetter
 from datetime import datetime
+from operator import itemgetter
 from pprint import pprint
 
 import numpy as np
@@ -400,53 +400,76 @@ def _graph():
         },
         {
             "$project": {
-                    "id": "$id",
-                    # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
-                    dimx: f"${dimx}",
-                    dimy: f"${dimy}",
-                    "name": "$name",
-                    "size": "$popularity",
-                    "preview_url": "$preview_url",
-                    "type": d[
-                        "type"
-                    ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
-                    "genre": "$genres",
-                    "labels": "$labels",
-                    "color": "#00000",
-                    'dist': {'$add': [{ '$pow': [{ '$subtract': [ f"${dimx}",  d['x']]}, 2 ]}, { '$pow': [{ '$subtract': [ f"${dimy}",  d['y']]}, 2 ]}]},
-                    "_id": 0,
-                
+                "id": "$id",
+                # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
+                dimx: f"${dimx}",
+                dimy: f"${dimy}",
+                "name": "$name",
+                "size": "$popularity",
+                "preview_url": "$preview_url",
+                "type": d[
+                    "type"
+                ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
+                "genre": "$genres",
+                "labels": "$labels",
+                "color": "#00000",
+                "dist": {
+                    "$add": [
+                        {"$pow": [{"$subtract": [f"${dimx}", d["x"]]}, 2]},
+                        {"$pow": [{"$subtract": [f"${dimy}", d["y"]]}, 2]},
+                    ]
+                },
+                "_id": 0,
             }
         },
     ]
 
-    if d['limit']:
-        pipeline.append({ '$sort' : { 'dist' : 1}})  # 1 is ascending, -1 descending)
+    if d["limit"]:
+        pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending)
 
     nodes_sorted = list(collection.aggregate(pipeline))
 
-    if d['limit']:
-        d['limit'] = min(d['limit'], len(nodes_sorted))  # limit doesn't make sense otherwise and choice call will error out
-        indices = list(np.random.choice(len(nodes_sorted), d["limit"]-1, replace=False, p=np.linspace(0, 2/len(nodes_sorted), len(nodes_sorted))))
-        indices.append(0)  # always add node closest to current position, will have prob 0 in choice so no chance of dups
-        nodes_keep = list(itemgetter(*indices)(nodes_sorted)) 
+    if d["limit"]:
+        d["limit"] = min(
+            d["limit"], len(nodes_sorted)
+        )  # limit doesn't make sense otherwise and choice call will error out
+        indices = list(
+            np.random.choice(
+                len(nodes_sorted),
+                d["limit"] - 1,
+                replace=False,
+                p=np.linspace(
+                    0,
+                    2 / len(nodes_sorted) if len(nodes_sorted) != 0 else 0,
+                    len(nodes_sorted),
+                ),
+            )
+        )
+        indices.append(
+            0
+        )  # always add node closest to current position, will have prob 0 in choice so no chance of dups
+        nodes_keep = list(itemgetter(*indices)(nodes_sorted))
     else:
         nodes_keep = nodes_sorted
 
-    id_list = [doc['id'] for doc in nodes_keep]
+    id_list = [doc["id"] for doc in nodes_keep]
     pipeline = [
-        {"$match": {'$expr':{'$in':['$id', id_list]}}},
+        {"$match": {"$expr": {"$in": ["$id", id_list]}}},
         {"$unwind": "$labels"},
-        {"$group": {
+        {
+            "$group": {
                 "_id": "$labels",
                 "members": {"$addToSet": "$id"},
                 "nodes": {"$first": "$nodes"},
-        }},
-        {"$project": {
+            }
+        },
+        {
+            "$project": {
                 "id": "$_id",
                 "members": "$members",
-                "color": "black",  # needs to be set programmatically   
-        }},
+                "color": "black",  # needs to be set programmatically
+            }
+        },
         {"$project": {"_id": 0}},
     ]
 
@@ -458,14 +481,12 @@ def _graph():
                 {
                     "src": src,
                     "dest": dest,
-                    "color": label["color"],
-                    "name": label["id"],
+                    # "name": label["id"],
                 }
             )
-
-    d.update(
-        {"nodes": nodes_keep, "links": links}
-    )
+    for node in nodes_keep:
+        del node["labels"]
+    d.update({"nodes": nodes_keep, "links": links})
 
     # print(len(nodes_keep))
     # print(len(links), flush=True)
