@@ -345,6 +345,7 @@ def _select():
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
     d = {}
+    start = datetime.now()
     _x = request.args.get("x")
     if _x:
         d["x"] = float(_x)
@@ -451,7 +452,6 @@ def _graph():
                     "name": label["id"],
                 }
             )
-
     d.update(
         {"nodes": nodes, "links": links,}
     )
