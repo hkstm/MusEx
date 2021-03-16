@@ -72,7 +72,7 @@ class App extends Component<{}, AppState> {
       sideviewExpanded: true,
       x: 0,
       y: 0,
-      zoom: 5,
+      zoom: 0,
       type: "genre",
       selected: undefined,
       dimx: "",
@@ -122,7 +122,7 @@ class App extends Component<{}, AppState> {
     console.log(this.state.x, this.state.y, this.state.zoom, this.state.type);
     axios
       .get(
-        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`,
+        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=200`,
         config
       )
       .then((res) => {

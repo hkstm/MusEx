@@ -1,5 +1,9 @@
 import base64
 import itertools
+import sys
+from datetime import datetime
+from operator import itemgetter
+from pprint import pprint
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -356,7 +360,7 @@ def _graph():
         d["zoom"] = float(_zoom)
     _limit = request.args.get("limit")
     if _limit:
-        d["limit"] = float(_limit)
+        d["limit"] = int(_limit)
 
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
@@ -366,7 +370,7 @@ def _graph():
         return abort(
             400,
             description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=genre",
-      )
+        )
 
     if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
         return abort(
@@ -409,28 +413,56 @@ def _graph():
                 "genre": "$genres",
                 "labels": "$labels",
                 "color": "#00000",
+                "dist": {
+                    "$add": [
+                        {"$pow": [{"$subtract": [f"${dimx}", d["x"]]}, 2]},
+                        {"$pow": [{"$subtract": [f"${dimy}", d["y"]]}, 2]},
+                    ]
+                },
                 "_id": 0,
             }
         },
     ]
 
-    if _limit:
-        pipeline.append({"$limit": d["limit"]})
+    if d["limit"]:
+        pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending)
 
-    print(pipeline)
-    nodes = list(collection.aggregate(pipeline))
-    node_ids = [n["name"] for n in nodes]
+    nodes_sorted = list(collection.aggregate(pipeline))
+
+    if d["limit"]:
+        d["limit"] = min(
+            d["limit"], len(nodes_sorted)
+        )  # limit doesn't make sense otherwise and choice call will error out
+        indices = list(
+            np.random.choice(
+                len(nodes_sorted),
+                d["limit"] - 1,
+                replace=False,
+                p=np.linspace(
+                    0,
+                    2 / len(nodes_sorted) if len(nodes_sorted) != 0 else 0,
+                    len(nodes_sorted),
+                ),
+            )
+        )
+        indices.append(
+            0
+        )  # always add node closest to current position, will have prob 0 in choice so no chance of dups
+        nodes_keep = list(itemgetter(*indices)(nodes_sorted))
+    else:
+        nodes_keep = nodes_sorted
+
+    id_list = [doc["id"] for doc in nodes_keep]
     pipeline = [
+        {"$match": {"$expr": {"$in": ["$id", id_list]}}},
+        {"$unwind": "$labels"},
         {
-            "$match": {
-                "$and": [
-                    {dimx: {"$gte": x_min, "$lte": x_max}},
-                    {dimy: {"$gte": y_min, "$lte": y_max}},
-                ]
+            "$group": {
+                "_id": "$labels",
+                "members": {"$addToSet": "$id"},
+                "nodes": {"$first": "$nodes"},
             }
         },
-        {"$unwind": "$labels"},
-        {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"},}},
         {
             "$project": {
                 "id": "$_id",
@@ -438,7 +470,9 @@ def _graph():
                 "color": "black",  # needs to be set programmatically
             }
         },
+        {"$project": {"_id": 0}},
     ]
+
     links_data = list(collection.aggregate(pipeline))
     links = []
     for label in links_data:
@@ -447,12 +481,20 @@ def _graph():
                 {
                     "src": src,
                     "dest": dest,
-                    "color": label["color"],
-                    "name": label["id"],
+                    # "name": label["id"],
                 }
             )
+    for node in nodes_keep:
+        del node["labels"]
+    d.update({"nodes": nodes_keep, "links": links})
 
-    d.update(
-        {"nodes": nodes, "links": links,}
-    )
-    return jsonify(d)
+    # print(len(nodes_keep))
+    # print(len(links), flush=True)
+    # print(f'Size of d {sys.getsizeof(d)}')
+    # pprint(d)
+    # mid = datetime.now()
+    # print(f'Before jsonify {mid - start}', flush=True)
+    d = jsonify(d)
+    # end = datetime.now()
+    # print(f'Took {end - start}', flush=True)
+    return d

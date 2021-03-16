@@ -11,7 +11,6 @@ from flask import abort
 from pymongo import MongoClient
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
-
 ASC = pymongo.ASCENDING
 DESC = pymongo.DESCENDING
 
@@ -63,10 +62,10 @@ def create_ids(coll):
 
 
 def load_kaggle_csvs_into_mongodb():
-    #dotenv.load_dotenv()
-    #sp = spotipy.Spotify(
-  #  auth_manager=SpotifyOAuth(), requests_timeout=100, retries=5, status_retries=5
-#)
+    # dotenv.load_dotenv()
+    # sp = spotipy.Spotify(
+    #  auth_manager=SpotifyOAuth(), requests_timeout=100, retries=5, status_retries=5
+    # )
     db["albums"].drop()
     db["artists"].drop()
     db["dim_minmax"].drop()
