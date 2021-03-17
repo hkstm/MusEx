@@ -102,13 +102,13 @@ class App extends Component<{}, AppState> {
 
   }
 
-  handleDimYChange = (dimy: string) => {
-    this.setState({ dimy });
+  handleDimYChange = (selection: string) => {
+    this.setState({ dimy: selection });
     this.updateGraph();
   };
 
-  handleDimXChange = (dimx: string) => {
-    this.setState({ dimx });
+  handleDimXChange = (selection: string) => {
+    this.setState({ dimx: selection });
     this.updateGraph();
   };
 
@@ -119,7 +119,7 @@ class App extends Component<{}, AppState> {
   };
 
   updateGraph = () => {
-    console.log(this.state.x, this.state.y, this.state.zoom, this.state.type);
+    console.log(this.state.dimx, this.state.dimy, this.state.zoom, this.state.type);
     axios
       .get(
         `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=200`,
@@ -181,7 +181,8 @@ class App extends Component<{}, AppState> {
       this.setState((state) => {
         return {
           dimx: state.dimensions[0],
-          dimy: state.dimensions[state.dimensions.length - 1],
+          // dimy: state.dimensions[state.dimensions.length - 1],
+          dimy: state.dimensions[2],
         };
       });
       this.updateGraph();
@@ -206,6 +207,7 @@ class App extends Component<{}, AppState> {
                 id="select-dimy"
                 onChange={this.handleDimYChange}
                 options={this.state.dimensions}
+             
               ></Select>
             </div>  
               <div id="app-stats">
@@ -235,7 +237,7 @@ class App extends Component<{}, AppState> {
                 data={this.state.interests}
                 width={120}
                 height={120}
-              ></Minimap>  */}
+              ></Minimap> */}
               <Graph
                 enabled={true}
                 width={
