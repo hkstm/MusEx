@@ -131,7 +131,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke", "#FFFFFF")
       .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) =>
-        d.genres && d.genres.length > 0 ? color(d.genres.join("/")) : "white"
+        d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
 
     if (this.props.useForce ?? false) {
@@ -193,7 +193,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           ref={(ref: HTMLDivElement) => (this.ref = ref)}
         ></div>
         <div className="graph-metrics">
-          {/*<span>Zoom Level: {Math.round(this.state.zoomLevel)}</span>*/}
+          <span>Zoom Level: {Math.round(this.state.zoomLevel)}</span>
         </div>
       </div>
     );
