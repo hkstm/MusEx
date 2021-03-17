@@ -98,8 +98,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .data(this.props.data.nodes)
       .enter()
       .append<SVGTextElement>("text")
-      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) )
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) )
       .attr("class", "label")
       .attr("fill", "white")
       .text((d) => d.name);
@@ -125,9 +125,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .enter()
       .append<SVGCircleElement>("circle")
       .attr("class", "node")
-      .attr("r", 5)
-      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      .attr("r", (d:MusicGraphNode)=>(d.size??0))
+      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0))
+      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0))
       .style("stroke", "#FFFFFF")
       .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) =>
