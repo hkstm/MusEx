@@ -348,6 +348,7 @@ def _select():
 @cross_origin()
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
+    start = datetime.now()
     d = {}
     _x = request.args.get("x")
     if _x:
@@ -369,7 +370,7 @@ def _graph():
     if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
         return abort(
             400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=genre",
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=genre&limit=200",
         )
 
     if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
@@ -488,13 +489,12 @@ def _graph():
         del node["labels"]
     d.update({"nodes": nodes_keep, "links": links})
 
-    # print(len(nodes_keep))
-    # print(len(links), flush=True)
-    # print(f'Size of d {sys.getsizeof(d)}')
-    # pprint(d)
-    # mid = datetime.now()
-    # print(f'Before jsonify {mid - start}', flush=True)
+    mid = datetime.now()
+    print(f"Before jsonify {mid - start}", flush=True)
     d = jsonify(d)
-    # end = datetime.now()
-    # print(f'Took {end - start}', flush=True)
+    end = datetime.now()
+    print(len(nodes_keep))
+    print(len(links))
+    print(f"Size of d {sys.getsizeof(d)}")
+    print(f"Took {end - start}", flush=True)
     return d
