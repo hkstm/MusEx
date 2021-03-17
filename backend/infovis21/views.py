@@ -404,6 +404,8 @@ def _graph():
                 # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
                 dimx: f"${dimx}",
                 dimy: f"${dimy}",
+                "x":  f"${dimx}",
+                "y": f"${dimy}",
                 "name": "$name",
                 "size": "$popularity",
                 "preview_url": "$preview_url",
