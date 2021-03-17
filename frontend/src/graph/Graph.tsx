@@ -89,6 +89,25 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       //   );
     }
 
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+    const nodes = this.graph
+      .append("g")
+      .attr("class", "nodes")
+      .selectAll(".nodes")
+      .data(this.props.data.nodes)
+      .enter()
+      .append<SVGCircleElement>("circle")
+      .attr("class", "node")
+      .attr("r", (d:MusicGraphNode)=>(d.size??0) * 0.35) // ** Scaled down nodes radius  **
+      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
+      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // ** Fixed the cx and cy values**
+      .style("stroke", "#FFFFFF")
+      .style("stroke-width", 1.5)
+      .style("opacity", 0.8) // ** Added transparency for better visualization **
+      .style("fill", (d: MusicGraphNode) =>
+        d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
+      );
+
     const enlarge = 4000;
     const labels = this.graph
       .append("g")
@@ -98,8 +117,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .data(this.props.data.nodes)
       .enter()
       .append<SVGTextElement>("text")
-      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) )
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) )
+      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width + (d.size??0) * 0.35  + 5 )
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
       .attr("class", "label")
       .attr("fill", "white")
       .text((d) => d.name);
@@ -116,6 +135,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke-opacity", 0.6)
       .style("stroke-width", "2px");
 
+/*  //TODO - Delete this as nodes are drawn before the labels now 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     const nodes = this.graph
       .append("g")
@@ -133,6 +153,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("fill", (d: MusicGraphNode) =>
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
+  */
 
     if (this.props.useForce ?? false) {
       this.force.on("tick", () => {
