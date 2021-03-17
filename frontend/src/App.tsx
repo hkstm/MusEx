@@ -211,8 +211,13 @@ class App extends Component<{}, AppState> {
               <div id="app-stats">
               <input
               type="text"
-              placeholder="Search artist or genre"
+              placeholder="Search"
               name="s"></input>
+              <select>
+              <option value="0">Select type:</option>
+              <option value="1">Genre</option>
+              <option value="2">Artist</option>
+              </select>
               <button className="button" type="submit">Search</button>
               </div>        
             <span id="app-help">Help</span>
@@ -224,13 +229,13 @@ class App extends Component<{}, AppState> {
             id="main-view"
           >
             <Widget>
-              <Minimap
+              {/* <Minimap
                 enabled={true}
                 onUpdate={this.handleMinimapUpdate}
                 data={this.state.interests}
                 width={120}
                 height={120}
-              ></Minimap>
+              ></Minimap>  */}
               <Graph
                 enabled={true}
                 width={
