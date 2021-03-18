@@ -429,7 +429,7 @@ def _graph():
     if d["limit"]:
         pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending)
 
-    nodes_sorted = list(collection.aggregate(pipeline))
+    nodes_sorted = list(collection.aggregate(pipeline, allowDiskUse=True))
 
     if d["limit"]:
         d["limit"] = min(
@@ -475,7 +475,7 @@ def _graph():
         {"$project": {"_id": 0}},
     ]
 
-    links_data = list(collection.aggregate(pipeline))
+    links_data = list(collection.aggregate(pipeline, allowDiskUse=True))
     links = []
     for label in links_data:
         for src, dest in itertools.combinations(label["members"], 2):
