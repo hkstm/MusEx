@@ -11,11 +11,11 @@ interface GraphProps {
   useForce?: boolean;
 }
 
-interface GraphState {
+export interface GraphState {
   zoomLevel: number;
 }
 
-// type SimNode = MusicGraphNode;
+ type SimNode = MusicGraphNode;
 // type SimLink = d3.SimulationLinkDatum<MusicGraphNode>;
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
@@ -27,11 +27,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   constructor(props: GraphProps) {
     super(props);
     this.state = {
-      zoomLevel: 1,
+      zoomLevel: 1,    
     };
   }
 
   updateGraph = () => {
+    
     if (!this.props.enabled) return;
     if (!this.props.data) return;
     console.log("updating the graph");
@@ -54,21 +55,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
     this.svg
       .append("g")
+      .attr("class","xaxis")
       .attr("transform", `translate(0,${this.props.height - padding})`)
       .call(x_axis);
 
     this.svg
       .append("g")
+      .attr("class","yaxis")
       .attr("transform", `translate(${padding},0)`)
       .call(y_axis);
 
-    const zoom = d3.zoom<SVGSVGElement, MusicGraph>().on("zoom", (event) => {
-      this.graph.attr("transform", event.transform);
-      // console.log(event);
-      this.setState({ zoomLevel: event.transform.k });
-    });
 
-    this.svg.call(zoom);
 
     if (this.props.useForce ?? false) {
       // const forceLink = d3
@@ -88,7 +85,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       //     d3.forceCenter(this.props.width / 2, this.props.height / 2)
       //   );
     }
-
+    const imageurl ="https://www.clipartmax.com/png/middle/205-2052288_music-icons-transparent-background-eighth-note-svg.png" 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     const nodes = this.graph
       .append("g")
@@ -107,6 +104,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("fill", (d: MusicGraphNode) =>
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
+
+      const image= nodes.append("svg:image")
+      .attr("xlink:href",(d:MusicGraphNode)=>d.preview_url? imageurl :"")
+      .attr("width",30 )
+      .attr("height",30); //Just added so i didnt have to delete it
 
     const enlarge = 4000;
     const labels = this.graph
@@ -154,6 +156,27 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
   */
+ const zoom = d3.zoom<SVGSVGElement, MusicGraph>()
+ .scaleExtent([0.5, 32])
+ .on("zoom", (event) => {
+
+ this.graph.attr("transform", event.transform);
+ // console.log(event);
+ this.setState({ zoomLevel: event.transform.k });
+ const zx = event.transform.rescaleX(x_scale).interpolate(d3.interpolateRound);
+ const zy = event.transform.rescaleY(y_scale).interpolate(d3.interpolateRound);
+ nodes.attr("transform", event.transform).attr("r", (d:MusicGraphNode)=>(d.size??0) * 0.35 / event.transform.k );
+ nodes.attr("transform", event.transform).attr("stroke-width", 1.5/ event.transform.k);
+ labels.attr("transform", event.transform).attr("stroke-width", 5 / event.transform.k);
+ labels.attr("transform", event.transform).attr("x", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width + (d.size??0) * 0.35  + 5/ event.transform.k )
+ labels.attr("transform", event.transform).attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5/ (event.transform.k + 15))
+ this.svg.selectAll(".xaxis").call(zx);
+ this.svg.selectAll(".yaxis").call(zy);
+});
+
+
+
+this.svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
 
     if (this.props.useForce ?? false) {
       this.force.on("tick", () => {
@@ -186,6 +209,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
   componentDidUpdate(prevProps: GraphProps) {
     if (prevProps.data !== this.props.data) {
+      d3.selectAll(".nodes").remove()
+      d3.selectAll(".labels").remove()
       this.updateGraph();
     }
   }
