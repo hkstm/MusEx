@@ -297,14 +297,10 @@ class App extends Component<{}, AppState> {
             {this.state.showGenre ? <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud>  : null}
             {this.state.showArtist ? <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud> : null} 
             </div>
-          
             </Widget>
             <Widget>
-              <div className="sideview-widget wordcloud genre-wordcloud">
-                <h3>Stats through different years</h3>
-               <Heatmap></Heatmap> 
-
-              </div>
+              <h3>Stats through different years</h3>
+              <Heatmap></Heatmap> 
             </Widget>
           </div>
         </div>
