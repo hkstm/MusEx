@@ -85,7 +85,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       //     d3.forceCenter(this.props.width / 2, this.props.height / 2)
       //   );
     }
-    const imageurl ="https://www.clipartmax.com/png/middle/205-2052288_music-icons-transparent-background-eighth-note-svg.png" 
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     const nodes = this.graph
       .append("g")
@@ -105,10 +104,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
 
-      const image= nodes.append("svg:image")
-      .attr("xlink:href",(d:MusicGraphNode)=>d.preview_url? imageurl :"")
-      .attr("width",30 )
-      .attr("height",30); //Just added so i didnt have to delete it
 
     const enlarge = 4000;
     const labels = this.graph
