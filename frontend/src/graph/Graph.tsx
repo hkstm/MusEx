@@ -42,11 +42,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const padding = 30;
     const x_scale = d3
       .scaleLinear()
-      .domain([0, 1.0])
+      .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
       .range([padding, this.props.width - padding]);
     const y_scale = d3
       .scaleLinear()
-      .domain([1.0, 0.0])
+      .domain([d3.max(this.props.data.nodes, function(d:any){ return d.y; }),d3.min(this.props.data.nodes,function(d:any){return  d.y})])
       .range([padding, this.props.height - padding]);
 
     // Add scales to axis
@@ -204,6 +204,8 @@ this.svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
 
   componentDidUpdate(prevProps: GraphProps) {
     if (prevProps.data !== this.props.data) {
+      d3.selectAll(".xaxis").remove()
+      d3.selectAll(".yaxis").remove()
       d3.selectAll(".nodes").remove()
       d3.selectAll(".labels").remove()
       this.updateGraph();
