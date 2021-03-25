@@ -16,7 +16,7 @@
 .heatmap-legend {
     display: none;
     float: left;
-    margin: -40px 0 0 700px;
+    margin: 40px 0 0 140px;
 }
 .widget-fullscreen .heatmap-legend {
     display: block;
@@ -27,10 +27,12 @@
     border: 2px solid red;
     height: 20px;
     width: 280px;
+    /*width: 280px;*/
+    width: 420px;
     background-image: linear-gradient(to right, white , red);
 }
 .heatmap-legend-lowval { float: left; margin-top: 0px;}
-.heatmap-legend-highval { float: left; margin-left: 140px; margin-top: 0px;}
+.heatmap-legend-highval { float: left; margin-left: 300px; margin-top: 0px;}
 
 .heatmap-tooltip {
     position: absolute;
@@ -72,6 +74,7 @@
 }
 .heatmap-cell-tooltip {
     position: absolute;
+    text-transform: capitalize;
     z-index: 9999;
     color: black;
     top: -40px;
@@ -116,4 +119,35 @@
 }
 .heatmap-tick-y:hover .y-tooltip {
     display: block;
+}
+
+.hm-slider-bar {
+    position: relative;
+    float: left;
+    cursor: pointer;
+    margin: 40px 0 0 100px;
+    display: flex;
+    width: 200px;
+    height: 10px;
+    border-bottom: 2px solid white;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.widget-fullscreen .hm-slider-bar {
+    pointer-events: initial;
+    opacity: initial;
+}
+
+.hm-slider-stick {
+    position: absolute;
+    width: 2px;
+    height: 20px;
+    background: red;
+    border: 1px solid white;
+}
+
+.hm-slider-label {
+    float: right;
+    margin-top: 25px;
 }

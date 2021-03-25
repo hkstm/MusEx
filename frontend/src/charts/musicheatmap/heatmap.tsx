@@ -24,6 +24,7 @@ class Heatmap extends Component<{}, any> {
     this.state = {
       x: [],
       y: [],
+      yearsCount: 10,
       max: {}, //currentMin
       min: {}, //currentMax
       hash: {
@@ -44,11 +45,19 @@ class Heatmap extends Component<{}, any> {
         "year": {"max": 2021, "min": 1920},
       }
     };
+    this.updateXAxis = this.updateXAxis.bind(this);
+    this.getData();
   }
 
-  componentDidMount() {
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.yearsCount !== prevState.yearsCount)
+     this.getData();
+  }
+
+  getData() {
     // setTimeout(this.d3heatmap, 0);
-    axios.get(`http://localhost:5000/years?limit=10`).then((res) => {
+    axios.get(`http://localhost:5000/years?limit=${this.state.yearsCount}`).then((res) => {
+      res.data.data = res.data.data.sort((a: any,b: any) => a.year > b.year ? 1 : -1);
       this.setState({ data: res.data.data });
       var x:number[] = [], y:any[] = [];
       var min: any = this.state.min, max: any = this.state.max;
@@ -171,6 +180,31 @@ class Heatmap extends Component<{}, any> {
         // .style("fill", function(d:any,i:any) { return myColor(d[i].value)} )
   }
 
+  drawLegend() {
+    return (
+      <div className="heatmap-legend">
+        <div className="heatmap-gradient-legend"/>
+        <div className="heatmap-legend-lowval">Min Value</div>
+        <div className="heatmap-legend-highval">Max Value</div>
+      </div>
+    );
+  }
+
+  updateXAxis(e: any){
+    console.log('clicked at ', e.clientX);
+    let yearsCount: number = (Math.round((e.clientX - 660)/40) * 10) || 10;
+    this.setState({yearsCount});
+  }
+
+  sliderBar() {
+    return (
+      <div className="hm-slider-bar" onClick={this.updateXAxis}>
+        <div className="hm-slider-stick" style={{left: (this.state.yearsCount *4) + "px"}}/>
+        <div className="hm-slider-label">Show last {this.state.yearsCount} years</div>
+      </div>
+    );
+  }
+
   getShade(key:string, val:number) {
     // var min = this.state.min[key] / 1.2, max = this.state.max[key] * 1.2;
     var min = this.state.hash[key].min, max = this.state.hash[key].max;
@@ -208,17 +242,13 @@ class Heatmap extends Component<{}, any> {
   }
 
   render() {
-    debugger;
     // return <div>{this.draw()}</div>;
     return (
         <div className="heatmap-container">
           {/* <svg id="heatmap-svg"></svg> */}
-          <div>{this.draw()}</div>
-          <div className="heatmap-legend">
-            <div className="heatmap-gradient-legend"/>
-            <div className="heatmap-legend-lowval">Min Value</div>
-            <div className="heatmap-legend-highval">Max Value</div>
-          </div>
+          {this.draw()}
+          {this.drawLegend()}
+          {this.sliderBar()}
         </div>
     );
   }

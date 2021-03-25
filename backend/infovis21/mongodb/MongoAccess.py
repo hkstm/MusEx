@@ -52,7 +52,10 @@ coll_tracks = db["tracks_api"]
 coll_albums = db["albums_api"]
 coll_labels = db["labels_api"]
 coll_years = db["years_api"]
+
 coll_dim_minmax = db["dim_minmax"]
+coll_genre_pop = db["genre_popularity_per_year"]
+coll_artist_pop = db["artist_popularity_per_year"]
 
 
 def create_ids(coll):
@@ -547,6 +550,59 @@ def load_kaggle_csvs_into_mongodb():
     for doc in list(res):
         db["labels_api"].insert_one(doc)
     db["labels_api"].create_index("id")
+
+    db["artist_popularity_per_year"].drop()
+    res = db["tracks_full"].aggregate(
+        [
+            {"$project": {"artists": 1, "year": 1, "popularity": 1}},
+            {"$unwind": "$artists"},
+            {
+                "$group": {
+                    "_id": {"year": "$year", "artist": "$artists.id"},
+                    "popularity": {"$avg": "$popularity"},
+                }
+            },
+            {
+                "$project": {
+                    "artist": "$_id.artist",
+                    "year": "$_id.year",
+                    "popularity": 1,
+                    "_id": 0,
+                }
+            },
+            {"$sort": {"year": 1, "popularity": -1}},
+            {"$out": "artist_popularity_per_year"},
+        ],
+        allowDiskUse=True,
+    )
+    db["artist_popularity_per_year"].create_index("year")
+
+    db["genre_popularity_per_year"].drop()
+    res = db["tracks_full"].aggregate(
+        [
+            {"$project": {"genres": 1, "year": 1, "popularity": 1}},
+            {"$unwind": "$genres"},
+            {
+                "$group": {
+                    "_id": {"year": "$year", "genre": "$genres"},
+                    "popularity": {"$avg": "$popularity"},
+                }
+            },
+            {
+                "$project": {
+                    "genre": "$_id.genre",
+                    "year": "$_id.year",
+                    "popularity": 1,
+                    "_id": 0,
+                }
+            },
+            {"$sort": {"year": 1, "popularity": -1}},
+            {"$out": "genre_popularity_per_year"},
+        ],
+        allowDiskUse=True,
+    )
+    db["genre_popularity_per_year"].create_index("year")
+
     print(f"Created api collections: {datetime.now()}")
 
     db["albums"].drop()

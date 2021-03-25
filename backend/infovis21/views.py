@@ -4,6 +4,7 @@ import sys
 from datetime import datetime
 from operator import itemgetter
 from pprint import pprint
+from typing import Collection
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -33,7 +34,7 @@ def get_collection(type_str):
     elif type_str == "track":
         return ma.coll_tracks
     else:
-        return abort(400, description="invalid node type not: genre, artist, track",)
+        return abort(400, description="invalid node type not: genre, artist, track")
 
 
 @app.errorhandler(400)
@@ -125,6 +126,48 @@ def _labels():
         pipeline.append({"$limit": topk})
 
     d.update({"labels": list(ma.coll_labels.aggregate(pipeline))})
+    return jsonify(d)
+
+
+@app.route("/most_popular")
+@cross_origin()
+def _most_popular():
+    """ Return a list of most popular genre|artist|track per year """
+    limit = request.args.get("limit")
+    year = request.args.get("year")
+    coll_type = request.args.get("type")
+    d = {}
+    if year:
+        d["year"] = int(year)
+
+    pipeline = [
+        {"$project": {"popularity": 1, "_id": 0, "year": 1, "name": 1}},
+        {"$match": {"year": d["year"]}},
+        {"$sort": {"popularity": -1}},
+    ]
+
+    if limit:
+        d["limit"] = int(limit)
+        pipeline.append({"$limit": d["limit"]},)
+    if coll_type:
+        d["type"] = str(coll_type)
+
+    if d["type"] == "genre":
+        collection = ma.coll_genre_pop
+    elif d["type"] == "artist":
+        collection = ma.coll_artist_pop
+    elif d["type"] == "track":
+        collection = ma.coll_tracks
+    else:
+        return abort(400, description="invalid node type not: genre, artist, track")
+
+    if not (d["year"] and d["type"]):
+        return abort(
+            400,
+            description="a year and type are required, optionally specify a limit e.g. /most_popular?year=2020&type=artist&limit=10",
+        )
+    print(pipeline, flush=True)
+    d.update({"most_popular": list(collection.aggregate(pipeline))})
     return jsonify(d)
 
 
@@ -402,8 +445,10 @@ def _graph():
             "$project": {
                 "id": "$id",
                 # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
-                dimx: f"${dimx}",
-                dimy: f"${dimy}",
+                "dimx": dimx,
+                "dimy": dimy,
+                "x": f"${dimx}",
+                "y": f"${dimy}",
                 "name": "$name",
                 "size": "$popularity",
                 "preview_url": "$preview_url",
@@ -427,7 +472,7 @@ def _graph():
     if d["limit"]:
         pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending)
 
-    nodes_sorted = list(collection.aggregate(pipeline))
+    nodes_sorted = list(collection.aggregate(pipeline, allowDiskUse=True))
 
     if d["limit"]:
         d["limit"] = min(
@@ -473,7 +518,7 @@ def _graph():
         {"$project": {"_id": 0}},
     ]
 
-    links_data = list(collection.aggregate(pipeline))
+    links_data = list(collection.aggregate(pipeline, allowDiskUse=True))
     links = []
     for label in links_data:
         for src, dest in itertools.combinations(label["members"], 2):
