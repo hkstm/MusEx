@@ -54,6 +54,7 @@ type AppState = {
   dimy: string;
   showGenre: Boolean;
   showArtist: Boolean;
+  cloudYear: number;
 };
 
 class App extends Component<{}, AppState> {
@@ -84,6 +85,7 @@ class App extends Component<{}, AppState> {
       popularArtists: [],
       showGenre: false,
       showArtist: false,
+      cloudYear: 2020,
     }
     this._genreButtonClick = this._genreButtonClick.bind(this);
     this._artistButtonClick = this._artistButtonClick.bind(this);
@@ -138,7 +140,7 @@ class App extends Component<{}, AppState> {
     console.log(this.state.dimx, this.state.dimy, this.state.zoom, this.state.type);
     axios
       .get(
-        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=200`,
+        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=100`,
         config
       )
       .then((res) => {
@@ -154,11 +156,11 @@ class App extends Component<{}, AppState> {
 
   updateGenres = () => {
     axios
-      .get(`http://localhost:5000/genres?limit=${MAX_WORDCLOUD_SIZE}`, config)
+      .get(`http://localhost:5000/most_popular?year=${this.state.cloudYear}&type=genre&limit=${MAX_WORDCLOUD_SIZE}`, config)
       .then((res) => {
         this.setState({
-          genres: res.data.genres,
-          popularGenres: res.data.genres.map(
+          genres: res.data.most_popular,
+          popularGenres: res.data.most_popular.map(
             (g: { name: string; popularity: number }) => {
               return { text: g.name, value: g.popularity };
             }
@@ -169,11 +171,11 @@ class App extends Component<{}, AppState> {
 
   updateArtists = () => {
     axios
-      .get(`http://localhost:5000/artists?limit=${MAX_WORDCLOUD_SIZE}`)
+      .get(`http://localhost:5000/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`)
       .then((res) => {
         this.setState({
-          artists: res.data.artists,
-          popularArtists: res.data.artists.map(
+          artists: res.data.most_popular,
+          popularArtists: res.data.most_popular.map(
             (a: { name: string; popularity: number }) => {
               return { text: a.name, value: a.popularity };
             }
@@ -247,8 +249,12 @@ class App extends Component<{}, AppState> {
                   >
                   Search
                   </button>
-              </div>        
-            <span id="app-help">Help</span>
+              </div>   
+              <button className="helpbutton"
+                id="app-help">
+                help
+              </button>     
+            {/* <span id="app-help">Help</span> */}
           </nav>
         </header>
         <div id="content">
