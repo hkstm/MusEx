@@ -108,11 +108,19 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("fill",(d: MusicGraphNode) =>
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       )
-      .on("click",(d:MusicGraphNode)=>d.id in this.state.selectlist?
-      (console.log("I work!"),nodes.style("stroke","#FFFFFF")):
-      (console.log("I still work"),this.state.selectlist.push(d.id),console.log(this.state.selectlist),nodes.style("stroke","#F8FF20"))) ;
-      
-     
+      .each(function(){
+        var sel=d3.select(this)
+        var state = false;
+        sel.on("click",function(){
+          state = !state
+          if (state){
+            sel.style("stroke","#F8FF20")
+          }else{
+            sel.style("stroke","#FFFFFF")
+          }
+        })
+      });
+       
 
       nodes.append<SVGImageElement>("image")
         .attr('xlink:href', "music-solid.svg")
@@ -120,7 +128,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .attr('height', function(d) { return (d.size ??0)*0.35+'px'} )
         .attr("x",(d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
         .attr("y",(d: MusicGraphNode) => (d.y ?? 0) * this.props.height)
-        .attr("class", "fa")
+        .attr("class", "fa");
         // .text(function(d) { return '\uf001' }); 
 
 
