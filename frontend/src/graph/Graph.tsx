@@ -2,6 +2,7 @@ import * as React from "react";
 import * as d3 from "d3";
 import { MusicGraph, MusicGraphNode, MusicGraphLink } from "./model";
 import "./Graph.sass";
+import { faMusic} from "@fortawesome/free-solid-svg-icons";
 
 interface GraphProps {
   enabled: boolean;
@@ -13,6 +14,7 @@ interface GraphProps {
 
 export interface GraphState {
   zoomLevel: number;
+  selectlist: string[];
 }
 
  type SimNode = MusicGraphNode;
@@ -27,7 +29,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   constructor(props: GraphProps) {
     super(props);
     this.state = {
-      zoomLevel: 1,    
+      zoomLevel: 1,
+      selectlist: [],    
     };
   }
 
@@ -37,7 +40,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     if (!this.props.data) return;
     console.log("updating the graph");
     console.log(this.props.data);
+    
 
+   
     // Create scale
     const padding = 30;
     const x_scale = d3
@@ -54,16 +59,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const y_axis = d3.axisLeft(y_scale);
 
     this.svg
-      .append("g")
-      .attr("class","xaxis")
-      .attr("transform", `translate(0,${this.props.height - padding})`)
-      .call(x_axis);
+        .append("g")
+        .attr("class","xaxis")
+        .attr("transform", `translate(0,${this.props.height - padding})`)
+        .call(x_axis);
 
     this.svg
-      .append("g")
-      .attr("class","yaxis")
-      .attr("transform", `translate(${padding},0)`)
-      .call(y_axis);
+        .append("g")
+        .attr("class","yaxis")
+        .attr("transform", `translate(${padding},0)`)
+        .call(y_axis);
 
 
 
@@ -97,12 +102,26 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("r", (d:MusicGraphNode)=>(d.size??0) * 0.35) // ** Scaled down nodes radius  **
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
       .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // ** Fixed the cx and cy values**
-      .style("stroke", "#FFFFFF")
+      .style("stroke", (d:MusicGraphNode)=>d.id in this.state.selectlist? "#F8FF20" :"#FFFFFF")
       .style("stroke-width", 1.5)
       .style("opacity", 0.8) // ** Added transparency for better visualization **
-      .style("fill", (d: MusicGraphNode) =>
+      .style("fill",(d: MusicGraphNode) =>
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
-      );
+      )
+      .on("click",(d:MusicGraphNode)=>d.id in this.state.selectlist?
+      (console.log("I work!"),nodes.style("stroke","#FFFFFF")):
+      (console.log("I still work"),this.state.selectlist.push(d.id),console.log(this.state.selectlist),nodes.style("stroke","#F8FF20"))) ;
+      
+     
+
+      nodes.append<SVGImageElement>("image")
+        .attr('xlink:href', "music-solid.svg")
+        .attr('width', function(d) { return (d.size ??0)*0.35+'px'} )
+        .attr('height', function(d) { return (d.size ??0)*0.35+'px'} )
+        .attr("x",(d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
+        .attr("y",(d: MusicGraphNode) => (d.y ?? 0) * this.props.height)
+        .attr("class", "fa")
+        // .text(function(d) { return '\uf001' }); 
 
 
     const enlarge = 4000;
@@ -126,8 +145,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .data(this.props.data.links)
       .enter()
       .append("line")
-      // .attr("x", (d: MusicGraphLink) => (d.x ?? 0) * enlarge)
-      // .attr("y", (d: MusicGraphLink) => (d.y ?? 0) * enlarge)
+      // .attr("x", (d: MusicGraphLink) => (d.x ?? 0) * this.props.width * enlarge)
+      // .attr("y", (d: MusicGraphLink) => (d.y ?? 0) * this.props.height* enlarge)
       .style("stroke", "#999999")
       .style("stroke-opacity", 0.6)
       .style("stroke-width", "2px");
@@ -201,6 +220,7 @@ this.svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
       });
     }
   };
+  
 
   componentDidUpdate(prevProps: GraphProps) {
     if (prevProps.data !== this.props.data) {
@@ -222,7 +242,7 @@ this.svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
     this.graph = this.svg
       .append("g")
       .attr("class", "graph")
-      .attr("width", this.props.width)
+      .attr("width", this.props.width )
       .attr("height", this.props.height);
 
     this.updateGraph();
