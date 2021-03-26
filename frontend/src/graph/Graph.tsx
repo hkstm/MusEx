@@ -115,12 +115,29 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           state = !state
           if (state){
             sel.style("stroke","#F8FF20")
+            .style("stroke-width", 5)
           }else{
             sel.style("stroke","#FFFFFF")
+            .style("stroke-width", 1.5)
           }
         })
+    
+        
       });
-       
+      // .on("click",(d:MusicGraphNode)=>d.id in this.state.selectlist?function(){
+      //   nodes.select("circle")
+      //     .style("stroke","#FFFFFF")
+      // }:
+      // function(){
+      //   nodes.select("circle")
+      //   .style("stroke","#F8FF20")
+
+      // })
+      // .on("click",(d:MusicGraphNode)=>d.id in this.state.selectlist?
+      // (console.log("I work!"),nodes.style("stroke","#FFFFFF")):
+      // (console.log("I still work"),this.state.selectlist.push(d.id),console.log(this.state.selectlist),nodes.style("stroke","#F8FF20"))) ;
+      
+     
 
       nodes.append<SVGImageElement>("image")
         .attr('xlink:href', "music-solid.svg")
