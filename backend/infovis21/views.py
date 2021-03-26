@@ -84,8 +84,10 @@ def search():
             "$project": {
                 "id": "$id",
                 # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
-                dimx: f"${dimx}",
-                dimy: f"${dimy}",
+                "dimx": dimx,
+                "dimy": dimy,
+                "x": f"${dimx}",
+                "y": f"${dimy}",
                 "name": "$name",
                 "size": "$popularity",
                 "preview_url": "$preview_url",
@@ -348,7 +350,7 @@ def _select():
 @cross_origin()
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
-    start = datetime.now()
+#     start = datetime.now()
     d = {}
     _x = request.args.get("x")
     if _x:
@@ -491,12 +493,12 @@ def _graph():
         del node["labels"]
     d.update({"nodes": nodes_keep, "links": links})
 
-    mid = datetime.now()
-    print(f"Before jsonify {mid - start}", flush=True)
+#     mid = datetime.now()
+#     print(f"Before jsonify {mid - start}", flush=True)
     d = jsonify(d)
-    end = datetime.now()
-    print(len(nodes_keep))
-    print(len(links))
-    print(f"Size of d {sys.getsizeof(d)}")
-    print(f"Took {end - start}", flush=True)
+#     end = datetime.now()
+#     print(len(nodes_keep))
+#     print(len(links))
+#     print(f"Size of d {sys.getsizeof(d)}")
+#     print(f"Took {end - start}", flush=True)
     return d
