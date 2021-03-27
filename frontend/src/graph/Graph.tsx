@@ -108,61 +108,77 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("fill",(d: MusicGraphNode) =>
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       )
-      .each(function(){
-        var sel=d3.select(this)
-        var state = false;
-        sel.on("click",function(){
-          state = !state
-          if (state){
-            sel.style("stroke","#F8FF20")
-            .style("stroke-width", 5)
-          }else{
-            sel.style("stroke","#FFFFFF")
-            .style("stroke-width", 1.5)
-          }
-        })
-    
-        
-      });
-      // .on("click",(d:MusicGraphNode)=>d.id in this.state.selectlist?function(){
-      //   nodes.select("circle")
-      //     .style("stroke","#FFFFFF")
-      // }:
-      // function(){
-      //   nodes.select("circle")
-      //   .style("stroke","#F8FF20")
-
-      // })
-      // .on("click",(d:MusicGraphNode)=>d.id in this.state.selectlist?
-      // (console.log("I work!"),nodes.style("stroke","#FFFFFF")):
-      // (console.log("I still work"),this.state.selectlist.push(d.id),console.log(this.state.selectlist),nodes.style("stroke","#F8FF20"))) ;
-      
      
 
-      nodes.append<SVGImageElement>("image")
-        .attr('xlink:href', "music-solid.svg")
-        .attr('width', function(d) { return (d.size ??0)*0.35+'px'} )
-        .attr('height', function(d) { return (d.size ??0)*0.35+'px'} )
-        .attr("x",(d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
-        .attr("y",(d: MusicGraphNode) => (d.y ?? 0) * this.props.height)
-        .attr("class", "fa");
-        // .text(function(d) { return '\uf001' }); 
-
+       const playMusic = function(){
+         nodes.append<HTMLMediaElement>("audio")
+        .attr("id","audioElement")
+        .attr("src",(d:MusicGraphNode)=>(d.preview_url??""))
+        nodes.on("dblclick", function(){
+          let preview =document.getElementById("audioElement") as HTMLMediaElement ;
+          if(preview){
+            preview.play()
+            console.log("did i play?")           
+          }else{
+            alert("This node contains no preview")
+          }      
+      })};
+     
+   
+        nodes.each(function(){
+          var sel=d3.select(this)                                         // get the individual clicked on node
+          var state = false;                                              // state to remember whether a node is highlighted or not
+          var musicOn= false;                                             // state to  remember whether  music  is playing or  not
+          var fragment:any                                                //where we will  load our urls later on            
+          sel.on("click",function(event){                                 //start onclick event
+          var shiftKeyPressed = event.shiftKey  
+          if(shiftKeyPressed){                                            //Did the user hold the shiftkey?
+            nodes.append<HTMLMediaElement>("audio")                       //add  the audio elements to the nodes
+            .attr("id","audioElement")
+            .attr("src",(d:MusicGraphNode)=>(d.preview_url??""));
+            var music = sel.select("#audioElement").attr("src")          //get the audio url
+            musicOn = !musicOn                                          //change state of music
+              if (musicOn){ 
+              fragment = new Audio(music)                                              //if music is now set to "on"
+              fragment.play() 
+              console.log(musicOn)                                         //play thee fragment
+            }else{                                                     //If music is set to "off"
+              fragment!.pause()
+              console.log(musicOn)
+              console.log(fragment)
+              fragment!.currentTime = 0;
+            }
+          }else{
+            nodes.selectAll("#audioElement").remove()       //remove audioelement so we can access the node itself
+              state = !state
+              if (state){                                     //if node  is selected
+                sel.style("stroke","#F8FF20")
+                .style("stroke-width", 5)
+              }else{                                        //if node is  unselected
+                sel.style("stroke","#FFFFFF")
+                .style("stroke-width", 1.5)
+              }
+            }
+          })     
+        });
+            
+       
 
     const enlarge = 4000;
     const labels = this.graph
       .append("g")
       .attr("class", "labels")
       .selectAll(".labels")
-      // .data(this.props.data.nodes, (d: MusicGraphNode) => d.name)
       .data(this.props.data.nodes)
-      .enter()
+      .enter() 
       .append<SVGTextElement>("text")
       .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width + (d.size??0) * 0.35  + 5 )
       .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
       .attr("class", "label")
       .attr("fill", "white")
       .text((d) => d.name);
+     
+      
 
     const links = this.graph
       .append("g")
@@ -176,25 +192,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke-opacity", 0.6)
       .style("stroke-width", "2px");
 
-/*  //TODO - Delete this as nodes are drawn before the labels now 
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
-    const nodes = this.graph
-      .append("g")
-      .attr("class", "nodes")
-      .selectAll(".nodes")
-      .data(this.props.data.nodes)
-      .enter()
-      .append<SVGCircleElement>("circle")
-      .attr("class", "node")
-      .attr("r", (d:MusicGraphNode)=>(d.size??0))
-      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0))
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0))
-      .style("stroke", "#FFFFFF")
-      .style("stroke-width", 1.5)
-      .style("fill", (d: MusicGraphNode) =>
-        d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
-      );
-  */
+
  const zoom = d3.zoom<SVGSVGElement, MusicGraph>()
  .scaleExtent([0.5, 32])
  .on("zoom", (event) => {
