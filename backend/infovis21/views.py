@@ -297,19 +297,23 @@ def _select():
     ]
 
     res = list(collection.aggregate(pipeline))
-    selected = list(collection.aggregate([{"$match": {"id": node_id}}, project_stage]))
+    node_ids = node_id.split('|')
+    selected = list(collection.aggregate([{
+            "$match": {"id": {"$in": node_ids}}
+        }, project_stage]))
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
-    selected = selected[0]
 
+    
     # extract 'vector' that is ordered unlike python dicts
     def create_vector(node):
         return [node[dim] for dim in ma.dimensions]
 
+    selected_vectors = [create_vector(doc) for doc in selected]
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
         np.array([create_vector(doc) for doc in res]),
-        np.array([create_vector(selected)]),
+        np.array([np.mean(selected_vectors, axis=0)]),
     ).squeeze()
 
     # think this is supposed to be faster, but it isn't (using %timeit) coulds probs be optimized
