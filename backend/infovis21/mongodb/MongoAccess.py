@@ -440,7 +440,6 @@ def load_kaggle_csvs_into_mongodb():
             "mode": 1,
             "acousticness": 1,
             "year": 1,
-            "popularity": 1,
         }
     }
 

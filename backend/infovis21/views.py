@@ -97,7 +97,7 @@ def search():
                 # can be one of Genre, Artist or Track (does this need to be capitalized)
                 "type": coll_type.capitalize(),
                 "genres": "genres",
-                "color": "#00000",
+                "color": "$genre_color",
                 "_id": 0,
             }
         },
@@ -434,7 +434,7 @@ def _graph():
                 ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
                 "genre": "$genres",
                 "labels": "$labels",
-                "color": "#00000",
+                "color": "$genre_color",
                 "dist": {
                     "$add": [
                         {"$pow": [{"$subtract": [f"${dimx}", d["x"]]}, 2]},
@@ -486,13 +486,7 @@ def _graph():
                 "nodes": {"$first": "$nodes"},
             }
         },
-        {
-            "$project": {
-                "id": "$_id",
-                "members": "$members",
-                "color": "black",  # needs to be set programmatically
-            }
-        },
+        {"$project": {"id": "$_id", "members": "$members", "color": "black",}},
         {"$project": {"_id": 0}},
     ]
 
