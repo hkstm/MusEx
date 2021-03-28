@@ -297,14 +297,13 @@ def _select():
     ]
 
     res = list(collection.aggregate(pipeline))
-    node_ids = node_id.split('|')
-    selected = list(collection.aggregate([{
-            "$match": {"id": {"$in": node_ids}}
-        }, project_stage]))
+    node_ids = node_id.split("|")
+    selected = list(
+        collection.aggregate([{"$match": {"id": {"$in": node_ids}}}, project_stage])
+    )
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
 
-    
     # extract 'vector' that is ordered unlike python dicts
     def create_vector(node):
         return [node[dim] for dim in ma.dimensions]
