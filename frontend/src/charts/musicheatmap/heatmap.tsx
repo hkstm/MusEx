@@ -49,7 +49,7 @@ class Heatmap extends Component<{}, any> {
     this.getData();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps:any, prevState:any) {
     if (this.state.yearsCount !== prevState.yearsCount)
      this.getData();
   }
