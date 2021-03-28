@@ -4,6 +4,7 @@ import sys
 from datetime import datetime
 from operator import itemgetter
 from pprint import pprint
+from typing import List
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -23,6 +24,8 @@ zoom_min, zoom_max = (
 )
 
 dim_minmax = ma.get_dim_minmax()
+
+graph_state = list()
 
 
 def get_collection(type_str):
@@ -248,8 +251,9 @@ def viszoomregion_to_mongo(
 @cross_origin()
 def _select():
     """ Return the node ids that should be highlighted based on a user selection """
+
     d = {}
-    node_id = request.args.get("node")  # either genre/artist name or track ID
+    node_id = request.args.get("node")  # either genre/artist/track ID
     _limit = request.args.get("limit")
     # _zoom = request.args.get("zoom") # don't think zoom makes sense here if we have a way to determine genre/artist/track level
     dimx = request.args.get("dimx")
@@ -265,11 +269,17 @@ def _select():
     # if _zoom:
     #     zoom = float(_zoom)
     #     d["zoom"] = zoom
+    global graph_state
+    if len(graph_state) == 0:
+        return abort(
+            400,
+            description="Graph endpoint needs to be hit before a selection recommendation can be given",
+        )
 
     if not (node_id and dimx and dimy and d["type"]):
         return abort(
             400,
-            description="a node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudness&type=track",
+            description="Node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudinvoness&type=track",
         )
 
     collection = get_collection(d["type"])
@@ -277,8 +287,12 @@ def _select():
     project_stage = {"$project": {"id": "$id", "_id": 0,}}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
+
     pipeline = [
         # { '$limit': 10},
+        {
+            "$match": {"id": {"$in": graph_state}}
+        },  # only recommend nodes that are currently in displayed graph
         project_stage,
     ]
 
@@ -350,7 +364,7 @@ def _select():
 @cross_origin()
 def _graph():
     """ Return a the graph data for a specific zoom level and postion """
-#     start = datetime.now()
+    #     start = datetime.now()
     d = {}
     _x = request.args.get("x")
     if _x:
@@ -432,7 +446,7 @@ def _graph():
     if d["limit"]:
         pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending)
 
-    nodes_sorted = list(collection.aggregate(pipeline))
+    nodes_sorted = list(collection.aggregate(pipeline, allowDiskUse=True))
 
     if d["limit"]:
         d["limit"] = min(
@@ -457,9 +471,10 @@ def _graph():
     else:
         nodes_keep = nodes_sorted
 
-    id_list = [doc["id"] for doc in nodes_keep]
+    global graph_state
+    graph_state = [doc["id"] for doc in nodes_keep]
     pipeline = [
-        {"$match": {"$expr": {"$in": ["$id", id_list]}}},
+        {"$match": {"$expr": {"$in": ["$id", graph_state]}}},
         {"$unwind": "$labels"},
         {
             "$group": {
@@ -493,12 +508,12 @@ def _graph():
         del node["labels"]
     d.update({"nodes": nodes_keep, "links": links})
 
-#     mid = datetime.now()
-#     print(f"Before jsonify {mid - start}", flush=True)
+    #     mid = datetime.now()
+    #     print(f"Before jsonify {mid - start}", flush=True)
     d = jsonify(d)
-#     end = datetime.now()
-#     print(len(nodes_keep))
-#     print(len(links))
-#     print(f"Size of d {sys.getsizeof(d)}")
-#     print(f"Took {end - start}", flush=True)
+    #     end = datetime.now()
+    #     print(len(nodes_keep))
+    #     print(len(links))
+    #     print(f"Size of d {sys.getsizeof(d)}")
+    #     print(f"Took {end - start}", flush=True)
     return d
