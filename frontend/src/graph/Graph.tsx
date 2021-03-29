@@ -150,6 +150,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                 }
               }) 
               sel.on("mouseover",function(event){
+                // alert("test")
                 return d3.selectAll("#"+name).style("visibility","visible")
               })
               sel.on("mouseout",function(){
@@ -170,6 +171,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
           .attr("class", (d:MusicGraphNode)=> (d.size! >largeNodeLabel )?"labelAlwaysVisible":"label")
           .attr("fill", "white")
+          .style("stroke", "black")
+          .style("stroke-width", 0.3)
           .attr("id",(d)=>d.name.replace('&','and').replace(`'`," ").replace(/\s+/g, ''))
           .text((d) => d.name)
           .style("visibility", (d: MusicGraphNode) => ((d.size! >largeNodeLabel ))? "visible":"hidden") //only show the labels of nodes with  a size  > 70
