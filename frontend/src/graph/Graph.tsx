@@ -71,7 +71,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .call(y_axis);
 
 
-
     if (this.props.useForce ?? false) {
       // const forceLink = d3
       //   .forceLink<SimNode, SimLink>(this.props.data.links)
@@ -90,6 +89,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       //     d3.forceCenter(this.props.width / 2, this.props.height / 2)
       //   );
     }
+    
+    const largeNodeLabel = 65; //change this value for a different treshold for  the node labels that should always remain visible
+      
+
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     const nodes = this.graph
       .append("g")
@@ -99,6 +102,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .enter()
       .append<SVGCircleElement>("circle")
       .attr("class", "node")
+      .attr("id",(d)=>d.name)
       .attr("r", (d:MusicGraphNode)=>(d.size??0) * 0.35) // ** Scaled down nodes radius  **
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
       .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // ** Fixed the cx and cy values**
@@ -108,80 +112,74 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("fill",(d: MusicGraphNode) =>
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       )
-     
-
-       const playMusic = function(){
-         nodes.append<HTMLMediaElement>("audio")
-        .attr("id","audioElement")
-        .attr("src",(d:MusicGraphNode)=>(d.preview_url??""))
-        nodes.on("dblclick", function(){
-          let preview =document.getElementById("audioElement") as HTMLMediaElement ;
-          if(preview){
-            preview.play()
-            console.log("did i play?")           
-          }else{
-            alert("This node contains no preview")
-          }      
-      })};
-     
-   
-        nodes.each(function(){
-          var sel=d3.select(this)                                         // get the individual clicked on node
-          var state = false;                                              // state to remember whether a node is highlighted or not
-          var musicOn= false;                                             // state to  remember whether  music  is playing or  not
-          var fragment:any                                                //where we will  load our urls later on            
-          sel.on("click",function(event){                                 //start onclick event
-          var shiftKeyPressed = event.shiftKey  
-          if(shiftKeyPressed){                                            //Did the user hold the shiftkey?
-            nodes.append<HTMLMediaElement>("audio")                       //add  the audio elements to the nodes
-            .attr("id","audioElement")
-            .attr("src",(d:MusicGraphNode)=>(d.preview_url??""));
-            var music = sel.select("#audioElement").attr("src")          //get the audio url
-            musicOn = !musicOn                                          //change state of music
-              if (musicOn){ 
-              fragment = new Audio(music)                                              //if music is now set to "on"
-              fragment.play() 
-              console.log(musicOn)                                         //play thee fragment
-            }else{                                                     //If music is set to "off"
-              fragment!.pause()
-              console.log(musicOn)
-              console.log(fragment)
-              fragment!.currentTime = 0;
-            }
-          }else{
-            nodes.selectAll("#audioElement").remove()       //remove audioelement so we can access the node itself
-              state = !state
-              if (state){                                     //if node  is selected
-                sel.style("stroke","#F8FF20")
-                .style("stroke-width", 5)
-              }else{                                        //if node is  unselected
-                sel.style("stroke","#FFFFFF")
-                .style("stroke-width", 1.5)
-              }
-            }
-          })     
-        });
+            nodes.each(function(){
+              var sel=d3.select(this)                                         // get the individual clicked on node
+              var state = false;                                              // state to remember whether a node is highlighted or not
+              var musicOn= false;                                             // state to  remember whether  music  is playing or  not
+              var fragment:any   
+              var name =  sel.attr("id")   
+              name = name.replace('&','and').replace(`'`," ").replace(/\s+/g, '');                                   //where we will  load our urls later on            
+              sel.on("click",function(event){                                 //start onclick event
+              var shiftKeyPressed = event.shiftKey  
+              if(shiftKeyPressed){                                            //Did the user hold the shiftkey?
+                nodes.append<HTMLMediaElement>("audio")                       //add  the audio elements to the nodes
+                .attr("id","audioElement")
+                .attr("src",(d:MusicGraphNode)=>(d.preview_url??""));
+                var music = sel.select("#audioElement").attr("src")           //get the audio url
+                musicOn = !musicOn                                            //change state of music
+                  if (musicOn){ 
+                  fragment = new Audio(music)                                 //if music is now set to "on"
+                  fragment.play() 
+                  console.log(musicOn)                                        //play thee fragment
+                }else{                                                        //If music is set to "off"
+                  fragment!.pause()
+                  console.log(musicOn)
+                  console.log(fragment)
+                  fragment!.currentTime = 0;
+                }
+              }else{
+                nodes.selectAll("#audioElement").remove()       //remove audioelement so we can access the node itself
+                  state = !state
+                  if (state){                                     //if node  is selected
+                    sel.style("stroke","#F8FF20")
+                    .style("stroke-width", 5)
+                  }else{                                        //if node is  unselected
+                    sel.style("stroke","#FFFFFF")
+                    .style("stroke-width", 1.5)
+                  }
+                }
+              }) 
+              sel.on("mouseover",function(event){
+                return d3.selectAll("#"+name).style("visibility","visible")
+              })
+              sel.on("mouseout",function(){
+                return d3.selectAll(".label").style("visibility","hidden")
+              })
             
-       
+            });
+                
+        const enlarge = 4000;
+        const labels = this.graph
+          .append("g")
+          .attr("class", "labels")
+          .selectAll(".labels")
+          .data(this.props.data.nodes)
+          .enter() 
+          .append<SVGTextElement>("text") 
+          .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width + (d.size??0) * 0.35  + 5 )
+          .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
+          .attr("class", (d:MusicGraphNode)=> (d.size! >largeNodeLabel )?"labelAlwaysVisible":"label")
+          .attr("fill", "white")
+          .attr("id",(d)=>d.name.replace('&','and').replace(`'`," ").replace(/\s+/g, ''))
+          .text((d) => d.name)
+          .style("visibility", (d: MusicGraphNode) => ((d.size! >largeNodeLabel ))? "visible":"hidden") //only show the labels of nodes with  a size  > 70
+   
+        
 
-    const enlarge = 4000;
-    const labels = this.graph
-      .append("g")
-      .attr("class", "labels")
-      .selectAll(".labels")
-      .data(this.props.data.nodes)
-      .enter() 
-      .append<SVGTextElement>("text")
-      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width + (d.size??0) * 0.35  + 5 )
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
-      .attr("class", "label")
-      .attr("fill", "white")
-      .text((d) => d.name);
-     
-      
 
     const links = this.graph
       .append("g")
+      .attr("class","line")
       .selectAll("line")
       .data(this.props.data.links)
       .enter()
