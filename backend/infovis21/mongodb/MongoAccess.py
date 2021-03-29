@@ -44,6 +44,12 @@ coll_albums = db["albums"]
 coll_labels = db["labels"]
 coll_dim_minmax = db["dim_minmax"]
 
+collections = {
+    "genre": coll_genres,
+    "artist": coll_artists,
+    "track": coll_tracks,
+}
+
 
 def map_zoom_to_mongo(zoom):
     # I'll factor this and the mongodb related logic out of this file when we have a functional prototype
@@ -259,3 +265,6 @@ def get_dim_minmax():
     except IndexError:
         update_dim_minmax()
         return list(coll_dim_minmax.aggregate([{"$unset": ["_id"]}]))[0]
+
+
+dim_minmax = get_dim_minmax()
