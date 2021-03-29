@@ -94,7 +94,11 @@ class App extends Component<{}, AppState> {
     this._setArtist = this._setArtist.bind(this)
   }
 
-  _genreButtonClick(){
+    onButtonClickHandler = () => {
+        window.alert('Help!')
+    };
+
+    _genreButtonClick(){
     this.setState({
       showArtist: false,
       showGenre: true,
@@ -249,11 +253,11 @@ class App extends Component<{}, AppState> {
                   >
                   Search
                   </button>
-              </div>   
-              <button className="helpbutton"
-                id="app-help">
-                help
-              </button>     
+              </div>
+              <div className="helpButton"
+              id="app-help">
+              <button onClick={this.onButtonClickHandler}>Help</button>
+              </div>
             {/* <span id="app-help">Help</span> */}
           </nav>
         </header>
