@@ -10,6 +10,7 @@ type SelectState = {
 
 type SelectProps = {
   id?: string;
+  default?: string;
   onChange: (dim: string) => void;
   options: string[];
 };
@@ -29,10 +30,24 @@ export default class Select extends Component<SelectProps, SelectState> {
   };
 
   onOptionClicked = (value: string) => () => {
+    // console.log("selecting", value);
     this.setState({ selected: value });
     this.setState({ isOpen: false });
     this.props.onChange(value);
   };
+
+  componentDidUpdate(prevProps: SelectProps) {
+    // console.log(this.props.default, this.state.selected, this.props.options);
+    if (this.props.default !== prevProps.default || this.props.options !== prevProps.options) {
+      if (
+        this.props.default !== undefined &&
+        this.state.selected == undefined &&
+        this.props.options.includes(this.props.default)
+      ) {
+        this.onOptionClicked(this.props.default)();
+      }
+    }
+  }
 
   render() {
     return (

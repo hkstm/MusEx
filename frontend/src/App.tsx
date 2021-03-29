@@ -39,17 +39,24 @@ type AppState = {
   popularArtists: Genre[];
   dimensions: string[];
   interests: MinimapData;
+  wordCloudEnabled: boolean;
   sideviewExpanded: boolean;
   x: number;
   y: number;
   zoom: number;
+  zoomLevel: number;
   type: NodeType;
   selected?: Node;
-  dimx: string;
-  dimy: string;
+  dimx?: string;
+  dimy?: string;
 };
 
 class App extends Component<{}, AppState> {
+  type: NodeType[] = ["genre", "artist", "track"];
+  zoomLevels = 5;
+  lastUpdateZoomLevel?: number = undefined;
+  lastUpdate?: { zoom: number; type: NodeType } = undefined;
+
   constructor(props: {}) {
     super(props);
     this.state = {
@@ -64,14 +71,14 @@ class App extends Component<{}, AppState> {
         xSize: 20,
         ySize: 20,
       },
+      wordCloudEnabled: false,
       sideviewExpanded: true,
-      x: 0,
-      y: 0,
-      zoom: 5,
+      x: 0.5,
+      y: 0.5,
+      zoom: 0,
+      zoomLevel: 0,
       type: "genre",
       selected: undefined,
-      dimx: "",
-      dimy: "",
       total: 0,
       popularGenres: [],
       artists: [],
@@ -80,14 +87,32 @@ class App extends Component<{}, AppState> {
     };
   }
 
+  handleZoom = (zoom: number) => {
+    const zoomLevel = Math.floor(zoom);
+    const levelType = this.type[Math.min(zoomLevel, this.type.length - 1)];
+    // console.log("zoom changed to", zoom, zoomLevel, levelType);
+    this.setState(
+      { zoom: zoom - zoomLevel, zoomLevel, type: levelType },
+      () => {
+        if (
+          this.lastUpdate &&
+          (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
+            1 / this.zoomLevels ||
+            this.lastUpdate.type !== levelType)
+        )
+          this.updateGraph();
+      }
+    );
+  };
+
   handleDimYChange = (dimy: string) => {
-    this.setState({ dimy });
-    this.updateGraph();
+    console.log("changed y dim to", dimy);
+    this.setState({ dimy }, this.updateGraph);
   };
 
   handleDimXChange = (dimx: string) => {
-    this.setState({ dimx });
-    this.updateGraph();
+    console.log("changed x dim to", dimx);
+    this.setState({ dimx }, this.updateGraph);
   };
 
   toggleSideview = () => {
@@ -97,15 +122,24 @@ class App extends Component<{}, AppState> {
   };
 
   updateGraph = () => {
-    console.log(this.state.x, this.state.y, this.state.zoom, this.state.type);
-    axios
-      .get(
-        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`,
-        config
-      )
-      .then((res) => {
-        this.setState({ graph: res.data });
-      });
+    console.log(
+      "updating graph for ",
+      this.state.dimx,
+      this.state.dimy,
+      this.state.x,
+      this.state.y,
+      this.state.zoom,
+      this.state.type
+    );
+    this.lastUpdate = { zoom: this.state.zoom, type: this.state.type };
+
+    const graphDataURL = `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`;
+    // console.log(graphDataURL);
+    axios.get(graphDataURL, config).then((res) => {
+      console.log(res.data.nodes.length + " nodes");
+      console.log(res.data.links.length + " links");
+      this.setState({ graph: res.data });
+    });
   };
 
   updateDimensions = (): Promise<void> => {
@@ -160,8 +194,8 @@ class App extends Component<{}, AppState> {
     this.updateDimensions().then(() => {
       this.setState((state) => {
         return {
-          dimx: state.dimensions[0],
-          dimy: state.dimensions[state.dimensions.length - 1],
+          // dimx: state.dimensions[0],
+          // dimy: state.dimensions[state.dimensions.length - 1],
         };
       });
       this.updateGraph();
@@ -179,11 +213,13 @@ class App extends Component<{}, AppState> {
             <div className="dimension-controller">
               <Select
                 id="select-dimx"
+                default="energy"
                 onChange={this.handleDimXChange}
                 options={this.state.dimensions}
               ></Select>
               <Select
                 id="select-dimy"
+                default="tempo"
                 onChange={this.handleDimYChange}
                 options={this.state.dimensions}
               ></Select>
@@ -206,12 +242,14 @@ class App extends Component<{}, AppState> {
               ></Minimap>
               <Graph
                 enabled={true}
+                zoomLevels={this.zoomLevels}
                 width={
                   window.innerWidth *
                     (this.state.sideviewExpanded ? 0.7 : 1.0) -
                   30
                 }
                 height={window.innerHeight - 40}
+                onZoom={this.handleZoom}
                 data={this.state.graph}
               ></Graph>
             </Widget>
@@ -239,19 +277,23 @@ class App extends Component<{}, AppState> {
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
                 <h3>Most popular artists</h3>
-                <ReactWordcloud
-                  words={this.state.popularArtists}
-                  options={options}
-                />
+                {this.state.wordCloudEnabled && (
+                  <ReactWordcloud
+                    words={this.state.popularArtists}
+                    options={options}
+                  />
+                )}
               </div>
             </Widget>
             <Widget>
               <div className="sideview-widget wordcloud genre-wordcloud">
                 <h3>Most popular genres</h3>
-                <ReactWordcloud
-                  words={this.state.popularGenres}
-                  options={options}
-                />
+                {this.state.wordCloudEnabled && (
+                  <ReactWordcloud
+                    words={this.state.popularGenres}
+                    options={options}
+                  />
+                )}
               </div>
             </Widget>
           </div>
