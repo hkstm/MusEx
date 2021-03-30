@@ -65,10 +65,10 @@ def create_ids(coll):
 
 
 def load_kaggle_csvs_into_mongodb():
-    # dotenv.load_dotenv()
-    # sp = spotipy.Spotify(
-    #  auth_manager=SpotifyOAuth(), requests_timeout=100, retries=5, status_retries=5
-    # )
+    dotenv.load_dotenv()
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(), requests_timeout=100, retries=5, status_retries=5
+    )
     db["albums"].drop()
     db["artists"].drop()
     db["dim_minmax"].drop()
@@ -240,6 +240,10 @@ def load_kaggle_csvs_into_mongodb():
     [db["artists"].insert_one(sp.artist(doc["_id"])) for doc in res]
     db["artists"].create_index("id")
     print(f"Created artists: {datetime.now()}")
+
+    ###
+    # Imputation
+    ###
 
     # Filter out artists without genre, imputation needs to be done before this step if used
     db["artists_with_genres"].drop()

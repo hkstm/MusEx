@@ -4,8 +4,7 @@ import sys
 from datetime import datetime
 from operator import itemgetter
 from pprint import pprint
-from typing import List, Collection
-
+from typing import Collection, List
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -349,7 +348,18 @@ def _select():
 
     # extract 'vector' that is ordered unlike python dicts
     def create_vector(node):
-        return [node[dim] for dim in ma.dimensions]
+        dimensions = [
+            # "danceability",
+            "energy",
+            "speechiness",
+            "tempo",
+            "valence",
+            "acousticness",
+            "instrumentalness",
+            # "liveness",
+            # "loudness",
+        ]
+        return [node[dim] for dim in dimensions]
 
     selected_vectors = [create_vector(doc) for doc in selected]
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
@@ -367,6 +377,13 @@ def _select():
 
     # retrieving doc info and actual similarity value
     similar_nodes = [(res[i], cos_sim[i]) for i in topk_idx]
+    # dissim_nodes = [
+    #     (res[i], cos_sim[i]) for i in np.argpartition(cos_sim, -topk)[:topk]
+    # ]
+    # print(dissim_nodes)
+    # print(selected_vectors)
+    # print(min(cos_sim))
+    # print(max(cos_sim), flush=True)
 
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
@@ -432,7 +449,7 @@ def _graph():
     if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
         return abort(
             400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=genre&limit=200",
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=track&limit=200",
         )
 
     if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
