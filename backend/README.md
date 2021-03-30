@@ -57,6 +57,7 @@ invoke precompute
 ```
 
 **Warning**: This will take some long time depending on your machine...
+A long time as in multiple hours
 
 
 #### Optional: Download audio preview cache
