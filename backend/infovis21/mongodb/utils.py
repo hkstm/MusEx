@@ -20,8 +20,28 @@ def normalize(dim, value, _min=0.0, _max=1.0):
 
 
 def create_vector(node):
-    """ extract feature vector from a track document """
+    """ extract feature vector from a document """
     return np.array([node[dim] for dim in ma.dimensions])
+
+
+def create_vector_sim(node):
+    """ extract feature vector from a document for similiarity calculation"""
+    dimensions = [
+        "danceability",
+        # "duration_ms",
+        "energy",
+        "speechiness",
+        # "tempo",
+        "valence",
+        # "popularity",
+        # "key",
+        # "mode",
+        "acousticness",
+        "instrumentalness",
+        # "liveness",
+        # "loudness",
+    ]
+    return np.array([node[dim] for dim in dimensions])
 
 
 def _precomputed_collection(dimx, dimy, typ, zoom, *args):

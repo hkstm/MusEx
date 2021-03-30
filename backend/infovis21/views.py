@@ -352,32 +352,12 @@ def _select(version):
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
 
-# <<<<<<< main
-#     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
-#     cos_sim = cosine_similarity(
-#         np.array([dbutils.create_vector(doc) for doc in res]),
-#         np.array([dbutils.create_vector(selected)]),
-# =======
-#     # extract 'vector' that is ordered unlike python dicts
-#     def create_vector(node):
-#         dimensions = [
-#             # "danceability",
-#             "energy",
-#             "speechiness",
-#             "tempo",
-#             "valence",
-#             "acousticness",
-#             "instrumentalness",
-#             # "liveness",
-#             # "loudness",
-#         ]
-#         return [node[dim] for dim in dimensions]
-
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
-        np.array([dbutils.create_vector(doc) for doc in res]),
-        np.array([np.mean([dbutils.create_vector(doc) for doc in selected], axis=0)]),
-# >>>>>>> api-design
+        np.array([dbutils.create_vector_sim(doc) for doc in res]),
+        np.array(
+            [np.mean([dbutils.create_vector_sim(doc) for doc in selected], axis=0)]
+        ),
     ).squeeze()
 
     # think this is supposed to be faster, but it isn't (using %timeit) coulds probs be optimized
@@ -443,27 +423,6 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
         "dimx": dimx,
         "dimy": dimy,
     }
-# =======
-# @app.route("/graph")
-# @cross_origin()
-# def _graph():
-#     """ Return a the graph data for a specific zoom level and postion """
-#     #     start = datetime.now()
-#     d = {}
-#     _x = request.args.get("x")
-#     if _x:
-#         d["x"] = float(_x)
-#     _y = request.args.get("y")
-#     if _y:
-#         d["y"] = float(_y)
-#     _zoom = request.args.get("zoom")
-#     if _zoom:
-#         d["zoom"] = float(_zoom)
-#     _limit = request.args.get("limit")
-#     if _limit:
-#         d["limit"] = int(_limit)
-# >>>>>>> api-design
-
     if zoom:
         d["zoom"] = zoom
     if limit:
@@ -471,16 +430,8 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     if typ:
         d["type"] = typ
 
-# <<<<<<< main
     zoom_level = int(zoom // (1 / dbutils.N_ZOOM_LEVELS))
     zoom = 1 - zoom
-# =======
-#     if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
-#         return abort(
-#             400,
-#             description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=track&limit=200",
-#         )
-# >>>>>>> api-design
 
     x_min, y_min = np.clip(np.array([x - zoom / 2, y - zoom / 2]), zoom_min, zoom_max)
     x_max, y_max = np.clip(np.array([x + zoom / 2, y + zoom / 2]), zoom_min, zoom_max)
