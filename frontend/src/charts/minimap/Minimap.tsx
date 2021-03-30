@@ -129,7 +129,10 @@ class Minimap extends Component<MinimapProps, MinimapState> {
 
   render() {
     return (
-      <div className="minimap">
+      <div
+        className="minimap"
+        style={{ width: this.props.width, height: this.props.height }}
+      >
         <div ref={this.minimap}>
           <Heatmap
             enabled={this.props.enabled}
@@ -137,7 +140,11 @@ class Minimap extends Component<MinimapProps, MinimapState> {
             width={this.props.width}
             height={this.props.height}
           >
-            <div className="minimap-selection" style={this.state.style}></div>
+            <div
+              key="minimap-selection"
+              className="minimap-selection"
+              style={this.state.style}
+            ></div>
           </Heatmap>
         </div>
       </div>

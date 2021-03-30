@@ -18,7 +18,7 @@ import "./heatmap.css";
 //   year: number
 // }
 
-class Heatmap extends Component<{}, any> {
+class MusicHeatmap extends Component<{}, any> {
   constructor(props: any) {
     super(props);
     this.state = {
@@ -46,6 +46,9 @@ class Heatmap extends Component<{}, any> {
       }
     };
     this.updateXAxis = this.updateXAxis.bind(this);
+  }
+
+  componentDidMount() {
     this.getData();
   }
 
@@ -56,7 +59,7 @@ class Heatmap extends Component<{}, any> {
 
   getData() {
     // setTimeout(this.d3heatmap, 0);
-    axios.get(`http://localhost:5000/years?limit=${this.state.yearsCount}`).then((res) => {
+    axios.get(`http://localhost:5000/v1/years?limit=${this.state.yearsCount}`).then((res) => {
       res.data.data = res.data.data.sort((a: any,b: any) => a.year > b.year ? 1 : -1);
       this.setState({ data: res.data.data });
       var x:number[] = [], y:any[] = [];
@@ -217,13 +220,13 @@ class Heatmap extends Component<{}, any> {
     return (
       <div className="heatmap-grid">
         {Object.keys(this.state.y[0] || {}).map( (key:string) => 
-          <div className='heatmap-row'>
+          <div key={key} className='heatmap-row'>
             <div className="heatmap-tick-y">
               {key}
               <div className="y-tooltip"> {key} Range[{this.state.hash[key].min},{this.state.hash[key].max}]</div>
             </div>
             {this.state.x.map( (year:any, i: number) => 
-              <div className='heatmap-row'>
+              <div key={year} className='heatmap-row'>
                 <div className="heatmap-cell" style={{background: this.getShade(key, this.state.y[i][key])}}>
                   <div className="heatmap-cell-tooltip"> {`${key} in ${year} is ${this.state.y[i][key].toFixed(3)}`}</div>
                 </div> 
@@ -234,7 +237,7 @@ class Heatmap extends Component<{}, any> {
         <div className='heatmap-row'>
           <div className="heatmap-tick-y"/>
           {this.state.x.map( (year:any, i: number) => 
-              <div className="heatmap-tick"> {year} </div>
+              <div key={year} className="heatmap-tick"> {year} </div>
           )}
         </div>
     </div>
@@ -254,4 +257,4 @@ class Heatmap extends Component<{}, any> {
   }
 }
 
-export default Heatmap;
+export default MusicHeatmap;

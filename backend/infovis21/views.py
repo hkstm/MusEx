@@ -13,6 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from infovis21.app import app
 from infovis21.mongodb import MongoAccess as ma
+from infovis21.mongodb import utils as dbutils
 
 vis_min, vis_max = (
     0,
@@ -29,6 +30,7 @@ graph_state = list()
 
 
 def get_collection(type_str):
+    type_str = type_str.lower()
     if type_str == "genre":
         return ma.coll_genres
     elif type_str == "artist":
@@ -49,15 +51,15 @@ def not_found(e):
     return jsonify(error=str(e)), 404
 
 
-@app.route("/dimensions")
+@app.route("/<version>/dimensions")
 @cross_origin()
-def _dimensions():
+def _dimensions(version):
     """ Return a list of all dimensions of the dataset """
     return jsonify(ma.dimensions)
 
 
-@app.route("/search")
-def search():
+@app.route("/<version>/search")
+def search(version):
     searchterm = request.args.get("searchterm")
     coll_type = request.args.get("type")
     dimx = request.args.get("dimx")
@@ -107,9 +109,9 @@ def search():
     return jsonify(d)
 
 
-@app.route("/labels")
+@app.route("/<version>/labels")
 @cross_origin()
-def _labels():
+def _labels(version):
     """ Return a list of all labels and the number of songs and artists in their portfolio """
     limit = request.args.get("limit")
     d = {}
@@ -133,9 +135,9 @@ def _labels():
     return jsonify(d)
 
 
-@app.route("/most_popular")
+@app.route("/<version>/most_popular")
 @cross_origin()
-def _most_popular():
+def _most_popular(version):
     """ Return a list of most popular genre|artist|track per year """
     limit = request.args.get("limit")
     year = request.args.get("year")
@@ -175,9 +177,9 @@ def _most_popular():
     return jsonify(d)
 
 
-@app.route("/artists")
+@app.route("/<version>/artists")
 @cross_origin()
-def _artists():
+def _artists(version):
     limit = request.args.get("limit")
     d = {}
     pipeline = [
@@ -201,9 +203,9 @@ def _artists():
     return jsonify(d)
 
 
-@app.route("/genres")
+@app.route("/<version>/genres")
 @cross_origin()
-def _genres():
+def _genres(version):
     """ Return a list of all genres and their popularity for the wordcloud """
     limit = request.args.get("limit")
     d = {}
@@ -213,7 +215,7 @@ def _genres():
 
     if limit:
         topk = int(limit)
-        d["limit"] = topk
+        # d["limit"] = topk
         pipeline.append({"$sort": {"popularity": ma.DESC}})
         pipeline.append({"$limit": topk})
 
@@ -224,9 +226,9 @@ def _genres():
     return jsonify(d)
 
 
-@app.route("/years")
+@app.route("/<version>/years")
 @cross_origin()
-def _years():
+def _years(version):
     """ Return a detailed info of music through different years for heatmap """
     limit = request.args.get("limit")
     d = {}
@@ -263,14 +265,18 @@ def _years():
 def vis_to_mongo(dim, val_vis):
     """ Converts from normalized frontend visualization space to backend MongoDB space """
     return np.interp(
-        val_vis, (vis_min, vis_max), (dim_minmax[dim]["min"], dim_minmax[dim]["max"]),
+        val_vis,
+        (vis_min, vis_max),
+        (ma.dim_minmax[dim]["min"], ma.dim_minmax[dim]["max"]),
     )
 
 
 def mongo_to_vis(dim, val_mongo):
     """ Converts from backend MongoDB space to normalized frontend visualization space """
     return np.interp(
-        val_mongo, (dim_minmax[dim]["min"], dim_minmax[dim]["max"]), (vis_min, vis_max),
+        val_mongo,
+        (ma.dim_minmax[dim]["min"], ma.dim_minmax[dim]["max"]),
+        (vis_min, vis_max),
     )
 
 
@@ -289,9 +295,9 @@ def viszoomregion_to_mongo(
     return vis_to_mongo(dim, val_zoom_min), vis_to_mongo(dim, val_zoom_max)
 
 
-@app.route("/select")
+@app.route("/<version>/select")
 @cross_origin()
-def _select():
+def _select(version):
     """ Return the node ids that should be highlighted based on a user selection """
 
     d = {}
@@ -346,26 +352,32 @@ def _select():
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
 
-    # extract 'vector' that is ordered unlike python dicts
-    def create_vector(node):
-        dimensions = [
-            # "danceability",
-            "energy",
-            "speechiness",
-            "tempo",
-            "valence",
-            "acousticness",
-            "instrumentalness",
-            # "liveness",
-            # "loudness",
-        ]
-        return [node[dim] for dim in dimensions]
+# <<<<<<< main
+#     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
+#     cos_sim = cosine_similarity(
+#         np.array([dbutils.create_vector(doc) for doc in res]),
+#         np.array([dbutils.create_vector(selected)]),
+# =======
+#     # extract 'vector' that is ordered unlike python dicts
+#     def create_vector(node):
+#         dimensions = [
+#             # "danceability",
+#             "energy",
+#             "speechiness",
+#             "tempo",
+#             "valence",
+#             "acousticness",
+#             "instrumentalness",
+#             # "liveness",
+#             # "loudness",
+#         ]
+#         return [node[dim] for dim in dimensions]
 
-    selected_vectors = [create_vector(doc) for doc in selected]
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
-        np.array([create_vector(doc) for doc in res]),
-        np.array([np.mean(selected_vectors, axis=0)]),
+        np.array([dbutils.create_vector(doc) for doc in res]),
+        np.array([np.mean([dbutils.create_vector(doc) for doc in selected], axis=0)]),
+# >>>>>>> api-design
     ).squeeze()
 
     # think this is supposed to be faster, but it isn't (using %timeit) coulds probs be optimized
@@ -423,51 +435,160 @@ def _select():
     return jsonify(d)
 
 
-@app.route("/graph")
-@cross_origin()
-def _graph():
-    """ Return a the graph data for a specific zoom level and postion """
-    #     start = datetime.now()
-    d = {}
-    _x = request.args.get("x")
-    if _x:
-        d["x"] = float(_x)
-    _y = request.args.get("y")
-    if _y:
-        d["y"] = float(_y)
-    _zoom = request.args.get("zoom")
-    if _zoom:
-        d["zoom"] = float(_zoom)
-    _limit = request.args.get("limit")
-    if _limit:
-        d["limit"] = int(_limit)
+# <<<<<<< main
+def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
+    d = {
+        "x": x,
+        "y": y,
+        "dimx": dimx,
+        "dimy": dimy,
+    }
+# =======
+# @app.route("/graph")
+# @cross_origin()
+# def _graph():
+#     """ Return a the graph data for a specific zoom level and postion """
+#     #     start = datetime.now()
+#     d = {}
+#     _x = request.args.get("x")
+#     if _x:
+#         d["x"] = float(_x)
+#     _y = request.args.get("y")
+#     if _y:
+#         d["y"] = float(_y)
+#     _zoom = request.args.get("zoom")
+#     if _zoom:
+#         d["zoom"] = float(_zoom)
+#     _limit = request.args.get("limit")
+#     if _limit:
+#         d["limit"] = int(_limit)
+# >>>>>>> api-design
 
-    dimx = request.args.get("dimx")
-    dimy = request.args.get("dimy")
-    d["type"] = request.args.get("type")
+    if zoom:
+        d["zoom"] = zoom
+    if limit:
+        d["limit"] = limit
+    if typ:
+        d["type"] = typ
 
-    if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
-        return abort(
-            400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=track&limit=200",
-        )
+# <<<<<<< main
+    zoom_level = int(zoom // (1 / dbutils.N_ZOOM_LEVELS))
+    zoom = 1 - zoom
+# =======
+#     if None in [_x, _y, _zoom, dimx, dimy, d.get("type")]:
+#         return abort(
+#             400,
+#             description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0.5&y=0.5&zoom=0&dimx=acousticness&dimy=loudness&type=track&limit=200",
+#         )
+# >>>>>>> api-design
 
-    if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
-        return abort(
-            400,
-            description=f"dimensions need to be different and one of {ma.dimensions}",
-        )
+    x_min, y_min = np.clip(np.array([x - zoom / 2, y - zoom / 2]), zoom_min, zoom_max)
+    x_max, y_max = np.clip(np.array([x + zoom / 2, y + zoom / 2]), zoom_min, zoom_max)
+
+    # we want to use only lookups as much as possible
+    node_pipeline = [
+        {
+            "$match": {
+                "$and": [
+                    {"x": {"$gte": x_min, "$lte": x_max}},
+                    {"y": {"$gte": y_min, "$lte": y_max}},
+                ]
+            }
+        },
+        {
+            "$project": {
+                "id": {"$toString": "$_id"},
+                "x": "$x",
+                "y": "$y",
+                "name": "$name",
+                "preview_url": "$preview_url",
+                "size": "$popularity",
+                "type": typ,
+                # "genre": genre,
+                "color": "#00000",
+                "_id": 0,
+            }
+        },
+    ]
+
+    if limit:
+        node_pipeline.append({"$limit": int(limit)})
+
+    link_pipeline = [
+        {
+            "$match": {
+                "$or": [
+                    {
+                        "$and": [
+                            {"x1": {"$gte": x_min, "$lte": x_max}},
+                            {"y1": {"$gte": y_min, "$lte": y_max}},
+                        ]
+                    },
+                    {
+                        "$and": [
+                            {"x2": {"$gte": x_min, "$lte": x_max}},
+                            {"y2": {"$gte": y_min, "$lte": y_max}},
+                        ]
+                    },
+                ]
+            }
+        },
+        {
+            "$project": {
+                "id": {"$toString": "$_id"},
+                "src": "$src",
+                "dest": "$dest",
+                "x1": "$x1",
+                "y1": "$y1",
+                "x2": "$x2",
+                "y2": "$y2",
+                "color": "$color",
+                "name": "$name",
+                "_id": 0,
+            }
+        },
+    ]
+
+    precomputed_nodes = dbutils.precomputed_nodes_collection(
+        dimx, dimy, typ, zoom_level
+    )
+    precomputed_links = dbutils.precomputed_links_collection(
+        dimx, dimy, typ, zoom_level
+    )
+    nodes = list(precomputed_nodes.aggregate(node_pipeline))
+    links = list(precomputed_links.aggregate(link_pipeline))
+    d.update(
+        {"nodes": nodes, "links": links,}
+    )
+    # return [node_pipeline, link_pipeline, nodes, links]
+    return d
+
+
+def graph_impl_1(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
+    d = {
+        "x": x,
+        "y": y,
+        "dimx": dimx,
+        "dimy": dimy,
+    }
+
+    if zoom:
+        d["zoom"] = zoom
+    if limit:
+        d["limit"] = limit
+    if typ:
+        d["type"] = typ
 
     # this assumes that x and y are normalized to range 0, 1 also called normalized frontend visualization space
     # x_min, x_max = viszoomregion_to_mongo(dimx, d["x"], d["zoom"])
     # y_min, y_max = viszoomregion_to_mongo(dimy, d["y"], d["zoom"])
 
     # this assumes x and y are in MongoDB space, for scaling and zoom it is easier to normalize to this space
-    x_min, x_max = viszoomregion_to_mongo(dimx, mongo_to_vis(dimx, d["x"]), d["zoom"])
-    y_min, y_max = viszoomregion_to_mongo(dimy, mongo_to_vis(dimy, d["y"]), d["zoom"])
+    x_min, x_max = viszoomregion_to_mongo(dimx, mongo_to_vis(dimx, x), zoom)
+    y_min, y_max = viszoomregion_to_mongo(dimy, mongo_to_vis(dimy, y), zoom)
 
     # strings correspond to names of fields in {genre,artist,track}_api collections
-    collection = get_collection(d["type"])
+    collection = get_collection(typ)
 
     pipeline = [
         {
@@ -506,19 +627,19 @@ def _graph():
         },
     ]
 
-    if d["limit"]:
-        pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending)
+    if limit:
+        pipeline.append({"$sort": {"dist": 1}})  # 1 is ascending, -1 descending
 
     nodes_sorted = list(collection.aggregate(pipeline, allowDiskUse=True))
 
-    if d["limit"]:
-        d["limit"] = min(
-            d["limit"], len(nodes_sorted)
+    if limit:
+        limit = min(
+            limit, len(nodes_sorted)
         )  # limit doesn't make sense otherwise and choice call will error out
         indices = list(
             np.random.choice(
                 len(nodes_sorted),
-                d["limit"] - 1,
+                limit - 1,
                 replace=False,
                 p=np.linspace(
                     0,
@@ -531,6 +652,7 @@ def _graph():
             0
         )  # always add node closest to current position, will have prob 0 in choice so no chance of dups
         nodes_keep = list(itemgetter(*indices)(nodes_sorted))
+        d["limit"] = limit
     else:
         nodes_keep = nodes_sorted
 
@@ -564,13 +686,43 @@ def _graph():
     for node in nodes_keep:
         del node["labels"]
     d.update({"nodes": nodes_keep, "links": links})
-
-    #     mid = datetime.now()
-    #     print(f"Before jsonify {mid - start}", flush=True)
     d = jsonify(d)
-    #     end = datetime.now()
-    #     print(len(nodes_keep))
-    #     print(len(links))
-    #     print(f"Size of d {sys.getsizeof(d)}")
-    #     print(f"Took {end - start}", flush=True)
     return d
+
+
+@app.route("/<version>/graph")
+@cross_origin()
+def _graph(version):
+    """ Return a the graph data for a specific zoom level and postion """
+    x = request.args.get("x")
+    if x:
+        x = float(x)
+    y = request.args.get("y")
+    if y:
+        y = float(y)
+    zoom = request.args.get("zoom")
+    if zoom:
+        zoom = float(zoom)
+    limit = request.args.get("limit")
+    if limit:
+        limit = int(limit)
+
+    dimx = request.args.get("dimx")
+    dimy = request.args.get("dimy")
+    typ = request.args.get("type")
+
+    if None in [x, y, zoom, dimx, dimy, typ]:
+        return abort(
+            400,
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0&y=0&zoom=0&dimx=acousticness&dimy=loudness&type=track",
+        )
+
+    if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
+        return abort(
+            400,
+            description=f"dimensions need to be different and one of {ma.dimensions}",
+        )
+
+    impl = graph_impl_2 if version == "v2" else graph_impl_1
+    d = impl(x, y, dimx, dimy, zoom=zoom, limit=limit, typ=typ)
+    return jsonify(d)

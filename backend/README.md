@@ -48,6 +48,34 @@ Optionally, you can also use type annotations and check for type errors:
 ```bash
 invoke type-check
 ```
+#### Precompute zoom level data
+
+```bash
+invoke precompute
+
+# for quicker testing, you can just precompute for one selected categories
+```
+
+**Warning**: This will take some long time depending on your machine...
+
+
+#### Optional: Download audio preview cache
+
+To be able to use the spotify API for the downloading of the previews or for getting preview_urls for tracks on the fly, make sure you create a spotify application with a client ID and set it in a file called `.env` in the backend folder with at least the following line:
+```bash
+SPOTIPY_CLIENT_ID=your-client-id
+SPOTIPY_CLIENT_SECRET=your-client-secret
+```
+
+If you have completed the spotify API setup, you can use the command for pre-computing like this:
+```bash
+# audio preview files will be stored into data/cache/previews
+invoke download-audio-previews --limit 10000 --offset 0 # the first 10000
+invoke download-audio-previews --limit 10000 --offset 10000 # the second 10000
+invoke download-audio-previews --limit 10000 --offset 20000 # the third 10000
+# and so on ...
+```
+
 #### MongoDB
 
 Starting Mongo (mongodb://root:example@localhost) and Mongo Express(http://localhost:8081/) assuming you are in the VU.InfoVis2021 root directory:

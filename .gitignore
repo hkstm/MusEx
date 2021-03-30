@@ -6,4 +6,5 @@
 regex_tmp
 *.pyc
 data/db/*
+data/cache/*
 data/db.dump

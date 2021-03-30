@@ -46,9 +46,8 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
   }
 
   updateHeatmap() {
-    console.log("updating the heatmap");
-    console.log(this.props.data);
-
+    // console.log("updating the heatmap");
+    // console.log(this.props.data);
     const x = d3
       .scaleBand<number>()
       .padding(0.01)
@@ -99,7 +98,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
     };
 
     const data = buildData();
-    console.log(data);
+    // console.log(data);
 
     const tiles = this.svg.selectAll().data(data).enter().append("rect");
 
@@ -176,7 +175,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
         <div className="heatmap-legend">
           <div className="heatmap-gradient-legend" />
           {this.props.legend?.map((l) => (
-            <div className="heatmap-legend"></div>
+            <div key={l} className="heatmap-legend"></div>
           ))}
         </div>
       </div>
