@@ -44,20 +44,29 @@ type AppState = {
   popularArtists: Genre[];
   dimensions: string[];
   interests: MinimapData;
+  wordCloudEnabled: boolean;
   sideviewExpanded: boolean;
   x: number;
   y: number;
   zoom: number;
+  zoomLevel: number;
   type: NodeType;
   selected?: Node;
-  dimx: string;
-  dimy: string;
+  total: number;
+  dimx?: string;
+  dimy?: string;
   showGenre: Boolean;
   showArtist: Boolean;
   cloudYear: number;
 };
 
 class App extends Component<{}, AppState> {
+  type: NodeType[] = ["genre", "artist", "track"];
+  zoomLevels = 5;
+  lastUpdateZoomLevel?: number = undefined;
+  lastUpdate?: { zoom: number; type: NodeType } = undefined;
+  apiVersion = "v2";
+
   constructor(props: {}) {
     super(props);
     this.state = {
@@ -72,14 +81,15 @@ class App extends Component<{}, AppState> {
         xSize: 20,
         ySize: 20,
       },
+      wordCloudEnabled: false,
       sideviewExpanded: true,
-      x: 0,
-      y: 0,
+      x: 0.5,
+      y: 0.5,
       zoom: 0,
+      zoomLevel: 0,
       type: "genre",
       selected: undefined,
-      dimx: "",
-      dimy: "",
+      total: 0,
       popularGenres: [],
       artists: [],
       popularArtists: [],
@@ -87,6 +97,7 @@ class App extends Component<{}, AppState> {
       showArtist: false,
       cloudYear: 2020,
     }
+
     this._genreButtonClick = this._genreButtonClick.bind(this);
     this._artistButtonClick = this._artistButtonClick.bind(this);
   
@@ -123,15 +134,32 @@ class App extends Component<{}, AppState> {
     }
   };
 
-
-  handleDimYChange = (selection: string) => {
-    this.setState({ dimy: selection });
-    this.updateGraph();
+  handleZoom = (zoom: number) => {
+    const zoomLevel = Math.floor(zoom);
+    const levelType = this.type[Math.min(zoomLevel, this.type.length - 1)];
+    // console.log("zoom changed to", zoom, zoomLevel, levelType);
+    this.setState(
+      { zoom: zoom - zoomLevel, zoomLevel, type: levelType },
+      () => {
+        if (
+          this.lastUpdate &&
+          (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
+            1 / this.zoomLevels ||
+            this.lastUpdate.type !== levelType)
+        )
+          this.updateGraph();
+      }
+    );
   };
 
-  handleDimXChange = (selection: string) => {
-    this.setState({ dimx: selection });
-    this.updateGraph();
+  handleDimYChange = (dimy: string) => {
+    console.log("changed y dim to", dimy);
+    this.setState({ dimy }, this.updateGraph);
+  };
+
+  handleDimXChange = (dimx: string) => {
+    console.log("changed x dim to", dimx);
+    this.setState({ dimx }, this.updateGraph);
   };
 
   toggleSideview = () => {
@@ -141,26 +169,35 @@ class App extends Component<{}, AppState> {
   };
 
   updateGraph = () => {
-    console.log(this.state.dimx, this.state.dimy, this.state.zoom, this.state.type);
-    axios
-      .get(
-        `http://localhost:5000/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=100`,
-        config
-      )
-      .then((res) => {
-        this.setState({ graph: res.data });
-      });
+    console.log(
+      "updating graph for ",
+      this.state.dimx,
+      this.state.dimy,
+      this.state.x,
+      this.state.y,
+      this.state.zoom,
+      this.state.type
+    );
+    this.lastUpdate = { zoom: this.state.zoom, type: this.state.type };
+
+    const graphDataURL = `http://localhost:5000/${this.apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`;
+    // console.log(graphDataURL);
+    axios.get(graphDataURL, config).then((res) => {
+      console.log(res.data.nodes.length + " nodes");
+      console.log(res.data.links.length + " links");
+      this.setState({ graph: res.data });
+    });
   };
 
   updateDimensions = (): Promise<void> => {
-    return axios.get(`http://localhost:5000/dimensions`, config).then((res) => {
+    return axios.get(`http://localhost:5000/${this.apiVersion}/dimensions`, config).then((res) => {
       this.setState({ dimensions: res.data });
     });
   };
 
   updateGenres = () => {
     axios
-      .get(`http://localhost:5000/most_popular?year=${this.state.cloudYear}&type=genre&limit=${MAX_WORDCLOUD_SIZE}`, config)
+      .get(`http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=genre&limit=${MAX_WORDCLOUD_SIZE}`, config)
       .then((res) => {
         this.setState({
           genres: res.data.most_popular,
@@ -175,7 +212,7 @@ class App extends Component<{}, AppState> {
 
   updateArtists = () => {
     axios
-      .get(`http://localhost:5000/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`)
+      .get(`http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`)
       .then((res) => {
         this.setState({
           artists: res.data.most_popular,
@@ -193,7 +230,7 @@ class App extends Component<{}, AppState> {
   };
 
   select(node: Node) {
-    axios.get(`http://localhost:5000/dimensions`, config).then((res) => {
+    axios.get(`http://localhost:5000/${this.apiVersion}/dimensions`, config).then((res) => {
       this.setState({ dimensions: res.data.sort() });
     });
   }
@@ -202,11 +239,7 @@ class App extends Component<{}, AppState> {
 
     this.updateDimensions().then(() => {
       this.setState((state) => {
-        return {
-          dimx: state.dimensions[0],
-          // dimy: state.dimensions[state.dimensions.length - 1],
-          dimy: state.dimensions[2],
-        };
+        return {};
       });
       this.updateGraph();
       this.updateGenres();
@@ -224,13 +257,13 @@ class App extends Component<{}, AppState> {
               <Select
           
                 id="select-dimx"
-                // value={this.state.dimx} this gives an error but is very important!!!
+                default="energy"
                 onChange={this.handleDimXChange}
                 options={this.state.dimensions}
               ></Select>
               <Select
                 id="select-dimy"
-                // value={this.state.dimy} this gives an error but is very important!!!
+                default="tempo"
                 onChange={this.handleDimYChange}
                 options={this.state.dimensions}
              
@@ -242,7 +275,7 @@ class App extends Component<{}, AppState> {
                   placeholder="Search"
                   name="s">
                 </input>
-                <select id = "dropdown" onChange={this._setArtist} ref = "cpDev1">
+                <select id = "dropdown" onChange={this._setArtist}>
                   <option value="0">Select type:</option>
                   <option value="1">Genre</option>
                   <option value="2">Artist</option>
@@ -267,22 +300,24 @@ class App extends Component<{}, AppState> {
             id="main-view"
           >
             <Widget>
-              {/* <Minimap
+             <Minimap
                 enabled={true}
                 onUpdate={this.handleMinimapUpdate}
                 data={this.state.interests}
                 width={120}
                 height={120}
-              ></Minimap> */}
+              ></Minimap>
               {this.state.dimx === this.state.dimy ? <h1>Please select two different dimensions</h1>  :
                 <Graph
                     enabled={true}
+                    zoomLevels={this.zoomLevels}
                     width={
                       window.innerWidth *
                         (this.state.sideviewExpanded ? 0.7 : 1.0) -
                            30
                       }
                     height={window.innerHeight - 40}
+                    onZoom={this.handleZoom}
                     data={this.state.graph}
                 ></Graph>
               }
@@ -301,11 +336,11 @@ class App extends Component<{}, AppState> {
 
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
-              <h3>Show wordcloud about the most popular:</h3>
+            <h3>Show wordcloud about the most popular:</h3>
             <button className="button" onClick={this._genreButtonClick}>Genres</button>
             <button className="button" onClick={this._artistButtonClick}>Artists</button>
-            {this.state.showGenre ? <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud>  : null}
-            {this.state.showArtist ? <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud> : null} 
+            {this.state.showGenre && <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud>}
+            {this.state.showArtist && <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud>} 
             </div>
             </Widget>
             <Widget>

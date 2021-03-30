@@ -57,6 +57,12 @@ coll_dim_minmax = db["dim_minmax"]
 coll_genre_pop = db["genre_popularity_per_year"]
 coll_artist_pop = db["artist_popularity_per_year"]
 
+collections = {
+    "genre": coll_genres,
+    "artist": coll_artists,
+    "track": coll_tracks,
+}
+
 
 def create_ids(coll):
     res = coll.aggregate([{"$project": {"_id": 1}}])
@@ -753,3 +759,6 @@ def get_dim_minmax():
     except IndexError:
         update_dim_minmax()
         return list(coll_dim_minmax.aggregate([{"$unset": ["_id"]}]))[0]
+
+
+dim_minmax = get_dim_minmax()
