@@ -63,7 +63,7 @@ export default class Select extends Component<SelectProps, SelectState> {
                 <div
                   className="dropdown-list-item"
                   onClick={this.onOptionClicked(option)}
-                  key={Math.random()}
+                  key={option}
                 >
                   {option}
                 </div>

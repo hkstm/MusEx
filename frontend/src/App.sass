@@ -1,7 +1,34 @@
 @import "./global.scss"
 
+
 a
   color: #61dafb
+
+.helpbutton
+  background-color: #000000;
+  color: #FFFFFF;
+  border: none;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+
+  cursor: pointer;
+  height: $nav-bar-height;
+
+.button
+  background-color: #e7e7e7;
+  border: none;
+  color: black;
+  padding: 4px 8px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  margin: 4px 2px;
+  cursor: pointer;
+
+
 
 nav
   height: $nav-bar-height
@@ -14,6 +41,13 @@ nav
     line-height: $nav-bar-height
     position: absolute
     left: 20px
+
+  #app-stats
+    top: 0
+    position: absolute
+    line-height: $nav-bar-height
+    height: 30px
+    right: 100px
 
   #app-help
     font-size: 0.5rem
@@ -32,6 +66,7 @@ nav
   height: calc(100vh - #{$nav-bar-height})
   overflow: hidden
   position: relative
+  
 
   #main-view
     z-index: 10
@@ -91,27 +126,24 @@ nav
       width: 100%
       overflow: hidden
       border-bottom: $border-width solid #a9a9a9
+      
 
-    .app-stats
-      padding-top: 50px
-      position: relative
-      height: 110px
+   
 
-      .stat
-        position: relative
-        padding: 5px
-        float: left
-        width: calc(50% - 10px)
-
-        .stat-value
-          font-weight: bold
-          font-size: 1rem
 
     .genre-wordcloud
       position: relative
       height: calc(50% - 35px)
-      height:  250px
+      height:  300px
 
     .artist-wordcloud
       position: relative
       height:  250px
+
+    .slider
+      position: relative
+      height: 50px
+      bottom: 10
+      border-bottom: $border-width solid #a9a9a9
+
+

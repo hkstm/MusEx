@@ -68,7 +68,7 @@ def snapshot(c, sudo=False):
     """Create a snapshot of the current mongodb database"""
     _sudo = "sudo" if sudo else ""
     c.run(
-        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --db kaggle --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
     )
 
 
@@ -76,17 +76,19 @@ def snapshot(c, sudo=False):
 def restore(c, sudo=False):
     """Restore the database from a snapshot"""
     _sudo = "sudo" if sudo else ""
-    data_archive = DATA_DIR / "db.zip"
+    data_archive = DATA_DIR / "db.tar.xz"
     try:
-        print(f"unzipping {data_archive}")
-        c.run(f"unzip -o {data_archive} -d {DATA_DIR}")
+        print(f"unarchiving {data_archive}")
+        # c.run(f"unzip -o {data_archive} -d {DATA_DIR}") # when using zip
+        c.run(f"tar -C {DATA_DIR} -zxvf {data_archive}")
     except Exception as e:
         print(e)
-        print(f"failed to unzip {data_archive}")
-        print("make sure you have installed unzip (e.g. sudo apt-get install unzip)")
+        print(f"failed to unarchive {data_archive}")
+        print("make sure you have installed unzip and tar (e.g. sudo apt-get install unzip tar)")
+        return
         print("proceeding without unzipping...")
     c.run(
-        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore --drop --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --drop --db kaggle --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
     )
 
 

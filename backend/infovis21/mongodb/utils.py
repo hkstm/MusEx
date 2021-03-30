@@ -52,14 +52,10 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     links_out = precomputed_links_collection(dimx, dimy, typ, zoom)
     discarded_out = precomputed_discarded_collection(dimx, dimy, typ, zoom)
 
-    mongo_values = ma.map_zoom_to_mongo(typ)
-    album_label = mongo_values["album_label"]
-    id_key = mongo_values["id_val"]
-
     radius = ZOOM_LEVELS[zoom]
     pipeline = [
         {"$match": {}},
-        {"$sort": {id_key: ma.DESC}},
+        {"$sort": {"$id": ma.DESC}},
         {"$skip": int(offset)},
     ]
     if limit is not None:
@@ -69,7 +65,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     nodes_data = dict()
     for idx, elem in enumerate(ma.collections[typ].aggregate(pipeline)):
         x, y = normalize(dimx, elem.get(dimx)), normalize(dimy, elem.get(dimy))
-        nodes_data[elem.get(id_key)] = (np.array([x, y]), elem.get(id_key), elem)
+        nodes_data[elem.get("id")] = (np.array([x, y]), elem.get("id"), elem)
         # pprint(elem)
     print("got %d nodes" % len(nodes_data))
 
@@ -99,8 +95,8 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     # compute all visible links with their coordinates so that they can be queried
     # more efficiently
     pipeline = [
-        {"$unwind": album_label},
-        {"$group": {"_id": album_label, "members": {"$addToSet": "$" + id_key},}},
+        {"$unwind": "$labels"},
+        {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"}}},
         {
             "$project": {
                 "id": "$_id",
@@ -131,10 +127,6 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
                     "y1": src_pos[1],
                     "x2": dest_pos[0],
                     "y2": dest_pos[1],
-                    # "x_min": min(src_pos[0], dest_pos[0]),
-                    # "x_max": max(src_pos[0], dest_pos[0]),
-                    # "y_min": min(src_pos[1], dest_pos[1]),
-                    # "y_max": max(src_pos[1], dest_pos[1]),
                 }
             )
 

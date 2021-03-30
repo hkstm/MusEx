@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import { MusicGraph, MusicGraphNode, MusicGraphLink } from "./model";
 import { clip } from "../utils";
 import "./Graph.sass";
+import { faMusic } from "@fortawesome/free-solid-svg-icons";
 
 interface GraphProps {
   enabled: boolean;
@@ -17,29 +18,31 @@ interface GraphProps {
 interface GraphState {
   dimx?: string;
   dimy?: string;
-  zoomLevel: number;
+  zoomK: number;
+  selected: Set<string>;
 }
 
 // type SimNode = MusicGraphNode;
 // type SimLink = d3.SimulationLinkDatum<MusicGraphNode>;
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
-  ref!: HTMLDivElement;
-  svg!: d3.Selection<SVGSVGElement, MusicGraph, null, any>;
-  graph!: d3.Selection<SVGGElement, MusicGraph, null, any>;
-  labels!: d3.Selection<SVGGElement, MusicGraphNode, null, any>;
+  svg!: d3.Selection<SVGSVGElement, MusicGraph, HTMLElement, any>;
+  graph!: d3.Selection<SVGGElement, MusicGraph, HTMLElement, any>;
+  labels!: d3.Selection<SVGGElement, MusicGraphNode, HTMLElement, any>;
+  audio: HTMLAudioElement = new Audio("");
   force: any;
-  baseTextSize = 10;
-  baseLinkWidth = 3;
-  baseNodeRadius = 5;
+  maxZoom = 20;
+  baseTextSize = 15;
+  baseLinkStrokeWidth = 2;
+  baseNodeStrokeWidth = 1.5;
   scalePadding = 30;
+  largeNodeLabel = 65; // threshold for the node labels that should always remain visible
 
   constructor(props: GraphProps) {
     super(props);
     this.state = {
-      dimx: undefined,
-      dimy: undefined,
-      zoomLevel: 0,
+      zoomK: 1,
+      selected: new Set<string>(),
     };
   }
 
@@ -60,10 +63,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   addGraph = () => {
     if (!this.props.enabled) return;
 
-    const zoom = d3.zoom<SVGSVGElement, MusicGraph>();
     this.graph.append("g").attr("class", "links");
     this.graph.append("g").attr("class", "nodes");
 
+    const zoom = d3.zoom<SVGSVGElement, MusicGraph>();
     zoom.on("zoom", (event) => {
       this.graph.attr("transform", event.transform);
       const k = event.transform.k;
@@ -73,42 +76,62 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       const y =
         (window.innerHeight - event.transform.y / k) / 2 / window.innerHeight;
 
-      const maxZoom = 20;
-      const zoomLevel = (this.props.zoomLevels * clip(k, 0, maxZoom)) / maxZoom;
-      const textSize = this.baseTextSize / k;
-      const linkWidth = this.baseLinkWidth / k;
+      const zoomLevel =
+        (this.props.zoomLevels * clip(k, 0, this.maxZoom)) / this.maxZoom;
 
       const nodes = this.graph
         .selectAll(".nodes")
         .selectAll<SVGGElement, MusicGraphNode>(".node");
-      nodes.select("circle").attr("r", this.baseNodeRadius / k);
-      nodes.select("text").style("font-size", textSize + "px");
+      nodes
+        .select("circle")
+        .attr("r", (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / k)
+        .attr("stroke-width", this.baseNodeStrokeWidth / k);
+      nodes.select("text").style("font-size", this.baseTextSize / k + "px");
+
       const links = this.graph
         .selectAll(".links")
         .selectAll<SVGGElement, MusicGraphNode>(".link");
-      links.style("stroke-width", linkWidth);
+
+      links.style(
+        "stroke-width",
+        Math.max(1, this.baseLinkStrokeWidth / k) + "px"
+      );
 
       // TODO: Use the actual zoom values here
-      this.updateAxis(0, k, 0, 2 * k);
-      this.setState({ zoomLevel });
-      if (this.props.onZoom) this.props.onZoom(zoomLevel);
+      // we could use the x and y and zoom level and compute the position in [0,1]
+      // however, we then maybe want to display the denormalized values in the axis
+      // const xmin = this.state.x - this.state.zoom / 3 / 2;
+      // const xmax = this.state.x + this.state.zoom / 3 / 2;
+      this.updateAxis(0, k, 0, k);
+      this.setState({ zoomK: k }, () => {
+        if (this.props.onZoom) this.props.onZoom(zoomLevel);
+      });
     });
 
-    this.svg.call(zoom);
+    this.svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
+    // this.svg.call(zoom);
   };
 
-  updateAxis = (xmin: number, xmax: number, ymin: number, ymax: number) => {
+  updateAxis = (xmin?: number, xmax?: number, ymin?: number, ymax?: number) => {
     const xScale = d3
       .scaleLinear()
-      .domain([xmin, xmax])
+      // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
+      .domain([xmin ?? 0, xmax ?? 1])
       .range([this.scalePadding, this.props.width - this.scalePadding]);
     const yScale = d3
       .scaleLinear()
-      .domain([ymax, ymin])
+      // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
+      .domain([ymax ?? 1, ymin ?? 0])
       .range([this.scalePadding, this.props.height - this.scalePadding]);
     const xAxis = d3.axisBottom(xScale);
     const yAxis = d3.axisLeft(yScale);
-    this.svg.select<SVGGElement>(".x.axis").call(xAxis);
+    this.svg
+      .select<SVGGElement>(".x.axis")
+      .attr(
+        "transform",
+        `translate(0,${this.props.height - this.scalePadding})`
+      )
+      .call(xAxis);
     this.svg
       .select<SVGGElement>(".y.axis")
       .attr("transform", `translate(${this.scalePadding},0)`)
@@ -146,39 +169,104 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // add elements that were not in the graph before
     const newNodes = nodes.enter().append("g").attr("class", "node");
 
+    const s = this;
+    newNodes
+      .on("click", function (event: MouseEvent, d: MusicGraphNode) {
+        const clicked = d3.select(this);
+        if (d.preview_url && event.shiftKey) {
+          const isPlaying = !s.audio?.paused ?? false;
+          const isNewAudio = !s.audio || s.audio.currentSrc !== d.preview_url;
+          s.audio.pause();
+          if (isNewAudio) {
+            s.audio.src = d.preview_url;
+            s.audio.load();
+            s.audio.play();
+          } else if (!isPlaying) {
+            s.audio.play();
+          } else {
+            // if we did not want double shift click to stop but only reset
+            // s.audio.currentTime = 0;
+            // s.audio.play();
+          }
+        } else {
+          // toggle selection of the node
+          if (s.state.selected.has(d.id)) {
+            clicked
+              .select("circle")
+              .style("stroke", "#FFFFFF")
+              .style("stroke-width", 1.5);
+            s.state.selected.delete(d.id);
+          } else {
+            clicked
+              .select("circle")
+              .style("stroke", "#F8FF20")
+              .style("stroke-width", 5);
+            s.state.selected.add(d.id);
+          }
+        }
+      })
+      .on("mouseover", function (event: MouseEvent, d: MusicGraphNode) {
+        d3.select(this).select(".label").style("visibility", "visible");
+      })
+      .on("mouseout", function (event: MouseEvent, d: MusicGraphNode) {
+        d3.select(this).select(".label").style("visibility", "hidden");
+      });
+
     // add the node circles
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     newNodes
       .append("circle")
+      .attr("id", (d: MusicGraphNode) => d.name)
       .attr("class", (d: MusicGraphNode) => `${d.id}`)
-      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width) // used to be enlarge
+      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // used to be enlarge
       .attr("r", 0)
       .attr("opacity", 0)
-      .style("stroke", "#FFFFFF")
-      .style("stroke-width", 1.5)
+      .style("stroke", (d: MusicGraphNode) =>
+        this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
+      )
+      .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
+      // .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) =>
-        d.genres && d.genres.length > 0 ? color(d.genres.join("/")) : "white"
+        d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
 
     // add the text labels for the nodes
     newNodes
       .append<SVGTextElement>("text")
-      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
-      .attr("class", (d: MusicGraphNode) => `${d.id}`)
-      .attr("fill", "white")
+      .attr(
+        "class",
+        (d: MusicGraphNode) =>
+          `${d.id} ${
+            d.size! > this.largeNodeLabel ? "labelAlwaysVisible" : "label"
+          }`
+      )
       .attr("opacity", 0)
-      .style("font-size", this.baseTextSize + "px")
-      .text((d) => d.name);
+      .style("font-size", this.baseTextSize / this.state.zoomK + "px")
+      .text((d) => d.name)
+      .attr(
+        "x",
+        (d: MusicGraphNode) =>
+          (d.x ?? 0) * this.props.width + (d.size ?? 0) * 0.35 + 5
+      )
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
+      .attr("fill", "white")
+      // .style("stroke", "black")
+      // .style("stroke-width", 0.4)
+      .style("visibility", (d: MusicGraphNode) =>
+        d.size! > this.largeNodeLabel ? "visible" : "hidden"
+      );
 
     // animate entering nodes and labels
     newNodes
       .select("circle")
       .transition("enter")
       .duration(300)
-      .attr("r", this.baseNodeRadius)
-      .attr("opacity", 1);
+      .attr(
+        "r",
+        (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / this.state.zoomK
+      )
+      .style("opacity", 0.8); // transparency for better visualization
 
     newNodes
       .select("text")
@@ -221,7 +309,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .transition("enter")
       .duration(300)
       .style("stroke-opacity", 1)
-      .style("stroke-width", "2px");
+      .style(
+        "stroke-width",
+        Math.max(1, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
+      );
   };
 
   updateGraph = () => {
@@ -238,61 +329,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     this.setState({ dimx: this.props.data.dimx });
     this.setState({ dimy: this.props.data.dimy });
     this.updateGraphData(this.props.data);
-
-    if (this.props.useForce ?? false) {
-      // const forceLink = d3
-      //   .forceLink<SimNode, SimLink>(this.props.data.links)
-      //   .id((d: MusicGraphNode) => {
-      //     return d.name;
-      //   })
-      //   .distance(50)
-      //   .links(this.props.data.links);
-      // const force = d3
-      //   .forceSimulation<SimNode, SimLink>(this.props.data.nodes)
-      //   .nodes(this.props.data.nodes)
-      //   .force("link", forceLink)
-      //   .force("charge", d3.forceManyBody().strength(-120))
-      //   .force(
-      //     "center",
-      //     d3.forceCenter(this.props.width / 2, this.props.height / 2)
-      //   );
-      // this.force.on("tick", () => {
-      //   links
-      //     .attr(
-      //       "x1",
-      //       (d: MusicGraphLink) => (d.source.x ?? 0) * this.props.width
-      //     )
-      //     .attr(
-      //       "y1",
-      //       (d: MusicGraphLink) => (d.source.y ?? 0) * this.props.height
-      //     )
-      //     .attr(
-      //       "x2",
-      //       (d: MusicGraphLink) => (d.target.x ?? 0) * this.props.width
-      //     )
-      //     .attr(
-      //       "y2",
-      //       (d: MusicGraphLink) => (d.target.y ?? 0) * this.props.height
-      //     );
-      //   labels
-      //     .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
-      //     .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height);
-      //   nodes
-      //     .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width)
-      //     .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height);
-      // });
-    }
   };
 
   componentDidUpdate(prevProps: GraphProps) {
     if (prevProps.data !== this.props.data) {
+      // d3.selectAll(".xaxis").remove()
+      // d3.selectAll(".yaxis").remove()
+      // d3.selectAll(".nodes").remove()
+      // d3.selectAll(".labels").remove()
       this.updateGraph();
     }
   }
 
   componentDidMount() {
     this.svg = d3
-      .select<HTMLDivElement, MusicGraph>(this.ref)
+      .select<SVGSVGElement, MusicGraph>("#graph-container")
       .append("svg")
       .attr("width", this.props.width)
       .attr("height", this.props.height);
@@ -304,6 +355,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("height", this.props.height);
 
     this.addAxis();
+    this.updateAxis();
     this.addGraph();
     this.updateGraph();
   }
@@ -311,10 +363,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   render() {
     return (
       <div>
-        <div
-          className="graph-container"
-          ref={(ref: HTMLDivElement) => (this.ref = ref)}
-        ></div>
+        <div id="graph-container"></div>
         <div className="graph-metrics">
           {/*<span>Zoom Level: {Math.round(this.state.zoomLevel)}</span>*/}
         </div>

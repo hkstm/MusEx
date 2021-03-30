@@ -175,7 +175,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
         <div className="heatmap-legend">
           <div className="heatmap-gradient-legend" />
           {this.props.legend?.map((l) => (
-            <div className="heatmap-legend"></div>
+            <div key={l} className="heatmap-legend"></div>
           ))}
         </div>
       </div>
