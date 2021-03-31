@@ -1,23 +1,21 @@
 import React, { Component } from "react";
 import ReactWordcloud from "react-wordcloud";
-import ReactDOM from 'react-dom';
+import ReactDOM from "react-dom";
 import axios from "axios";
 import { Size, Position, Genre, Node, NodeType } from "./common";
 import Graph from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select from "./Select";
-import Minimap, { MinimapData } from "./charts/minimap/Minimap";
 import Heatmap from "./charts/musicheatmap/heatmap";
-import Slider from '@material-ui/core/Slider';
+import Slider from "@material-ui/core/Slider";
 import GraphState from "./graph/Graph";
 import "./App.sass";
+import { MinimapData } from "./charts/minimap/Minimap";
 
 import Widget from "./components/expandable-widget/widget";
 
-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faHighlighter } from "@fortawesome/free-solid-svg-icons";
-
 
 const MAX_WORDCLOUD_SIZE = 100;
 
@@ -39,13 +37,15 @@ const options = {
 type AppState = {
   genres: Genre[];
   graph: MusicGraph;
+  interests: MinimapData;
   popularGenres: Genre[];
   artists: Genre[];
   popularArtists: Genre[];
   dimensions: string[];
-  interests: MinimapData;
   wordCloudEnabled: boolean;
   sideviewExpanded: boolean;
+  searchQuery: string;
+  searchType: string;
   x: number;
   y: number;
   zoom: number;
@@ -55,8 +55,8 @@ type AppState = {
   total: number;
   dimx?: string;
   dimy?: string;
-  showGenre: Boolean;
-  showArtist: Boolean;
+  showGenreWordcloud: Boolean;
+  showArtistWordcloud: Boolean;
   cloudYear: number;
 };
 
@@ -83,6 +83,8 @@ class App extends Component<{}, AppState> {
       },
       wordCloudEnabled: false,
       sideviewExpanded: true,
+      searchQuery: "",
+      searchType: "artist",
       x: 0.5,
       y: 0.5,
       zoom: 0,
@@ -93,46 +95,39 @@ class App extends Component<{}, AppState> {
       popularGenres: [],
       artists: [],
       popularArtists: [],
-      showGenre: false,
-      showArtist: false,
+      showGenreWordcloud: false,
+      showArtistWordcloud: false,
       cloudYear: 2020,
-    }
-
-    this._genreButtonClick = this._genreButtonClick.bind(this);
-    this._artistButtonClick = this._artistButtonClick.bind(this);
-  
-    this._setGenre = this._setGenre.bind(this);
-    this._setArtist = this._setArtist.bind(this)
-  }
-
-    onButtonClickHandler = () => {
-        window.alert('Help!')
     };
+  }
 
-    _genreButtonClick(){
+  onButtonClickHandler = () => {
+    window.alert("Help!");
+  };
+
+  showGenreWordcloud = () => {
     this.setState({
-      showArtist: false,
-      showGenre: true,
+      showArtistWordcloud: false,
+      showGenreWordcloud: true,
     });
-  }
+  };
 
-  _artistButtonClick(){
+  showArtistWordcloud = () => {
     this.setState({
-      showGenre: false,
-      showArtist: true,
-    })
+      showGenreWordcloud: false,
+      showArtistWordcloud: true,
+    });
+  };
 
+  setSearchType(event: React.FormEvent) {
+    const target = event.target as HTMLSelectElement;
+    this.setState({ searchType: target.value });
   }
-  _setGenre=()=>{
-    this.setState({type: "genre"});
-  };
-  _setArtist=()=>{
-    if(this.state.type === "genre"){
-    this.setState({type: "artist"});
-    }else{
-      this.setState({type: "genre"});
-    }
-  };
+
+  setSearchQuery(event: React.FormEvent) {
+    const target = event.target as HTMLInputElement;
+    this.setState({ searchQuery: target.value });
+  }
 
   handleZoom = (zoom: number) => {
     const zoomLevel = Math.floor(zoom);
@@ -162,10 +157,19 @@ class App extends Component<{}, AppState> {
     this.setState({ dimx }, this.updateGraph);
   };
 
+  handleSearchTypeChange = (typ: string) => {
+    console.log("changed search type to", typ);
+    this.setState({ searchType: typ }, this.search);
+  };
+
   toggleSideview = () => {
     this.setState((state) => {
       return { sideviewExpanded: !state.sideviewExpanded };
     });
+  };
+
+  search = () => {
+    // TODO
   };
 
   updateGraph = () => {
@@ -190,14 +194,19 @@ class App extends Component<{}, AppState> {
   };
 
   updateDimensions = (): Promise<void> => {
-    return axios.get(`http://localhost:5000/${this.apiVersion}/dimensions`, config).then((res) => {
-      this.setState({ dimensions: res.data });
-    });
+    return axios
+      .get(`http://localhost:5000/${this.apiVersion}/dimensions`, config)
+      .then((res) => {
+        this.setState({ dimensions: res.data });
+      });
   };
 
   updateGenres = () => {
     axios
-      .get(`http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=genre&limit=${MAX_WORDCLOUD_SIZE}`, config)
+      .get(
+        `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=genre&limit=${MAX_WORDCLOUD_SIZE}`,
+        config
+      )
       .then((res) => {
         this.setState({
           genres: res.data.most_popular,
@@ -212,7 +221,9 @@ class App extends Component<{}, AppState> {
 
   updateArtists = () => {
     axios
-      .get(`http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`)
+      .get(
+        `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`
+      )
       .then((res) => {
         this.setState({
           artists: res.data.most_popular,
@@ -225,18 +236,15 @@ class App extends Component<{}, AppState> {
       });
   };
 
-  handleMinimapUpdate = (pos: Position, size: Size) => {
-    console.log(pos, size);
-  };
-
   select(node: Node) {
-    axios.get(`http://localhost:5000/${this.apiVersion}/dimensions`, config).then((res) => {
-      this.setState({ dimensions: res.data.sort() });
-    });
+    axios
+      .get(`http://localhost:5000/${this.apiVersion}/dimensions`, config)
+      .then((res) => {
+        this.setState({ dimensions: res.data.sort() });
+      });
   }
 
   componentDidMount() {
-
     this.updateDimensions().then(() => {
       this.setState((state) => {
         return {};
@@ -247,51 +255,58 @@ class App extends Component<{}, AppState> {
     });
   }
 
+  // <option value="0">Select type:</option>
+  // <select id="dropdown" value={this.state.searchType} onChange={this.setSearchType}>
+  // <option value="artist">Artist</option>
+  // <option value="genre">Genre</option>
+  // </select>
+  //
+
   render() {
     return (
       <div className="app">
         <header>
           <nav>
-            <span id="app-name">MusEx</span>
-            <div className="dimension-controller">
-              <Select
-          
-                id="select-dimx"
-                default="energy"
-                onChange={this.handleDimXChange}
-                options={this.state.dimensions}
-              ></Select>
-              <Select
-                id="select-dimy"
-                default="tempo"
-                onChange={this.handleDimYChange}
-                options={this.state.dimensions}
-             
-              ></Select>
-            </div>  
-              <div id="app-stats">
+            <div className="controls">
+              <span id="app-name">MusEx</span>
+              <div className="dimensions">
+                <Select
+                  id="select-dimx"
+                  default="energy"
+                  onChange={this.handleDimXChange}
+                  options={this.state.dimensions}
+                ></Select>
+                <Select
+                  id="select-dimy"
+                  default="tempo"
+                  onChange={this.handleDimYChange}
+                  options={this.state.dimensions}
+                ></Select>
+              </div>
+              <div className="forms">
                 <input
                   type="text"
+                  value={this.state.searchQuery}
+                  onChange={this.setSearchQuery}
+                  id="search-query-input2"
                   placeholder="Search"
-                  name="s">
-                </input>
-                <select id = "dropdown" onChange={this._setArtist}>
-                  <option value="0">Select type:</option>
-                  <option value="1">Genre</option>
-                  <option value="2">Artist</option>
-                </select>
-                <button className="button" 
-                  type="submit"
-                  onClick={this.updateGraph}
-                  >
+                />
+                {false && (
+                  <Select
+                    id="search-type-select"
+                    default="artist"
+                    onChange={this.handleSearchTypeChange}
+                    options={["artist", "genre"]}
+                  ></Select>
+                )}
+                <button id="app-search" onClick={this.search}>
                   Search
-                  </button>
+                </button>
+                <button id="app-help" onClick={this.onButtonClickHandler}>
+                  Help
+                </button>
               </div>
-              <div className="helpButton"
-              id="app-help">
-              <button onClick={this.onButtonClickHandler}>Help</button>
-              </div>
-            {/* <span id="app-help">Help</span> */}
+            </div>
           </nav>
         </header>
         <div id="content">
@@ -300,27 +315,23 @@ class App extends Component<{}, AppState> {
             id="main-view"
           >
             <Widget>
-             <Minimap
-                enabled={true}
-                onUpdate={this.handleMinimapUpdate}
-                data={this.state.interests}
-                width={120}
-                height={120}
-              ></Minimap>
-              {this.state.dimx === this.state.dimy ? <h1>Please select two different dimensions</h1>  :
+              {this.state.dimx === this.state.dimy ? (
+                <h1>Please select two different dimensions</h1>
+              ) : (
                 <Graph
-                    enabled={true}
-                    zoomLevels={this.zoomLevels}
-                    width={
-                      window.innerWidth *
-                        (this.state.sideviewExpanded ? 0.7 : 1.0) -
-                           30
-                      }
-                    height={window.innerHeight - 40}
-                    onZoom={this.handleZoom}
-                    data={this.state.graph}
+                  enabled={true}
+                  interests={this.state.interests}
+                  zoomLevels={this.zoomLevels}
+                  width={
+                    window.innerWidth *
+                      (this.state.sideviewExpanded ? 0.7 : 1.0) -
+                    30
+                  }
+                  height={window.innerHeight - 40}
+                  onZoom={this.handleZoom}
+                  data={this.state.graph}
                 ></Graph>
-              }
+              )}
             </Widget>
           </div>
           <div
@@ -332,20 +343,39 @@ class App extends Component<{}, AppState> {
               icon={faBars}
               onClick={this.toggleSideview}
             />
-   
 
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
-            <h3>Show wordcloud about the most popular:</h3>
-            <button className="button" onClick={this._genreButtonClick}>Genres</button>
-            <button className="button" onClick={this._artistButtonClick}>Artists</button>
-            {this.state.showGenre && <ReactWordcloud words={this.state.popularGenres} options={options} ></ReactWordcloud>}
-            {this.state.showArtist && <ReactWordcloud words={this.state.popularArtists} options={options} ></ReactWordcloud>} 
-            </div>
+                <h3>Show wordcloud about the most popular:</h3>
+                <input
+                  type="text"
+                  id="search-query-input3"
+                  placeholder="Search"
+                />
+
+                <button className="button" onClick={this.showGenreWordcloud}>
+                  Genres
+                </button>
+                <button className="button" onClick={this.showArtistWordcloud}>
+                  Artists
+                </button>
+                {this.state.showGenreWordcloud && (
+                  <ReactWordcloud
+                    words={this.state.popularGenres}
+                    options={options}
+                  ></ReactWordcloud>
+                )}
+                {this.state.showArtistWordcloud && (
+                  <ReactWordcloud
+                    words={this.state.popularArtists}
+                    options={options}
+                  ></ReactWordcloud>
+                )}
+              </div>
             </Widget>
             <Widget>
               <h3>Stats through different years</h3>
-              <Heatmap></Heatmap> 
+              <Heatmap></Heatmap>
             </Widget>
           </div>
         </div>

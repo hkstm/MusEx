@@ -1,105 +1,122 @@
 @import "./global.scss"
 
-
 a
   color: #61dafb
 
-.helpbutton
-  background-color: #000000;
-  color: #FFFFFF;
-  border: none;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 12px;
-
-  cursor: pointer;
-  height: $nav-bar-height;
-
-.button
-  background-color: #e7e7e7;
-  border: none;
-  color: black;
-  padding: 4px 8px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 12px;
-  margin: 4px 2px;
-  cursor: pointer;
-
-
+button
+  background-color: black
+  border: 1px solid white
+  color: white
+  padding: 4px 8px
+  text-align: center
+  text-decoration: none
+  display: inline-block
+  // margin: 4px 2px
+  cursor: pointer
 
 nav
   height: $nav-bar-height
   background-color: black
   position: relative
 
-  #app-name
-    font-weight: 700
-    font-size: 1.5rem
+  #app-name, #app-stats
     line-height: $nav-bar-height
     position: absolute
-    left: 20px
-
-  #app-stats
     top: 0
-    position: absolute
-    line-height: $nav-bar-height
+
+  
+  #app-stats
     height: 30px
     right: 100px
 
-  #app-help
-    font-size: 0.5rem
-    position: absolute
-    line-height: $nav-bar-height
-    right: 10px
-    top: 0
+      
+  .controls
+    // z-index: 999999999999
+    height: $nav-bar-height
+    // background-color: red
+    position: relative
+    // margin: 0 auto
+    width: auto
 
-  .dimension-controller
-    .dropdown-container
-      width: 200px
+    #app-name
+      width: 100px
+      position: absolute
+      // background-color: red
+      font-weight: 700
+      font-size: 1.5rem
+      left: 0
+      padding: 0 10px
+
+    .dimensions
+      position: absolute
+      display: inline-block
+      width: calc(70% - 140px)
+      left: 120px
+      padding: 0 10px
+      .dropdown-container
+        width: 200px
+
+    .forms
+      left: 70%
+      position: absolute
+      background-color: blue
+      width: 30%
+
+      // #app-help, #app-search, #search-query-input, #search-type-select
+      > *
+        height: 22px
+        margin: 4px
+        background-color: red
+        display: inline-block
+        top: 0
+        width: 60px
+
+      #search-query-input2
+        // top: 0
+        // position: absolute
+        background-color: green
+        display: inline-block
+        // box-sizing: border-box
+        padding: 0
+        z-index: 9999999999999
+        // height: 30px
+        // clear: both
+        // width: 100px
+      #search-type-select
+        width: 100px
+      #app-help, #app-search
+        // font-size: 0.5rem
+        // margin-right: 10px
 
   
 #content
   width: 100%
+  top: $nav-bar-height
   height: calc(100vh - #{$nav-bar-height})
   overflow: hidden
-  position: relative
-  
+  position: absolute
 
   #main-view
     z-index: 10
     @include transition(width 0.2s ease-in)
     width: calc(100% - 30px)
     position: absolute
-    // background-color: blue
     height: 100%
     overflow: hidden
 
     &.expanded
       width: 70%
 
-    .minimap
-      z-index: 100
-      position: absolute
-      right: 0
-      bottom: 0
-      padding: 30px
-
     .graph
       z-index: 100
       position: absolute
       width: 70%
-      height: calc(100% - #{$stat-bar-height})
-      top: $stat-bar-height
       left: 0
 
   #side-view
     z-index: 20
     position: absolute
     outline: $border-width solid #a9a9a9
-    // background-color: red
     width: 30%
     height: 100%
     float: right
@@ -127,10 +144,6 @@ nav
       overflow: hidden
       border-bottom: $border-width solid #a9a9a9
       
-
-   
-
-
     .genre-wordcloud
       position: relative
       height: calc(50% - 35px)
@@ -145,5 +158,3 @@ nav
       height: 50px
       bottom: 10
       border-bottom: $border-width solid #a9a9a9
-
-

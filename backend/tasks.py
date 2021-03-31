@@ -80,7 +80,7 @@ def restore(c, sudo=False):
     try:
         print(f"unarchiving {data_archive}")
         # c.run(f"unzip -o {data_archive} -d {DATA_DIR}") # when using zip
-        c.run(f"tar -C {DATA_DIR} -zxvf {data_archive}")
+        c.run(f"tar -C {DATA_DIR} -xvf {data_archive}")
     except Exception as e:
         print(e)
         print(f"failed to unarchive {data_archive}")
