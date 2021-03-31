@@ -638,7 +638,7 @@ def graph_impl_1(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     for node in nodes_keep:
         del node["labels"]
     d.update({"nodes": nodes_keep, "links": links})
-    d = jsonify(d)
+    # d = jsonify(d)
     return d
 
 
