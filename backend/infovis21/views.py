@@ -60,10 +60,18 @@ def _dimensions(version):
 
 @app.route("/<version>/search")
 def search(version):
-    searchterm = request.args.get("searchterm")
     coll_type = request.args.get("type")
+    if coll_type is None or len(coll_type) < 1:
+        return abort(400, description="missing type parameter (artist/track/genre)")
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
+    if dimx is None or dimy is None:
+        return abort(400, description="missing dimension parameters dimx and dimy")
+
+    searchterm = request.args.get("searchterm")
+    if searchterm is None or len(searchterm) < 1:
+        return abort(404, description="not found")
+
     collection = get_collection(coll_type)
     d = {}
     if not (searchterm and coll_type and dimx and dimy):
@@ -139,15 +147,27 @@ def _labels(version):
 @cross_origin()
 def _most_popular(version):
     """ Return a list of most popular genre|artist|track per year """
+
     limit = request.args.get("limit")
     year = request.args.get("year")
     coll_type = request.args.get("type")
+    use_super = request.args.get("use_super", False)
     d = {}
     if year:
         d["year"] = int(year)
 
     pipeline = [
-        {"$project": {"popularity": 1, "_id": 0, "year": 1, "name": 1}},
+        {
+            "$project": {
+                "popularity": 1,
+                "_id": 0,
+                "year": 1,
+                "super_genre": 1,
+                "genre": 1,
+                "name": 1,
+                "color": 1,
+            }
+        },
         {"$match": {"year": d["year"]}},
         {"$sort": {"popularity": -1}},
     ]
@@ -159,7 +179,7 @@ def _most_popular(version):
         d["type"] = str(coll_type)
 
     if d["type"] == "genre":
-        collection = ma.coll_genre_pop
+        collection = ma.coll_super_genre_pop if use_super else ma.coll_genre_pop
     elif d["type"] == "artist":
         collection = ma.coll_artist_pop
     elif d["type"] == "track":
@@ -454,10 +474,11 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 "y": "$y",
                 "name": "$name",
                 "preview_url": "$preview_url",
+                "color": "$genre_color",
                 "size": "$popularity",
                 "type": typ,
-                "genre": "$genres",
-                "color": "#00000",
+                "subgenres": "$genres",
+                "genre": "$genre_super",
                 "_id": 0,
             }
         },

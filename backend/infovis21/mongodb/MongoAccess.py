@@ -55,6 +55,7 @@ coll_years = db["years_api"]
 
 coll_dim_minmax = db["dim_minmax"]
 coll_genre_pop = db["genre_popularity_per_year"]
+coll_super_genre_pop = db["super_genre_popularity_per_year"]
 coll_artist_pop = db["artist_popularity_per_year"]
 
 collections = {

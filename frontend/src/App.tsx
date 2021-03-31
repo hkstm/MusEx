@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import ReactWordcloud from "react-wordcloud";
+import ReactWordcloud, { Word } from "react-wordcloud";
 import ReactDOM from "react-dom";
 import axios from "axios";
 import { Size, Position, Genre, Node, NodeType } from "./common";
@@ -11,13 +11,18 @@ import Slider from "@material-ui/core/Slider";
 import GraphState from "./graph/Graph";
 import "./App.sass";
 import { MinimapData } from "./charts/minimap/Minimap";
+import { capitalize } from "./utils";
 
 import Widget from "./components/expandable-widget/widget";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faHighlighter } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBars,
+  faSpinner,
+  faHighlighter,
+} from "@fortawesome/free-solid-svg-icons";
 
-const MAX_WORDCLOUD_SIZE = 100;
+const MAX_WORDCLOUD_SIZE = 50;
 
 const config = {
   headers: { "Access-Control-Allow-Origin": "*" },
@@ -34,15 +39,20 @@ const options = {
   rotations: 0,
 };
 
+interface WordcloudWord extends Word {
+  color?: string;
+}
+
 type AppState = {
   genres: Genre[];
   graph: MusicGraph;
   interests: MinimapData;
-  popularGenres: Genre[];
-  artists: Genre[];
-  popularArtists: Genre[];
+  wordcloudData: WordcloudWord[];
   dimensions: string[];
-  wordCloudEnabled: boolean;
+  wordcloudEnabled: boolean;
+  wordcloudYear: number;
+  wordcloudType: NodeType;
+  wordcloudLoading: boolean;
   sideviewExpanded: boolean;
   searchQuery: string;
   searchType: string;
@@ -51,13 +61,8 @@ type AppState = {
   zoom: number;
   zoomLevel: number;
   type: NodeType;
-  selected?: Node;
-  total: number;
   dimx?: string;
   dimy?: string;
-  showGenreWordcloud: Boolean;
-  showArtistWordcloud: Boolean;
-  cloudYear: number;
 };
 
 class App extends Component<{}, AppState> {
@@ -66,6 +71,13 @@ class App extends Component<{}, AppState> {
   lastUpdateZoomLevel?: number = undefined;
   lastUpdate?: { zoom: number; type: NodeType } = undefined;
   apiVersion = "v2";
+  sideViewWidthPercent = 0.6;
+  wordCloudCallbacks = {
+    getWordColor: (word: WordcloudWord) => word?.color ?? "white",
+    // onWordMouseOver: console.log,
+    getWordTooltip: (word: WordcloudWord) =>
+      `${capitalize(word.text)} (${Math.round(word.value)})`,
+  };
 
   constructor(props: {}) {
     super(props);
@@ -81,7 +93,11 @@ class App extends Component<{}, AppState> {
         xSize: 20,
         ySize: 20,
       },
-      wordCloudEnabled: false,
+      wordcloudEnabled: true,
+      wordcloudLoading: true,
+      wordcloudYear: 2020,
+      wordcloudType: "genre",
+      wordcloudData: [],
       sideviewExpanded: true,
       searchQuery: "",
       searchType: "artist",
@@ -90,45 +106,17 @@ class App extends Component<{}, AppState> {
       zoom: 0,
       zoomLevel: 0,
       type: "genre",
-      selected: undefined,
-      total: 0,
-      popularGenres: [],
-      artists: [],
-      popularArtists: [],
-      showGenreWordcloud: false,
-      showArtistWordcloud: false,
-      cloudYear: 2020,
     };
-    this.setSearchQuery = this.setSearchQuery.bind(this);
   }
 
   onButtonClickHandler = () => {
     window.alert("Help!");
   };
 
-  showGenreWordcloud = () => {
-    this.setState({
-      showArtistWordcloud: false,
-      showGenreWordcloud: true,
-    });
-  };
-
-  showArtistWordcloud = () => {
-    this.setState({
-      showGenreWordcloud: false,
-      showArtistWordcloud: true,
-    });
-  };
-
-  setSearchType(event: React.FormEvent) {
-    const target = event.target as HTMLSelectElement;
-    this.setState({ searchType: target.value });
-  }
-
-  setSearchQuery(event: React.FormEvent) {
+  setSearchQuery = (event: React.FormEvent) => {
     const target = event.target as HTMLInputElement;
     this.setState({ searchQuery: target.value });
-  }
+  };
 
   handleZoom = (zoom: number) => {
     const zoomLevel = Math.floor(zoom);
@@ -146,6 +134,43 @@ class App extends Component<{}, AppState> {
           this.updateGraph();
       }
     );
+  };
+
+  handleWordcloudTypeChange = (typ: string) => {
+    console.log("wordcloud type changed to", typ);
+    this.setState({ wordcloudType: typ }, this.updateWordcloud);
+  };
+
+  handleWordcloudYearChange = (event: React.FormEvent) => {
+    const target = event.target as HTMLInputElement;
+    this.setState(
+      { wordcloudYear: parseInt(target.value) },
+      this.updateWordcloud
+    );
+  };
+
+  updateWordcloud = () => {
+    console.log(this.state.wordcloudType, this.state.wordcloudYear);
+    this.setState({ wordcloudLoading: true });
+    axios
+      .get(
+        `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.wordcloudYear}&type=${this.state.wordcloudType}&limit=${MAX_WORDCLOUD_SIZE}`,
+        config
+      )
+      .then((res) => {
+        this.setState({
+          wordcloudData: res.data.most_popular.map(
+            (word: { name: string; popularity: number; color: string }) => {
+              return {
+                text: capitalize(word.name),
+                value: word.popularity,
+                color: word.color,
+              };
+            }
+          ),
+        });
+      })
+      .finally(() => this.setState({ wordcloudLoading: false }));
   };
 
   handleDimYChange = (dimy: string) => {
@@ -169,8 +194,16 @@ class App extends Component<{}, AppState> {
     });
   };
 
-  search = () => {
-    // TODO
+  search = (event?: React.FormEvent<HTMLFormElement>) => () => {
+    console.log("searching");
+    event?.preventDefault();
+    return;
+    let searchURL = `http://localhost:5000/${this.apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
+    console.log(searchURL);
+    axios.get(searchURL, config).then((res) => {
+      console.log(res.data);
+      // this.setState({ graph: res.data });
+    });
   };
 
   updateGraph = () => {
@@ -202,40 +235,23 @@ class App extends Component<{}, AppState> {
       });
   };
 
-  updateGenres = () => {
-    axios
-      .get(
-        `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=genre&limit=${MAX_WORDCLOUD_SIZE}`,
-        config
-      )
-      .then((res) => {
-        this.setState({
-          genres: res.data.most_popular,
-          popularGenres: res.data.most_popular.map(
-            (g: { name: string; popularity: number }) => {
-              return { text: g.name, value: g.popularity };
-            }
-          ),
-        });
-      });
-  };
+  // updateGenres = () => {};
 
-  updateArtists = () => {
-    axios
-      .get(
-        `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`
-      )
-      .then((res) => {
-        this.setState({
-          artists: res.data.most_popular,
-          popularArtists: res.data.most_popular.map(
-            (a: { name: string; popularity: number }) => {
-              return { text: a.name, value: a.popularity };
-            }
-          ),
-        });
-      });
-  };
+  // updateArtists = () => {
+  //   axios
+  //     .get(
+  //       `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`
+  //     )
+  //     .then((res) => {
+  //       this.setState({
+  //         wordcloudData: res.data.most_popular.map(
+  //           (a: { name: string; popularity: number }) => {
+  //             return { text: capitalize(a.name), value: a.popularity };
+  //           }
+  //         ),
+  //       });
+  //     });
+  // };
 
   select(node: Node) {
     axios
@@ -251,17 +267,9 @@ class App extends Component<{}, AppState> {
         return {};
       });
       this.updateGraph();
-      this.updateGenres();
-      this.updateArtists();
+      // this.updateWordcloud();
     });
   }
-
-  // <option value="0">Select type:</option>
-  // <select id="dropdown" value={this.state.searchType} onChange={this.setSearchType}>
-  // <option value="artist">Artist</option>
-  // <option value="genre">Genre</option>
-  // </select>
-  //
 
   render() {
     return (
@@ -284,29 +292,27 @@ class App extends Component<{}, AppState> {
                   options={this.state.dimensions}
                 ></Select>
               </div>
-              <div className="forms">
+              <form className="forms" onSubmit={this.search}>
                 <input
                   type="text"
                   value={this.state.searchQuery}
                   onChange={this.setSearchQuery}
-                  id="search-query-input2"
+                  id="search-query-input"
                   placeholder="Search"
                 />
-                {false && (
-                  <Select
-                    id="search-type-select"
-                    default="artist"
-                    onChange={this.handleSearchTypeChange}
-                    options={["artist", "genre"]}
-                  ></Select>
-                )}
-                <button id="app-search" onClick={this.search}>
+                <Select
+                  id="search-type-select"
+                  default="artist"
+                  onChange={this.handleSearchTypeChange}
+                  options={["artist", "genre"]}
+                ></Select>
+                <button id="app-search" type="submit">
                   Search
                 </button>
                 <button id="app-help" onClick={this.onButtonClickHandler}>
                   Help
                 </button>
-              </div>
+              </form>
             </div>
           </nav>
         </header>
@@ -325,7 +331,9 @@ class App extends Component<{}, AppState> {
                   zoomLevels={this.zoomLevels}
                   width={
                     window.innerWidth *
-                      (this.state.sideviewExpanded ? 0.7 : 1.0) -
+                      (this.state.sideviewExpanded
+                        ? this.sideViewWidthPercent
+                        : 1.0) -
                     30
                   }
                   height={window.innerHeight - 40}
@@ -347,31 +355,42 @@ class App extends Component<{}, AppState> {
 
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
-                <h3>Show wordcloud about the most popular:</h3>
-                <input
-                  type="text"
-                  id="search-query-input3"
-                  placeholder="Search"
-                />
+                <h3>
+                  Most popular{" "}
+                  <Select
+                    id="select-wordcloud-type"
+                    default="genre"
+                    onChange={this.handleWordcloudTypeChange}
+                    options={["genre", "artist"]}
+                  ></Select>{" "}
+                  in{" "}
+                  <input
+                    className="numeric-input"
+                    id="wordcloud-year-input"
+                    value={this.state.wordcloudYear}
+                    onChange={this.handleWordcloudYearChange}
+                    type="number"
+                    placeholder="Year"
+                  />
+                  :
+                </h3>
+                {this.state.wordcloudLoading && (
+                  <FontAwesomeIcon
+                    className="loading-spinner icon toggle"
+                    id="wordcloud-loading-spinner"
+                    icon={faSpinner}
+                    spin
+                  />
+                )}
 
-                <button className="button" onClick={this.showGenreWordcloud}>
-                  Genres
-                </button>
-                <button className="button" onClick={this.showArtistWordcloud}>
-                  Artists
-                </button>
-                {this.state.showGenreWordcloud && (
-                  <ReactWordcloud
-                    words={this.state.popularGenres}
-                    options={options}
-                  ></ReactWordcloud>
-                )}
-                {this.state.showArtistWordcloud && (
-                  <ReactWordcloud
-                    words={this.state.popularArtists}
-                    options={options}
-                  ></ReactWordcloud>
-                )}
+                {this.state.wordcloudEnabled &&
+                  !this.state.wordcloudLoading && (
+                    <ReactWordcloud
+                      words={this.state.wordcloudData}
+                      callbacks={this.wordCloudCallbacks}
+                      options={options}
+                    ></ReactWordcloud>
+                  )}
               </div>
             </Widget>
             <Widget>

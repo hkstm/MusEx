@@ -70,9 +70,7 @@ def snapshot(c, sudo=False):
     c.run(
         f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --db kaggle --authenticationDatabase admin --username root --password example --archive' > {DATA_DIR}/db.dump"
     )
-    c.run(
-        f"tar -C {DATA_DIR} -cJf db.tar.xz db.dump && mv db.tar.xz ../data"
-    )
+    c.run(f"tar -C {DATA_DIR} -cJf db.tar.xz db.dump && mv db.tar.xz ../data")
 
 
 @task(help={"sudo": "Use sudo"})
@@ -87,12 +85,29 @@ def restore(c, sudo=False):
     except Exception as e:
         print(e)
         print(f"failed to unarchive {data_archive}")
-        print("make sure you have installed unzip and tar (e.g. sudo apt-get install unzip tar)")
+        print(
+            "make sure you have installed unzip and tar (e.g. sudo apt-get install unzip tar)"
+        )
         return
         print("proceeding without unzipping...")
     c.run(
         f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --drop --db kaggle --authenticationDatabase admin --username root --password example --archive' < {DATA_DIR}/db.dump"
     )
+
+
+@task
+def compute_genre_popularity_per_year(
+    c,
+):
+    from infovis21.mongodb import utils as dbutils
+
+    dbutils.compute_genre_popularity_per_year(
+        out="super_genre_popularity_per_year", use_super_genre=True
+    )
+    dbutils.compute_genre_popularity_per_year(
+        out="genre_popularity_per_year", use_super_genre=False
+    )
+    print("done")
 
 
 @task
