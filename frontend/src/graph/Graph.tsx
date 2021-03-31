@@ -68,6 +68,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     };
   }
 
+  getCoordinateY(y: number = 0){
+    const offset =  1.003 * this.props.height - 62.52; // 1.00262467192 * height + 62.5196850394
+    // console.log('updated ', d.name, ' ' , d.y, '> ', 30 + ((1-d.y) * offset));
+    return 30 + ((1-y) * offset)
+  }
+
   addAxis = () => {
     this.svg
       .append("g")
@@ -215,12 +221,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     nodes
       .select("circle")
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      // .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     nodes
       .select("text")
       .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      // .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     // add elements that were not in the graph before
     const newNodes = nodes.enter().append("g").attr("class", "node");
@@ -275,7 +283,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("id", (d: MusicGraphNode) => d.name)
       .attr("class", (d: MusicGraphNode) => `${d.id}`)
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width) // used to be enlarge
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // used to be enlarge
+      // .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // used to be enlarge
+      .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y))) // used to be enlarge
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
@@ -300,12 +309,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("opacity", 0)
       .style("font-size", this.baseTextSize / this.state.zoomK + "px")
       .text((d) => d.name)
+      // .text((d) => d.name + " " +  d.x.toFixed(3) + "," + d.y.toFixed(3) + ", " + d.name) // For debugging coordinates
       .attr(
         "x",
         (d: MusicGraphNode) =>
           (d.x ?? 0) * this.props.width + (d.size ?? 0) * 0.35 + 5
       )
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5)
+      // .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5)
+      .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
       .attr("fill", "white")
       // .style("stroke", "black")
       // .style("stroke-width", 0.4)
@@ -343,22 +354,26 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     links
       .select("line")
       .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
-      .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
       .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
-      .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
+      // .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge)
+      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // add links that were not in the graph before
     const newLinks = links
       .enter()
       .append("line")
-      .attr("class", (d: MusicGraphLink) => `link ${d.id}`)
+      .attr("class", (d: MusicGraphLink) => `link ${d.id}-${d.name}`)
       .style("stroke", "#FFFFFF")
       .style("stroke-opacity", 0)
       .style("stroke-width", "0px")
       .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
-      .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
       .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
-      .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
+      // .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge)
+      .attr("y2", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // animate entering of new links
     newLinks
