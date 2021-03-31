@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from operator import itemgetter
 from pprint import pprint
-from typing import Collection
+from typing import Collection, List
 
 import numpy as np
 from flask import abort, jsonify, request
@@ -23,6 +23,10 @@ zoom_min, zoom_max = (
     0,
     1,
 )
+
+dim_minmax = ma.get_dim_minmax()
+
+graph_state = list()
 
 
 def get_collection(type_str):
@@ -93,15 +97,17 @@ def search(version):
             "$project": {
                 "id": "$id",
                 # returning nodes in MongoDB space, cannot really perform interpolation in aggregation stage but if needed can be done in coll.update_one() for loop
-                dimx: f"${dimx}",
-                dimy: f"${dimy}",
+                "dimx": dimx,
+                "dimy": dimy,
+                "x": f"${dimx}",
+                "y": f"${dimy}",
                 "name": "$name",
                 "size": "$popularity",
                 "preview_url": "$preview_url",
                 # can be one of Genre, Artist or Track (does this need to be capitalized)
                 "type": coll_type.capitalize(),
                 "genres": "genres",
-                "color": "#00000",
+                "color": "$genre_color",
                 "_id": 0,
             }
         },
@@ -301,8 +307,9 @@ def viszoomregion_to_mongo(
 @cross_origin()
 def _select(version):
     """ Return the node ids that should be highlighted based on a user selection """
+
     d = {}
-    node_id = request.args.get("node")  # either genre/artist name or track ID
+    node_id = request.args.get("node")  # either genre/artist/track ID
     _limit = request.args.get("limit")
     # _zoom = request.args.get("zoom") # don't think zoom makes sense here if we have a way to determine genre/artist/track level
     dimx = request.args.get("dimx")
@@ -318,11 +325,17 @@ def _select(version):
     # if _zoom:
     #     zoom = float(_zoom)
     #     d["zoom"] = zoom
+    global graph_state
+    if len(graph_state) == 0:
+        return abort(
+            400,
+            description="Graph endpoint needs to be hit before a selection recommendation can be given",
+        )
 
     if not (node_id and dimx and dimy and d["type"]):
         return abort(
             400,
-            description="a node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudness&type=track",
+            description="Node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudinvoness&type=track",
         )
 
     collection = get_collection(d["type"])
@@ -330,21 +343,29 @@ def _select(version):
     project_stage = {"$project": {"id": "$id", "_id": 0,}}
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
+
     pipeline = [
         # { '$limit': 10},
+        {
+            "$match": {"id": {"$in": graph_state}}
+        },  # only recommend nodes that are currently in displayed graph
         project_stage,
     ]
 
     res = list(collection.aggregate(pipeline))
-    selected = list(collection.aggregate([{"$match": {"id": node_id}}, project_stage]))
+    node_ids = node_id.split("|")
+    selected = list(
+        collection.aggregate([{"$match": {"id": {"$in": node_ids}}}, project_stage])
+    )
     if len(selected) < 1:
         return abort(404, description=f"node with ID '{node_id}' was not found.")
-    selected = selected[0]
 
     # one of the most similar nodes is the node itself, can be excluded using processing/different method if needed
     cos_sim = cosine_similarity(
-        np.array([dbutils.create_vector(doc) for doc in res]),
-        np.array([dbutils.create_vector(selected)]),
+        np.array([dbutils.create_vector_sim(doc) for doc in res]),
+        np.array(
+            [np.mean([dbutils.create_vector_sim(doc) for doc in selected], axis=0)]
+        ),
     ).squeeze()
 
     # think this is supposed to be faster, but it isn't (using %timeit) coulds probs be optimized
@@ -356,6 +377,13 @@ def _select(version):
 
     # retrieving doc info and actual similarity value
     similar_nodes = [(res[i], cos_sim[i]) for i in topk_idx]
+    # dissim_nodes = [
+    #     (res[i], cos_sim[i]) for i in np.argpartition(cos_sim, -topk)[:topk]
+    # ]
+    # print(dissim_nodes)
+    # print(selected_vectors)
+    # print(min(cos_sim))
+    # print(max(cos_sim), flush=True)
 
     max_x_i, min_x_i, max_y_i, min_y_i = 0, 0, 0, 0
 
@@ -402,7 +430,6 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
         "dimx": dimx,
         "dimy": dimy,
     }
-
     if zoom:
         d["zoom"] = zoom
     if limit:
@@ -487,6 +514,8 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
         dimx, dimy, typ, zoom_level
     )
     nodes = list(precomputed_nodes.aggregate(node_pipeline))
+    global graph_state
+    graph_state = [doc["id"] for doc in nodes]
     links = list(precomputed_links.aggregate(link_pipeline))
     d.update(
         {"nodes": nodes, "links": links,}
@@ -546,7 +575,7 @@ def graph_impl_1(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 ].capitalize(),  # can be one of Genre, Artist or Track (does this need to be capitalized)
                 "genre": "$genres",
                 "labels": "$labels",
-                "color": "#00000",
+                "color": "$genre_color",
                 "dist": {
                     "$add": [
                         {"$pow": [{"$subtract": [f"${dimx}", d["x"]]}, 2]},
@@ -587,9 +616,10 @@ def graph_impl_1(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     else:
         nodes_keep = nodes_sorted
 
-    id_list = [doc["id"] for doc in nodes_keep]
+    global graph_state
+    graph_state = [doc["id"] for doc in nodes_keep]
     pipeline = [
-        {"$match": {"$expr": {"$in": ["$id", id_list]}}},
+        {"$match": {"$expr": {"$in": ["$id", graph_state]}}},
         {"$unwind": "$labels"},
         {
             "$group": {
@@ -598,13 +628,7 @@ def graph_impl_1(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 "nodes": {"$first": "$nodes"},
             }
         },
-        {
-            "$project": {
-                "id": "$_id",
-                "members": "$members",
-                "color": "black",  # needs to be set programmatically
-            }
-        },
+        {"$project": {"id": "$_id", "members": "$members", "color": "black",}},
         {"$project": {"_id": 0}},
     ]
 
@@ -622,16 +646,7 @@ def graph_impl_1(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     for node in nodes_keep:
         del node["labels"]
     d.update({"nodes": nodes_keep, "links": links})
-
-    # print(len(nodes_keep))
-    # print(len(links), flush=True)
-    # print(f'Size of d {sys.getsizeof(d)}')
-    # pprint(d)
-    # mid = datetime.now()
-    # print(f'Before jsonify {mid - start}', flush=True)
     # d = jsonify(d)
-    # end = datetime.now()
-    # print(f'Took {end - start}', flush=True)
     return d
 
 
