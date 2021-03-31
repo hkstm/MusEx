@@ -99,6 +99,7 @@ class App extends Component<{}, AppState> {
       showArtistWordcloud: false,
       cloudYear: 2020,
     };
+    this.setSearchQuery = this.setSearchQuery.bind(this);
   }
 
   onButtonClickHandler = () => {
