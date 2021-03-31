@@ -347,7 +347,7 @@ def _select(version):
     if not (node_id and dimx and dimy and d["type"]):
         return abort(
             400,
-            description="Node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudinvoness&type=track",
+            description="Node ID, type, and the x and y dimensions are required to make a selection, e.g. /select?node=19Lc5SfJJ5O1oaxY0fpwfh&dimx=acousticness&dimy=loudness&type=track",
         )
 
     collection = get_collection(d["type"])
@@ -356,16 +356,18 @@ def _select(version):
     # include all dimensions/features
     [project_stage["$project"].update({dim: 1}) for dim in ma.dimensions]
 
+    node_ids = node_id.split("|")
+    selectable_state = list(set(graph_state) - set(node_ids))
     pipeline = [
         # { '$limit': 10},
         {
-            "$match": {"id": {"$in": graph_state}}
+            "$match": {"id": {"$in": selectable_state}}
         },  # only recommend nodes that are currently in displayed graph
         project_stage,
     ]
 
     res = list(collection.aggregate(pipeline))
-    node_ids = node_id.split("|")
+
     selected = list(
         collection.aggregate([{"$match": {"id": {"$in": node_ids}}}, project_stage])
     )
@@ -687,7 +689,7 @@ def _graph(version):
     if None in [x, y, zoom, dimx, dimy, typ]:
         return abort(
             400,
-            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0&y=0&zoom=0&dimx=acousticness&dimy=loudness&type=track",
+            description="Please specify x and y coordinates, type, zoom level and x and y dimensions, e.g. /graph?x=0&y=0&zoom=0&dimx=acousticness&dimy=loudness&type=track&limit=200",
         )
 
     if dimx not in ma.dimensions or dimy not in ma.dimensions or dimx == dimy:
