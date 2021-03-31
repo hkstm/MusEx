@@ -415,7 +415,6 @@ def _select(version):
     return jsonify(d)
 
 
-# <<<<<<< main
 def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     d = {
         "x": x,
@@ -507,6 +506,8 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
         dimx, dimy, typ, zoom_level
     )
     nodes = list(precomputed_nodes.aggregate(node_pipeline))
+    global graph_state
+    graph_state = [doc["id"] for doc in nodes]
     links = list(precomputed_links.aggregate(link_pipeline))
     d.update(
         {"nodes": nodes, "links": links,}
