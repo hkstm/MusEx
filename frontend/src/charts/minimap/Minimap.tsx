@@ -8,6 +8,8 @@ export type MinimapData = HeatmapData;
 
 type MinimapProps = {
   enabled: boolean;
+  pos: Position;
+  size: Size;
   width: number;
   height: number;
   margin?: Margin;
@@ -16,10 +18,8 @@ type MinimapProps = {
 };
 
 type MinimapState = {
-  style: { left: number; top: number; width: number; height: number };
-  pos: Position;
+  // style: { left: number; top: number; width: number; height: number };
   rel: Position | null;
-  size: Size;
   zoom: number;
   dragging: boolean;
 };
@@ -29,21 +29,38 @@ class Minimap extends Component<MinimapProps, MinimapState> {
 
   constructor(props: MinimapProps) {
     super(props);
-    const size = {
-      width: 40,
-      height: 40,
-    };
+    console.log(this.props);
     this.state = {
-      style: { left: 0, top: 0, width: size.width, height: size.height },
-      pos: {
-        x: 0,
-        y: 0,
-      },
-      size: size,
+      // style: {
+      //   left: this.props.pos.x,
+      //   top: this.props.pos.y,
+      //   width: this.props.size.width,
+      //   height: this.props.size.height,
+      // },
       rel: null,
       zoom: 0,
       dragging: false,
     };
+  }
+
+  componentDidUpdate(prevProps: MinimapProps) {
+    if (
+      prevProps.pos !== this.props.pos ||
+      prevProps.size !== this.props.size
+    ) {
+      // console.log("new minimap size is", this.props.size, this.props.pos);
+      // this.setState((state) => {
+      //   if (isNaN(this.props.pos.x) || isNaN(this.props.pos.y)) return {};
+      //   return {
+      //     style: {
+      //       left: this.props.pos.x,
+      //       top: this.props.pos.y,
+      //       width: this.props.size.width,
+      //       height: this.props.size.height,
+      //     },
+      //   };
+      // });
+    }
   }
 
   componentDidMount = () => {
@@ -62,7 +79,6 @@ class Minimap extends Component<MinimapProps, MinimapState> {
     if (e.button !== 0) return;
     const pos = this.minimap?.current?.getBoundingClientRect();
     if (!pos) return;
-    // this.resize({ width: 10, height: 10 });
     this.setState({
       dragging: true,
       rel: {
@@ -83,49 +99,62 @@ class Minimap extends Component<MinimapProps, MinimapState> {
   onMouseMove = (e: MouseEvent) => {
     if (!this.state.dragging) return;
     if (!this.state.rel) return;
+    // const left = clip(
+    //   e.pageX - this.state.rel.x,
+    //   0,
+    //   this.props.width - this.props.size.width
+    // );
+    // const top = clip(
+    //   e.pageY - this.state.rel.y,
+    //   0,
+    //   this.props.height - this.props.size.height
+    // );
+    // console.log(e.pageX - this.state.rel.x);
     const left = clip(
       e.pageX - this.state.rel.x,
       0,
-      this.props.width - this.state.size.width
+      this.props.width - this.props.size.width
     );
     const top = clip(
       e.pageY - this.state.rel.y,
       0,
-      this.props.height - this.state.size.height
+      this.props.height - this.props.size.height
     );
-    const pos = { x: top, y: left };
-    this.setState({
-      style: {
-        top,
-        left,
-        width: this.state.size.width,
-        height: this.state.size.height,
-      },
-      pos,
-    });
-    if (this.props.onUpdate) this.props.onUpdate(pos, this.state.size);
+    if (isNaN(top) || isNaN(left)) return {};
+    // this.setState({
+    //   style: {
+    //     top,
+    //     left,
+    //     width: this.props.size.width,
+    //     height: this.props.size.height,
+    //   },
+    // });
+    const pos = {
+      x: this.props.size.width / 2 + left,
+      y: this.props.size.height / 2 + top,
+    };
+    if (this.props.onUpdate) this.props.onUpdate(pos, this.props.size);
     e.stopPropagation();
     e.preventDefault();
   };
 
-  resize = (size: Size) => {
-    this.setState((state) => {
-      const pos = {
-        x: state.pos.x + (state.size.width - size.width) / 2,
-        y: state.pos.y + (state.size.height - size.height) / 2,
-      };
-      return {
-        style: {
-          left: pos.x,
-          top: pos.y,
-          width: size.width,
-          height: size.height,
-        },
-        size,
-        pos,
-      };
-    });
-  };
+  // resize = (size: Size) => {
+  //   this.setState((state) => {
+  //     const pos = {
+  //       x: state.pos.x + (state.size.width - size.width) / 2,
+  //       y: state.pos.y + (state.size.height - size.height) / 2,
+  //     };
+  //     if (isNaN(pos.x) || isNaN(pos.y)) return {};
+  //     return {
+  //       style: {
+  //         left: pos.x,
+  //         top: pos.y,
+  //         width: size.width,
+  //         height: size.height,
+  //       },
+  //     };
+  //   });
+  // };
 
   render() {
     return (
@@ -143,7 +172,12 @@ class Minimap extends Component<MinimapProps, MinimapState> {
             <div
               key="minimap-selection"
               className="minimap-selection"
-              style={this.state.style}
+              style={{
+                width: this.props.size.width,
+                height: this.props.size.height,
+                left: this.props.pos.x - this.props.size.width / 2,
+                top: this.props.pos.y - this.props.size.height / 2,
+              }}
             ></div>
           </Heatmap>
         </div>

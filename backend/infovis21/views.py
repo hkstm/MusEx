@@ -427,7 +427,7 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 "preview_url": "$preview_url",
                 "size": "$popularity",
                 "type": typ,
-                # "genre": genre,
+                "genre": "$genres",
                 "color": "#00000",
                 "_id": 0,
             }

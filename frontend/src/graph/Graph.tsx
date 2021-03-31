@@ -4,6 +4,8 @@ import { MusicGraph, MusicGraphNode, MusicGraphLink } from "./model";
 import { clip } from "../utils";
 import "./Graph.sass";
 import { faMusic } from "@fortawesome/free-solid-svg-icons";
+import Minimap, { MinimapData } from "../charts/minimap/Minimap";
+import { Size, Position } from "../common";
 
 interface GraphProps {
   enabled: boolean;
@@ -11,6 +13,9 @@ interface GraphProps {
   width: number;
   height: number;
   data: MusicGraph;
+  interests: MinimapData;
+  minimapWidth?: number;
+  minimapHeight?: number;
   useForce?: boolean;
   onZoom?: (zoom: number) => void;
 }
@@ -20,27 +25,44 @@ interface GraphState {
   dimy?: string;
   zoomK: number;
   selected: Set<string>;
+  minimapPos: Position;
+  minimapSelectionSize: Size;
 }
-
-// type SimNode = MusicGraphNode;
-// type SimLink = d3.SimulationLinkDatum<MusicGraphNode>;
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
   svg!: d3.Selection<SVGSVGElement, MusicGraph, HTMLElement, any>;
   graph!: d3.Selection<SVGGElement, MusicGraph, HTMLElement, any>;
   labels!: d3.Selection<SVGGElement, MusicGraphNode, HTMLElement, any>;
+  zoom!: d3.ZoomBehavior<SVGSVGElement, MusicGraph>;
   audio: HTMLAudioElement = new Audio("");
-  force: any;
+  transform!: d3.ZoomTransform;
+  xScale: any;
+  yScale: any;
+  xAxis: any;
+  yAxis: any;
+
   maxZoom = 20;
   baseTextSize = 15;
+  defaultMinimapSize = 100;
   baseLinkStrokeWidth = 2;
   baseNodeStrokeWidth = 1.5;
   scalePadding = 30;
-  largeNodeLabel = 65; // threshold for the node labels that should always remain visible
+  // threshold for the node labels that should always remain visible
+  largeNodeLabel = 45;
 
   constructor(props: GraphProps) {
     super(props);
+    const minimapSelectionSize = {
+      width: this.props.minimapWidth ?? this.defaultMinimapSize,
+      height: this.props.minimapHeight ?? this.defaultMinimapSize,
+    };
+    const minimapPos = {
+      x: (this.props.minimapWidth ?? this.defaultMinimapSize) / 2,
+      y: (this.props.minimapHeight ?? this.defaultMinimapSize) / 2,
+    };
     this.state = {
+      minimapPos: minimapPos,
+      minimapSelectionSize: minimapSelectionSize,
       zoomK: 1,
       selected: new Set<string>(),
     };
@@ -54,6 +76,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         "transform",
         `translate(0,${this.props.height - this.scalePadding})`
       );
+
     this.svg
       .append("g")
       .attr("class", "y axis")
@@ -66,9 +89,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     this.graph.append("g").attr("class", "links");
     this.graph.append("g").attr("class", "nodes");
 
-    const zoom = d3.zoom<SVGSVGElement, MusicGraph>();
-    zoom.on("zoom", (event) => {
+    this.zoom = d3.zoom<SVGSVGElement, MusicGraph>().on("zoom", (event) => {
       this.graph.attr("transform", event.transform);
+      this.transform = event.transform;
       const k = event.transform.k;
       // console.log(event.transform.x/k, event.transform.y/k);
       const x =
@@ -97,34 +120,61 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         Math.max(1, this.baseLinkStrokeWidth / k) + "px"
       );
 
-      // TODO: Use the actual zoom values here
-      // we could use the x and y and zoom level and compute the position in [0,1]
-      // however, we then maybe want to display the denormalized values in the axis
-      // const xmin = this.state.x - this.state.zoom / 3 / 2;
-      // const xmax = this.state.x + this.state.zoom / 3 / 2;
-      this.updateAxis(0, k, 0, k);
-      this.setState({ zoomK: k }, () => {
-        if (this.props.onZoom) this.props.onZoom(zoomLevel);
-      });
+      const minimapSelectionSize = {
+        width:
+          (this.props.minimapWidth ?? this.defaultMinimapSize) / Math.max(1, k),
+        height:
+          (this.props.minimapHeight ?? this.defaultMinimapSize) /
+          Math.max(1, k),
+      };
+      // const minimapPos = {
+      //   x:
+      //     // this.minimapPos.x +
+      //     (this.props.minimapWidth ?? this.defaultMinimapSize) / 2 -
+      //     // minimapSelectionSize.width / 2,
+      //   y:
+      //     (this.props.minimapHeight ?? this.defaultMinimapSize) / 2 -
+      //     minimapSelectionSize.height / 2,
+      // };
+      this.updateAxis(this.transform);
+      this.setState(
+        {
+          zoomK: k,
+          minimapSelectionSize,
+          // minimapPos
+        },
+        () => {
+          if (this.props.onZoom) this.props.onZoom(zoomLevel);
+        }
+      );
     });
 
-    this.svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
-    // this.svg.call(zoom);
+    this.svg.call(this.zoom).call(this.zoom.transform, d3.zoomIdentity);
   };
 
-  updateAxis = (xmin?: number, xmax?: number, ymin?: number, ymax?: number) => {
+  updateAxis = (transform: d3.ZoomTransform) => {
+    if (!transform) return;
+
     const xScale = d3
       .scaleLinear()
       // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
-      .domain([xmin ?? 0, xmax ?? 1])
+      .domain([0, 1])
       .range([this.scalePadding, this.props.width - this.scalePadding]);
+
     const yScale = d3
       .scaleLinear()
       // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
-      .domain([ymax ?? 1, ymin ?? 0])
+      .domain([1, 0])
       .range([this.scalePadding, this.props.height - this.scalePadding]);
-    const xAxis = d3.axisBottom(xScale);
-    const yAxis = d3.axisLeft(yScale);
+
+    const xrange = xScale.range().map(transform.invertX, transform),
+      xdomain = xrange.map(xScale.invert, xScale),
+      yrange = yScale.range().map(transform.invertY, transform),
+      ydomain = yrange.map(yScale.invert, yScale);
+
+    const xAxis = d3.axisBottom(xScale.copy().domain(xdomain));
+    const yAxis = d3.axisLeft(yScale.copy().domain(ydomain));
+
     this.svg
       .select<SVGGElement>(".x.axis")
       .attr(
@@ -140,6 +190,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
   updateGraphData = (data: MusicGraph) => {
     const enlarge = Math.min(window.screen.width, window.screen.height);
+
+    this.svg.attr("width", this.props.width).attr("height", this.props.height);
+    this.graph
+      .attr("width", this.props.width)
+      .attr("height", this.props.height);
 
     // update the node data
     const nodes = this.graph
@@ -161,6 +216,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .select("circle")
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
       .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+
     nodes
       .select("text")
       .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
@@ -249,7 +305,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         (d: MusicGraphNode) =>
           (d.x ?? 0) * this.props.width + (d.size ?? 0) * 0.35 + 5
       )
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5) // ** Updated x,y values for the labels **
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5)
       .attr("fill", "white")
       // .style("stroke", "black")
       // .style("stroke-width", 0.4)
@@ -332,12 +388,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   };
 
   componentDidUpdate(prevProps: GraphProps) {
-    if (prevProps.data !== this.props.data) {
-      // d3.selectAll(".xaxis").remove()
-      // d3.selectAll(".yaxis").remove()
-      // d3.selectAll(".nodes").remove()
-      // d3.selectAll(".labels").remove()
+    if (
+      prevProps.width !== this.props.width ||
+      prevProps.height !== this.props.height ||
+      prevProps.data !== this.props.data
+    ) {
       this.updateGraph();
+      this.updateAxis(this.transform);
     }
   }
 
@@ -348,21 +405,73 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("width", this.props.width)
       .attr("height", this.props.height);
 
+    const svgDefs = this.svg.append("defs");
+    const backgroundGradient = svgDefs
+      .append("linearGradient")
+      .attr("id", "mainGradient");
+
+    backgroundGradient
+      .append("stop")
+      .attr("class", "stop-left")
+      .attr("offset", "0");
+
+    backgroundGradient
+      .append("stop")
+      .attr("class", "stop-right")
+      .attr("offset", "1");
+
     this.graph = this.svg
       .append("g")
       .attr("class", "graph")
       .attr("width", this.props.width)
       .attr("height", this.props.height);
 
+    this.graph
+      .append("rect")
+      .classed("filled", true)
+      .attr("x", -this.props.width)
+      .attr("y", -this.props.height)
+      .attr("width", 3 * this.props.width)
+      .attr("height", 3 * this.props.height);
+
     this.addAxis();
-    this.updateAxis();
     this.addGraph();
     this.updateGraph();
   }
 
+  handleMinimapUpdate = (pos: Position, size: Size) => {
+    // console.log(pos, size);
+    this.setState(
+      {
+        minimapPos: pos,
+        minimapSelectionSize: size,
+      },
+      () => {
+        this.svg.call(
+          // .transition().duration(750).call(
+          this.zoom.transform,
+          // d3.zoomIdentity.translate(pos.x, pos.y).scale(size.width)
+          d3.zoomIdentity
+          // d3.mouse(svg.node())
+        );
+      }
+    );
+  };
+
   render() {
     return (
       <div>
+        <div className="minimap-container">
+          <Minimap
+            enabled={true}
+            onUpdate={this.handleMinimapUpdate}
+            data={this.props.interests}
+            pos={this.state.minimapPos}
+            size={this.state.minimapSelectionSize}
+            width={100}
+            height={100}
+          ></Minimap>
+        </div>
         <div id="graph-container"></div>
         <div className="graph-metrics">
           {/*<span>Zoom Level: {Math.round(this.state.zoomLevel)}</span>*/}

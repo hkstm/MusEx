@@ -38,7 +38,10 @@ export default class Select extends Component<SelectProps, SelectState> {
 
   componentDidUpdate(prevProps: SelectProps) {
     // console.log(this.props.default, this.state.selected, this.props.options);
-    if (this.props.default !== prevProps.default || this.props.options !== prevProps.options) {
+    if (
+      this.props.default !== prevProps.default ||
+      this.props.options !== prevProps.options
+    ) {
       if (
         this.props.default !== undefined &&
         this.state.selected == undefined &&
