@@ -276,9 +276,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       )
       .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
       // .style("stroke-width", 1.5)
-      .style("fill", (d: MusicGraphNode) =>
-        d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
-      );
+      .style("fill", (d: MusicGraphNode) => d.color ?? "white");
 
     // add the text labels for the nodes
     newNodes
@@ -400,7 +398,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const svgDefs = this.svg.append("defs");
     const backgroundGradient = svgDefs
       .append("linearGradient")
-      .attr("id", "mainGradient");
+      .attr("id", "mainGradient")
+      .attr("gradientTransform", "rotate(45)");
 
     backgroundGradient
       .append("stop")

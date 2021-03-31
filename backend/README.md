@@ -51,14 +51,11 @@ invoke type-check
 #### Precompute zoom level data
 
 ```bash
-invoke precompute
-
-# for quicker testing, you can just precompute for one selected categories
+invoke compute-genre-popularity-per-year
+invoke precompute --dimx energy --dimy tempo
 ```
 
-**Warning**: This will take some long time depending on your machine...
-A long time as in multiple hours
-
+**Warning**: This will take some time (minutes) depending on your machine...
 
 #### Optional: Download audio preview cache
 

@@ -13,6 +13,23 @@ button
   display: inline-block
   cursor: pointer
 
+.loading-spinner
+  svg
+    position: relative
+    margin: 0 auto
+
+input
+  background-color: black
+  border: 1px solid white
+  color: white
+  text-decoration: none
+
+  &.numeric-input
+
+  &[type=number]::-webkit-inner-spin-button,
+  &[type=number]::-webkit-outer-spin-button
+    -webkit-appearance:none
+
 nav
   height: $nav-bar-height
   background-color: black
@@ -85,23 +102,23 @@ nav
     overflow: hidden
 
     &.expanded
-      width: 70%
+      width: 60%
 
     .graph
       z-index: 100
       position: absolute
-      width: 70%
+      width: 60%
       left: 0
 
   #side-view
     z-index: 20
     position: absolute
     outline: $border-width solid #a9a9a9
-    width: 30%
+    width: 40%
     height: 100%
     float: right
     @include transition(right 0.2s ease-in)
-    right: calc(30px - 30%)
+    right: calc(30px - 40%)
     overflow-x: hidden
     overflow-y: scroll
     top: 0
@@ -124,6 +141,17 @@ nav
       overflow: hidden
       border-bottom: $border-width solid #a9a9a9
       
+    #wordcloud-year-input
+      border: 1px solid white
+      font-size: 0.8rem
+      font-weight: bold
+      height: 20px
+      line-height: 25px
+      width: 60px
+
+    #wordcloud-loading-spinner
+      position: relative
+
     .genre-wordcloud
       position: relative
       height: calc(50% - 35px)
