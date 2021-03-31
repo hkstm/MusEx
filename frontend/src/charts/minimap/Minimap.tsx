@@ -64,15 +64,17 @@ class Minimap extends Component<MinimapProps, MinimapState> {
   }
 
   componentDidMount = () => {
-    document.addEventListener("mousedown", this.onMouseDown);
-    document.addEventListener("mousemove", this.onMouseMove);
-    document.addEventListener("mouseup", this.onMouseUp);
+    const minimap = document.getElementById('graph-minimap');
+    minimap && minimap.addEventListener("mousedown", this.onMouseDown);
+    minimap && minimap.addEventListener("mousemove", this.onMouseMove);
+    minimap && minimap.addEventListener("mouseup", this.onMouseUp);
   };
 
   componentWillUnmount = () => {
-    document.removeEventListener("mousedown", this.onMouseDown);
-    document.removeEventListener("mousemove", this.onMouseMove);
-    document.removeEventListener("mouseup", this.onMouseUp);
+    const minimap = document.getElementById('graph-minimap');
+    minimap && minimap.removeEventListener("mousedown", this.onMouseDown);
+    minimap && minimap.removeEventListener("mousemove", this.onMouseMove);
+    minimap && minimap.removeEventListener("mouseup", this.onMouseUp);
   };
 
   onMouseDown = (e: MouseEvent) => {
@@ -159,6 +161,7 @@ class Minimap extends Component<MinimapProps, MinimapState> {
   render() {
     return (
       <div
+        id="graph-minimap"
         className="minimap"
         style={{ width: this.props.width, height: this.props.height }}
       >
