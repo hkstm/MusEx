@@ -119,11 +119,6 @@ class App extends Component<{}, AppState> {
     });
   };
 
-  setSearchType(event: React.FormEvent) {
-    const target = event.target as HTMLSelectElement;
-    this.setState({ searchType: target.value });
-  }
-
   setSearchQuery(event: React.FormEvent) {
     const target = event.target as HTMLInputElement;
     this.setState({ searchQuery: target.value });
@@ -132,7 +127,7 @@ class App extends Component<{}, AppState> {
   handleZoom = (zoom: number) => {
     const zoomLevel = Math.floor(zoom);
     const levelType = this.type[Math.min(zoomLevel, this.type.length - 1)];
-    // console.log("zoom changed to", zoom, zoomLevel, levelType);
+    console.log("zoom changed to", zoom, zoomLevel, levelType);
     this.setState(
       { zoom: zoom - zoomLevel, zoomLevel, type: levelType },
       () => {
@@ -169,7 +164,12 @@ class App extends Component<{}, AppState> {
   };
 
   search = () => {
-    // TODO
+    let searchURL = `http://localhost:5000/${this.apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
+    console.log(searchURL);
+    axios.get(searchURL, config).then((res) => {
+      console.log(res.data);
+      // this.setState({ graph: res.data });
+    });
   };
 
   updateGraph = () => {
@@ -255,13 +255,6 @@ class App extends Component<{}, AppState> {
     });
   }
 
-  // <option value="0">Select type:</option>
-  // <select id="dropdown" value={this.state.searchType} onChange={this.setSearchType}>
-  // <option value="artist">Artist</option>
-  // <option value="genre">Genre</option>
-  // </select>
-  //
-
   render() {
     return (
       <div className="app">
@@ -288,10 +281,10 @@ class App extends Component<{}, AppState> {
                   type="text"
                   value={this.state.searchQuery}
                   onChange={this.setSearchQuery}
-                  id="search-query-input2"
+                  id="search-query-input"
                   placeholder="Search"
                 />
-                {false && (
+                {true && (
                   <Select
                     id="search-type-select"
                     default="artist"
@@ -347,12 +340,6 @@ class App extends Component<{}, AppState> {
             <Widget>
               <div className="sideview-widget wordcloud artist-wordcloud">
                 <h3>Show wordcloud about the most popular:</h3>
-                <input
-                  type="text"
-                  id="search-query-input3"
-                  placeholder="Search"
-                />
-
                 <button className="button" onClick={this.showGenreWordcloud}>
                   Genres
                 </button>

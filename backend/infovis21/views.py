@@ -56,10 +56,18 @@ def _dimensions(version):
 
 @app.route("/<version>/search")
 def search(version):
-    searchterm = request.args.get("searchterm")
     coll_type = request.args.get("type")
+    if coll_type is None or len(coll_type) < 1:
+        return abort(400, description="missing type parameter (artist/track/genre)")
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
+    if dimx is None or dimy is None:
+        return abort(400, description="missing dimension parameters dimx and dimy")
+
+    searchterm = request.args.get("searchterm")
+    if searchterm is None or len(searchterm) < 1:
+        return abort(404, description="not found")
+
     collection = get_collection(coll_type)
     d = {}
     if not (searchterm and coll_type and dimx and dimy):

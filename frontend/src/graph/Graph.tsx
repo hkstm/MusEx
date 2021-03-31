@@ -36,10 +36,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   zoom!: d3.ZoomBehavior<SVGSVGElement, MusicGraph>;
   audio: HTMLAudioElement = new Audio("");
   transform!: d3.ZoomTransform;
-  xScale: any;
-  yScale: any;
-  xAxis: any;
-  yAxis: any;
 
   maxZoom = 20;
   baseTextSize = 15;
@@ -127,21 +123,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           (this.props.minimapHeight ?? this.defaultMinimapSize) /
           Math.max(1, k),
       };
-      // const minimapPos = {
-      //   x:
-      //     // this.minimapPos.x +
-      //     (this.props.minimapWidth ?? this.defaultMinimapSize) / 2 -
-      //     // minimapSelectionSize.width / 2,
-      //   y:
-      //     (this.props.minimapHeight ?? this.defaultMinimapSize) / 2 -
-      //     minimapSelectionSize.height / 2,
-      // };
+      // console.log(x, y);
+      const minimapPos = {
+        x: x * (this.props.minimapWidth ?? this.defaultMinimapSize),
+        y: y * (this.props.minimapHeight ?? this.defaultMinimapSize),
+      };
       this.updateAxis(this.transform);
       this.setState(
         {
           zoomK: k,
           minimapSelectionSize,
-          // minimapPos
+          minimapPos,
         },
         () => {
           if (this.props.onZoom) this.props.onZoom(zoomLevel);
@@ -182,6 +174,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         `translate(0,${this.props.height - this.scalePadding})`
       )
       .call(xAxis);
+
     this.svg
       .select<SVGGElement>(".y.axis")
       .attr("transform", `translate(${this.scalePadding},0)`)
@@ -274,8 +267,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("circle")
       .attr("id", (d: MusicGraphNode) => d.name)
       .attr("class", (d: MusicGraphNode) => `${d.id}`)
-      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width) // used to be enlarge
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // used to be enlarge
+      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
@@ -302,10 +295,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .text((d) => d.name)
       .attr(
         "x",
-        (d: MusicGraphNode) =>
-          (d.x ?? 0) * this.props.width + (d.size ?? 0) * 0.35 + 5
+        (d: MusicGraphNode) => (d.x ?? 0) * enlarge // + (d.size ?? 0) * 0.35 + 5
       )
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5)
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
       .attr("fill", "white")
       // .style("stroke", "black")
       // .style("stroke-width", 0.4)
@@ -441,21 +433,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
   handleMinimapUpdate = (pos: Position, size: Size) => {
     // console.log(pos, size);
-    this.setState(
-      {
-        minimapPos: pos,
-        minimapSelectionSize: size,
-      },
-      () => {
-        this.svg.call(
-          // .transition().duration(750).call(
-          this.zoom.transform,
-          // d3.zoomIdentity.translate(pos.x, pos.y).scale(size.width)
-          d3.zoomIdentity
-          // d3.mouse(svg.node())
-        );
-      }
-    );
+    // this.setState(
+    //   {
+    //     minimapPos: pos,
+    //     minimapSelectionSize: size,
+    //   },
+    //   () => {
+    //     this.svg.call(
+    //       // .transition().duration(750).call(
+    //       this.zoom.transform,
+    //       // d3.zoomIdentity.translate(pos.x, pos.y).scale(size.width)
+    //       d3.zoomIdentity
+    //       // d3.mouse(svg.node())
+    //     );
+    //   }
+    // );
   };
 
   render() {
