@@ -68,7 +68,10 @@ def snapshot(c, sudo=False):
     """Create a snapshot of the current mongodb database"""
     _sudo = "sudo" if sudo else ""
     c.run(
-        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --db kaggle --authenticationDatabase admin --username root --password example --archive' > {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongodump --db kaggle --authenticationDatabase admin --username root --password example --archive' > {DATA_DIR}/db.dump"
+    )
+    c.run(
+        f"tar -C {DATA_DIR} -cJf db.tar.xz db.dump && mv db.tar.xz ../data"
     )
 
 
@@ -80,7 +83,7 @@ def restore(c, sudo=False):
     try:
         print(f"unarchiving {data_archive}")
         # c.run(f"unzip -o {data_archive} -d {DATA_DIR}") # when using zip
-        c.run(f"tar -C {DATA_DIR} -xvf {data_archive}")
+        c.run(f"tar -xJf {data_archive} && mv db.dump ../data")
     except Exception as e:
         print(e)
         print(f"failed to unarchive {data_archive}")
@@ -88,7 +91,7 @@ def restore(c, sudo=False):
         return
         print("proceeding without unzipping...")
     c.run(
-        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --drop --db kaggle --authenticationDatabase admin --username root --password example --archive' < {PROJECT_DIR}/data/db.dump"
+        f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --drop --db kaggle --authenticationDatabase admin --username root --password example --archive' < {DATA_DIR}/db.dump"
     )
 
 
