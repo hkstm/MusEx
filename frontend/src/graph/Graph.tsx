@@ -79,6 +79,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     return 30 + ((1-y) * offset)
   }
 
+  playIconCoordinates(d: any, zoom: number = 1){
+    const x: number = this.getCoordinateX(d.x);
+    const y: number = this.getCoordinateY(d.y);
+    const s: number = d.size;
+    var offset = 0.05 * d.size * zoom;
+    return (`${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${y - 3 * offset} ${x + 3 * offset},${y}`);
+  }
+
   addAxis = () => {
     this.svg
       .append("g")
@@ -120,6 +128,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .select("circle")
         .attr("r", (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / k)
         .attr("stroke-width", this.baseNodeStrokeWidth / k);
+      nodes
+        .select("polygon")
+        .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d, 1/k))
       nodes.select("text").style("font-size", this.baseTextSize / k + "px");
 
       const links = this.graph
@@ -304,6 +315,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
       );
 
+    newNodes
+      .append("polygon")
+      .attr("class", "playIcon")
+      .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d))
+      .style("stroke", "black")
+      .style("fill", "#242424")
+      .style("opacity", "0")
+  
     // add the text labels for the nodes
     newNodes
       .append<SVGTextElement>("text")
@@ -342,6 +361,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         "r",
         (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / this.state.zoomK
       )
+      .style("opacity", 0.8); // transparency for better visualization
+
+      newNodes
+      .select("polygon")
+      .transition("enter")
+      .duration(300)
       .style("opacity", 0.8); // transparency for better visualization
 
     newNodes
