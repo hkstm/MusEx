@@ -1,30 +1,16 @@
 import React, { Component } from "react";
-import ReactWordcloud, { Word } from "react-wordcloud";
-import ReactDOM from "react-dom";
 import axios from "axios";
-import { Size, Position, Genre, Node, NodeType } from "./common";
-import Graph, { GraphDataDimensions } from "./graph/Graph";
-import GraphControls from "./graph/GraphControls";
-import { MusicGraph } from "./graph/model";
-import Select, { SelectOptions } from "./Select";
-import Heatmap from "./charts/musicheatmap/heatmap";
+import {  Node, NodeType } from "../common";
+import Graph, { GraphDataDimensions } from "../graph/Graph";
+import { MusicGraph } from "../graph/model";
+import Select, { SelectOptions } from "../Select";
+import Heatmap from "../charts/musicheatmap/heatmap";
 import Streamgraph, {
   StreamgraphStream,
-} from "./charts/streamgraph/Streamgraph";
-import Slider from "@material-ui/core/Slider";
-import GraphState from "./graph/Graph";
-import "./App.sass";
-import { MinimapData } from "./charts/minimap/Minimap";
-import { capitalize } from "./utils";
-
-import Widget from "./components/expandable-widget/widget";
-
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBars,
-  faSpinner,
-  faHighlighter,
-} from "@fortawesome/free-solid-svg-icons";
+} from "../charts/streamgraph/Streamgraph";
+import "./GraphControls.sass";
+import { MinimapData } from "../charts/minimap/Minimap";
+import { capitalize } from "../utils";
 
 const MAX_WORDCLOUD_SIZE = 50;
 
@@ -43,7 +29,7 @@ const options = {
   rotations: 0,
 };
 
-interface WordcloudWord extends Word {
+interface WordcloudWord {
   color?: string;
 }
 
@@ -82,7 +68,7 @@ type AppState = {
   dimy?: string;
 };
 
-class App extends Component<{}, AppState> {
+class App extends Component<{sideviewExpanded: boolean, mainViewWidthPercent: number}, AppState> {
   type: NodeType[] = ["genre", "artist", "track"];
   zoomLevels = 5;
   lastUpdateZoomLevel?: number = undefined;
@@ -108,7 +94,7 @@ class App extends Component<{}, AppState> {
     // `${capitalize(word.text)} (${Math.round(word.value)})`,
   };
 
-  constructor(props: {}) {
+  constructor(props: {sideviewExpanded: true, mainViewWidthPercent: 0}) {
     super(props);
     this.state = {
       dimensions: {},
@@ -298,22 +284,19 @@ class App extends Component<{}, AppState> {
 
   componentDidMount() {
     this.updateDimensions().then(() => {
-      // this.setState((state) => {
-      //   return {};
-      // });
-      // this.updateGraph();
+      this.setState((state) => {
+        return {};
+      });
+      this.updateGraph();
       this.updateStreamgraph();
     });
   }
 
   render() {
     return (
-      <div className="app">
-        <header>
-          <nav>
-            <div className="controls">
-              <span id="app-name">MusEx</span>
-              {/* <div className="dimensions">
+      <div className="graph-widget">
+        <div className="graph-controls">
+              <div className="dimensions">
                 <Select
                   id="select-dimx"
                   default="energy"
@@ -347,123 +330,27 @@ class App extends Component<{}, AppState> {
                 <button id="app-help" onClick={this.onButtonClickHandler}>
                   Help
                 </button>
-              </form> */}
+              </form>
             </div>
-          </nav>
-        </header>
         <div id="content">
-          <div
-            className={this.state.sideviewExpanded ? "expanded" : ""}
-            id="main-view"
-          >
-            {/* <Widget> */}
-              {/* {this.state.dimx === this.state.dimy ? (
-                <h1>Please select two different dimensions</h1>
-              ) : ( */}
-               <div style={{
-                 width: window.innerWidth * (this.state.sideviewExpanded? this.mainViewWidthPercent: 1.0) - 30,
-                 height: window.innerHeight - 40
-               }}>
-                <GraphControls
-                  mainViewWidthPercent = {this.mainViewWidthPercent}
-                  sideviewExpanded = {this.state.sideviewExpanded}
-                  // enabled={true}
-                  // interests={this.state.interests}
-                  // highlighted={this.state.highlighted}
-                  // zoomLevels={this.zoomLevels}
-                  // width={
-                  //   window.innerWidth *
-                  //     (this.state.sideviewExpanded
-                  //       ? this.mainViewWidthPercent
-                  //       : 1.0) -
-                  //   30
-                  // }
-                  // height={window.innerHeight - 40}
-                  // dimensions={this.state.dimensions}
-                  // onZoom={this.handleZoom}
-                  // data={this.state.graph}
-                ></GraphControls>
-                </div>
-              {/* )} */}
-            {/* </Widget> */}
-          </div>
-          <div
-            className={this.state.sideviewExpanded ? "expanded" : ""}
-            id="side-view"
-          >
-            <FontAwesomeIcon
-              className="icon toggle"
-              icon={faBars}
-              onClick={this.toggleSideview}
-            />
-
-            <Widget>
-              <div className="wordcloud-container">
-                <h3>
-                  Most popular{" "}
-                  <Select
-                    id="select-wordcloud-type"
-                    default="genre"
-                    onChange={this.handleWordcloudTypeChange}
-                    options={{ genre: {}, artist: {} }}
-                  ></Select>{" "}
-                  in{" "}
-                  <input
-                    className="numeric-input"
-                    id="wordcloud-year-input"
-                    value={this.state.wordcloudYear}
-                    onChange={this.handleWordcloudYearChange}
-                    type="number"
-                    placeholder="Year"
-                  />
-                  :
-                </h3>
-                {this.state.wordcloudLoading && (
-                  <FontAwesomeIcon
-                    className="loading-spinner icon toggle"
-                    id="wordcloud-loading-spinner"
-                    icon={faSpinner}
-                    spin
-                  />
-                )}
-
-                {this.state.wordcloudEnabled &&
-                  !this.state.wordcloudLoading && (
-                    <ReactWordcloud
-                      words={this.state.wordcloudData}
-                      callbacks={this.wordCloudCallbacks}
-                      options={options}
-                    ></ReactWordcloud>
-                  )}
-              </div>
-            </Widget>
-            <Widget>
-              <h3>Evolution of genres</h3>
-              {this.state.streamgraphLoading && (
-                <FontAwesomeIcon
-                  className="loading-spinner icon toggle"
-                  id="streamgraph-loading-spinner"
-                  icon={faSpinner}
-                  spin
-                />
-              )}
-
-              {this.state.streamgraphEnabled &&
-                !this.state.streamgraphLoading && (
-                  <Streamgraph
-                    data={this.state.streamgraphData.most_popular}
-                    keys={this.state.streamgraphData.keys}
-                    width={
-                      window.innerWidth * (1 - this.mainViewWidthPercent) - 30
-                    }
-                    height={300}
-                  ></Streamgraph>
-                )}
-            </Widget>
-            <Widget>
-              <h3>Evolution of musical features</h3>
-              <Heatmap apiVersion={this.apiVersion}></Heatmap>
-            </Widget>
+            <div>
+            <Graph
+                enabled={true}
+                interests={this.state.interests}
+                highlighted={this.state.highlighted}
+                zoomLevels={this.zoomLevels}
+                width={
+                window.innerWidth *
+                    (this.props.sideviewExpanded
+                    ? this.props.mainViewWidthPercent
+                    : 1.0) -
+                30
+                }
+                height={window.innerHeight - 80}
+                dimensions={this.state.dimensions}
+                onZoom={this.handleZoom}
+                data={this.state.graph}
+            ></Graph>
           </div>
         </div>
       </div>
