@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import axios from "axios";
 import Slider from "../../components/slider/Slider";
 import "./heatmap.sass";
-// import "./heatmap-animate.css";
+import "./heatmap-animate.css";
 
 // type Year = {
 //   acousticness: number,
