@@ -578,7 +578,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     backgroundGradient.select(".stop-right").attr("stop-color", gradient[1]);
   };
 
-  componentDidUpdate(prevProps: GraphProps) {
+  componentDidUpdate(prevProps: GraphProps, prevState: any) {
     // if (
     //   prevProps.width !== this.props.width ||
     //   prevProps.height !== this.props.height ||
@@ -595,10 +595,26 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     ) {
       this.updateGraph({ links: [], nodes: [] } as MusicGraph);
     }
-    console.log("component did update");
-    this.loadGraphData();
-    this.updateGraph(this.state.data);
-    this.updateAxis(this.transform);
+    if ( 
+      prevProps.dimx !== this.props.dimx || 
+      prevProps.dimy !== this.props.dimy || 
+      prevState.x !== this.state.x || 
+      prevState.y !== this.state.y || 
+      prevState.y !== this.state.y || 
+      prevState.zoom !== this.state.zoom || 
+      prevState.zoomLevel !== this.state.zoomLevel || 
+      prevState.levelType !== this.state.levelType 
+    ) {
+        this.loadGraphData();
+    }
+    if (
+      prevState.data !== this.state.data || 
+      prevProps.width !== this.props.width || 
+      prevProps.height !== this.props.height
+    ) {
+      this.updateGraph(this.state.data);
+      this.updateAxis(this.transform);
+    }
     // }
   }
 
