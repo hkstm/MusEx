@@ -2,12 +2,21 @@ import React, { Component } from "react";
 import ReactWordcloud, { Word } from "react-wordcloud";
 import ReactDOM from "react-dom";
 import axios from "axios";
-import { Size, Position, Genre, Node, NodeType } from "./common";
+import {
+  Size,
+  Position,
+  Genre,
+  Node,
+  NodeType,
+  headerConfig,
+  apiVersion,
+} from "./common";
 import Graph, { GraphDataDimensions } from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select, { SelectOptions } from "./Select";
 import { HeatmapTile } from "./charts/heatmap/Heatmap";
 import Heatmap from "./charts/musicheatmap/heatmap";
+import Wordcloud from "./charts/wordcloud/Wordcloud";
 import Streamgraph, {
   StreamgraphStream,
 } from "./charts/streamgraph/Streamgraph";
@@ -26,39 +35,11 @@ import {
   faHighlighter,
 } from "@fortawesome/free-solid-svg-icons";
 
-const MAX_WORDCLOUD_SIZE = 50;
-
-const config = {
-  headers: { "Access-Control-Allow-Origin": "*" },
-};
-
-const options = {
-  colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"],
-  enableTooltip: true,
-  deterministic: false,
-  fontFamily: "impact",
-  fontStyle: "normal",
-  fontWeight: "normal",
-  padding: 1,
-  rotations: 0,
-};
-
-interface WordcloudWord extends Word {
-  color?: string;
-}
-
 type AppState = {
   graph: MusicGraph;
   interests: MinimapData;
   highlighted: string[];
   dimensions: GraphDataDimensions;
-
-  // Wordcloud
-  wordcloudEnabled?: boolean;
-  wordcloudYear: number;
-  wordcloudType: NodeType;
-  wordcloudLoading: boolean;
-  wordcloudData: WordcloudWord[];
 
   // Streamgraph
   streamgraphEnabled?: boolean;
@@ -69,7 +50,6 @@ type AppState = {
     keys: string[];
     most_popular: StreamgraphStream[];
   };
-
   sideviewExpanded: boolean;
   searchQuery: string;
   searchType: string;
@@ -87,26 +67,7 @@ class App extends Component<{}, AppState> {
   zoomLevels = 5;
   lastUpdateZoomLevel?: number = undefined;
   lastUpdate?: { zoom: number; levelType: NodeType } = undefined;
-  apiVersion = "v2";
   mainViewWidthPercent = 0.6;
-
-  wordCloudCallbacks = {
-    getWordColor: (word: WordcloudWord) => word?.color ?? "white",
-    onWordMouseOver: (event: WordcloudWord) => {},
-    onWordClick: (event: { text: string }) => {
-      // const attr = this.wordcloudType === "genre" ? "genre" : "name"
-      const highlighted = this.state.graph.nodes
-        // .forEach((n) => console.log(n, event.text))
-        .filter((n) => n["name"].toLowerCase() == event.text.toLowerCase())
-        .map((n) => n["id"]);
-      console.log("highlighed", highlighted);
-      this.setState({
-        highlighted,
-      });
-    },
-    getWordTooltip: (word: WordcloudWord) => "",
-    // `${capitalize(word.text)} (${Math.round(word.value)})`,
-  };
 
   constructor(props: {}) {
     super(props);
@@ -122,12 +83,6 @@ class App extends Component<{}, AppState> {
         xSize: 20,
         ySize: 20,
       },
-      // Wordcloud
-      wordcloudEnabled: true,
-      wordcloudLoading: true,
-      wordcloudYear: 2020,
-      wordcloudType: "genre",
-      wordcloudData: [],
       // Streamgraph
       streamgraphEnabled: true,
       streamgraphYearStart: 2000,
@@ -192,25 +147,12 @@ class App extends Component<{}, AppState> {
     });
   };
 
-  handleWordcloudTypeChange = (typ: string) => {
-    // console.log("wordcloud type changed to", typ);
-    this.setState({ wordcloudType: typ as NodeType }, this.updateWordcloud);
-  };
-
-  handleWordcloudYearChange = (event: React.FormEvent) => {
-    const target = event.target as HTMLInputElement;
-    this.setState(
-      { wordcloudYear: parseInt(target.value) },
-      this.updateWordcloud
-    );
-  };
-
   updateStreamgraph = () => {
     this.setState({ streamgraphLoading: true });
     axios
       .get(
-        `http://localhost:5000/${this.apiVersion}/most_popular?year_min=${this.state.streamgraphYearStart}&year_max=${this.state.streamgraphYearEnd}&type=genre&use_super=yes&streamgraph=yes`,
-        config
+        `http://localhost:5000/${apiVersion}/most_popular?year_min=${this.state.streamgraphYearStart}&year_max=${this.state.streamgraphYearEnd}&type=genre&use_super=yes&streamgraph=yes`,
+        headerConfig
       )
       .then((res) => {
         // console.log(res.data);
@@ -222,29 +164,6 @@ class App extends Component<{}, AppState> {
         });
       })
       .finally(() => this.setState({ streamgraphLoading: false }));
-  };
-
-  updateWordcloud = () => {
-    this.setState({ wordcloudLoading: true });
-    axios
-      .get(
-        `http://localhost:5000/${this.apiVersion}/most_popular?year_min=${this.state.wordcloudYear}&year_max=${this.state.wordcloudYear}&type=${this.state.wordcloudType}&limit=${MAX_WORDCLOUD_SIZE}`,
-        config
-      )
-      .then((res) => {
-        this.setState({
-          wordcloudData: res.data.most_popular.map(
-            (data: { popularity: number; color: string; name: string }) => {
-              return {
-                text: capitalize(data.name),
-                value: data.popularity,
-                color: data.color,
-              };
-            }
-          ),
-        });
-      })
-      .finally(() => this.setState({ wordcloudLoading: false }));
   };
 
   handleDimYChange = (dimy: string) => {
@@ -272,9 +191,9 @@ class App extends Component<{}, AppState> {
     console.log("searching");
     event?.preventDefault();
     return;
-    let searchURL = `http://localhost:5000/${this.apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
+    let searchURL = `http://localhost:5000/${apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
     console.log(searchURL);
-    axios.get(searchURL, config).then((res) => {
+    axios.get(searchURL, headerConfig).then((res) => {
       console.log(res.data);
       // this.setState({ graph: res.data });
     });
@@ -296,8 +215,8 @@ class App extends Component<{}, AppState> {
       levelType: this.state.levelType,
     };
 
-    const graphDataURL = `http://localhost:5000/${this.apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.levelType}&limit=1000`;
-    axios.get(graphDataURL, config).then((res) => {
+    const graphDataURL = `http://localhost:5000/${apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.levelType}&limit=1000`;
+    axios.get(graphDataURL, headerConfig).then((res) => {
       // console.log(res.data.nodes.length + " nodes");
       // console.log(res.data.links.length + " links");
       this.setState({ graph: res.data });
@@ -306,7 +225,7 @@ class App extends Component<{}, AppState> {
 
   updateDimensions = (): Promise<void> => {
     return axios
-      .get(`http://localhost:5000/${this.apiVersion}/dimensions`, config)
+      .get(`http://localhost:5000/${apiVersion}/dimensions`, headerConfig)
       .then((res) => {
         this.setState({ dimensions: res.data });
       });
@@ -412,44 +331,7 @@ class App extends Component<{}, AppState> {
             />
 
             <Widget>
-              <div className="wordcloud-container">
-                <h3>
-                  Most popular{" "}
-                  <Select
-                    id="select-wordcloud-type"
-                    default="genre"
-                    onChange={this.handleWordcloudTypeChange}
-                    options={{ genre: {}, artist: {} }}
-                  ></Select>{" "}
-                  in{" "}
-                  <input
-                    className="numeric-input"
-                    id="wordcloud-year-input"
-                    value={this.state.wordcloudYear}
-                    onChange={this.handleWordcloudYearChange}
-                    type="number"
-                    placeholder="Year"
-                  />
-                  :
-                </h3>
-                {this.state.wordcloudLoading && (
-                  <FontAwesomeIcon
-                    className="loading-spinner icon toggle"
-                    id="wordcloud-loading-spinner"
-                    icon={faSpinner}
-                    spin
-                  />
-                )}
-
-                {this.state.wordcloudEnabled &&
-                  !this.state.wordcloudLoading && (
-                    <ReactWordcloud
-                      words={this.state.wordcloudData}
-                      callbacks={this.wordCloudCallbacks}
-                      options={options}
-                    ></ReactWordcloud>
-                  )}
-              </div>
+              <Wordcloud></Wordcloud>
             </Widget>
             <Widget>
               <h3>Evolution of genres</h3>
@@ -476,7 +358,7 @@ class App extends Component<{}, AppState> {
             </Widget>
             <Widget>
               <h3>Evolution of musical features</h3>
-              <Heatmap apiVersion={this.apiVersion}></Heatmap>
+              <Heatmap apiVersion={apiVersion}></Heatmap>
             </Widget>
           </div>
         </div>

@@ -22,3 +22,9 @@ export type Genre = {
 };
 
 export type Node = {};
+
+export const apiVersion = "v2";
+
+export const headerConfig = {
+  headers: { "Access-Control-Allow-Origin": "*" },
+};
