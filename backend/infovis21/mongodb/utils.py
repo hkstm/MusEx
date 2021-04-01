@@ -42,7 +42,9 @@ def add_genre_super_info(base_coll_name, local_field, foreign_field):
 def normalize(dim, value, _min=0.0, _max=1.0):
     """ Normalize orignal data values """
     return np.interp(
-        value, (ma.dim_minmax[dim]["min"], ma.dim_minmax[dim]["max"]), (_min, _max),
+        value,
+        (ma.dim_minmax[dim]["min"], ma.dim_minmax[dim]["max"]),
+        (_min, _max),
     )
 
 
@@ -88,8 +90,10 @@ def precomputed_discarded_collection(dimx, dimy, typ, zoom):
 
 
 MAX_RADIUS = 0.1
+# N_ZOOM_LEVELS = 5
 N_ZOOM_LEVELS = 5
 ZOOM_LEVELS = [MAX_RADIUS / (2 ** i) for i in range(N_ZOOM_LEVELS - 1)] + [0.0]
+# ZOOM_LEVELS = [1.0, 0.9, 0.8, 0.6, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1] + [0.0]
 
 
 def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
@@ -110,7 +114,9 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
 
     # load all nodes from the database
     nodes_data = dict()
-    for idx, elem in enumerate(ma.collections[typ].aggregate(pipeline)):
+    for idx, elem in enumerate(
+        ma.collections[typ].aggregate(pipeline, allowDiskUse=True)
+    ):
         x, y = normalize(dimx, elem.get(dimx)), normalize(dimy, elem.get(dimy))
         nodes_data[elem.get("id")] = (np.array([x, y]), elem.get("id"), elem)
         # pprint(elem)
@@ -144,7 +150,12 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     pipeline = [
         {"$unwind": "$labels"},
         {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"}}},
-        {"$project": {"id": "$_id", "members": "$members",}},
+        {
+            "$project": {
+                "id": "$_id",
+                "members": "$members",
+            }
+        },
     ]
 
     preprocessed_links = []
@@ -174,6 +185,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     # plot filtered nodes
     if plot:
         import networkx as nx
+
         G = nx.Graph()
         G.add_nodes_from(filtered_node)
         dims = ["x", "y"]
@@ -334,7 +346,8 @@ def compute_artist_popularity_per_year(
         {"$out": out},
     ]
     ma.coll_tracks.aggregate(
-        pipeline, allowDiskUse=True,
+        pipeline,
+        allowDiskUse=True,
     )
     ma.db[out].create_index("year")
 
@@ -383,7 +396,8 @@ def compute_genre_popularity_per_year(
         {"$out": out},
     ]
     ma.coll_tracks.aggregate(
-        pipeline, allowDiskUse=True,
+        pipeline,
+        allowDiskUse=True,
     )
     ma.db[out].create_index("year")
 
@@ -443,7 +457,12 @@ def add_labels_to_genres():
     pipeline = [
         {"$unwind": "$genres"},
         {"$unwind": "$labels"},
-        {"$group": {"_id": "$genres", "labels": {"$addToSet": "$labels"},}},
+        {
+            "$group": {
+                "_id": "$genres",
+                "labels": {"$addToSet": "$labels"},
+            }
+        },
         {
             "$lookup": {
                 "from": "genres",
@@ -507,22 +526,58 @@ def compute_min_max():
                     "min": "$min_acousticness",
                     "max": "$max_danceability",
                 },
-                "duration_ms": {"min": "$min_duration_ms", "max": "$max_duration_ms",},
-                "energy": {"min": "$min_energy", "max": "$max_energy",},
-                "explicit": {"min": "$min_explicit", "max": "$max_explicit",},
+                "duration_ms": {
+                    "min": "$min_duration_ms",
+                    "max": "$max_duration_ms",
+                },
+                "energy": {
+                    "min": "$min_energy",
+                    "max": "$max_energy",
+                },
+                "explicit": {
+                    "min": "$min_explicit",
+                    "max": "$max_explicit",
+                },
                 "instrumentalness": {
                     "min": "$min_instrumentalness",
                     "max": "$max_instrumentalness",
                 },
-                "key": {"min": "$min_key", "max": "$max_key",},
-                "liveness": {"min": "$min_liveness", "max": "$max_liveness",},
-                "loudness": {"min": "$min_loudness", "max": "$max_loudness",},
-                "mode": {"min": "$min_mode", "max": "$max_mode",},
-                "popularity": {"min": "$min_popularity", "max": "$max_popularity",},
-                "speechiness": {"min": "$min_speechiness", "max": "$max_speechiness",},
-                "tempo": {"min": "$min_tempo", "max": "$max_tempo",},
-                "valence": {"min": "$min_valence", "max": "$max_valence",},
-                "year": {"min": "$min_year", "max": "$max_year",},
+                "key": {
+                    "min": "$min_key",
+                    "max": "$max_key",
+                },
+                "liveness": {
+                    "min": "$min_liveness",
+                    "max": "$max_liveness",
+                },
+                "loudness": {
+                    "min": "$min_loudness",
+                    "max": "$max_loudness",
+                },
+                "mode": {
+                    "min": "$min_mode",
+                    "max": "$max_mode",
+                },
+                "popularity": {
+                    "min": "$min_popularity",
+                    "max": "$max_popularity",
+                },
+                "speechiness": {
+                    "min": "$min_speechiness",
+                    "max": "$max_speechiness",
+                },
+                "tempo": {
+                    "min": "$min_tempo",
+                    "max": "$max_tempo",
+                },
+                "valence": {
+                    "min": "$min_valence",
+                    "max": "$max_valence",
+                },
+                "year": {
+                    "min": "$min_year",
+                    "max": "$max_year",
+                },
                 "_id": 0,
             }
         },

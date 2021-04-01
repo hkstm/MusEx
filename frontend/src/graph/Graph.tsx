@@ -73,10 +73,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   transform!: d3.ZoomTransform;
 
   levels: NodeType[] = ["genre", "artist", "track"];
-  lastUpdateZoomLevel?: number = undefined;
-  lastUpdate?: { zoom: number; levelType: NodeType } = undefined;
+  lastUpdate?: { zoomK: number; levelType: NodeType } = undefined;
 
   maxZoom = 20;
+  kInv = 20;
   baseTextSize = 15;
   defaultMinimapSize = 100;
   baseLinkStrokeWidth = 2;
@@ -84,7 +84,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   minNodeSize = 5;
   scalePadding = 30;
   // threshold for the node labels that should always remain visible
-  largeNodeLabel = 45;
+  largeNodeLabel = 0;
   gradients = {
     // #3f51b5
     // #009688
@@ -214,8 +214,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           Math.max(1, k),
       };
       // console.log(x, y);
-      if (!this.lastUpdate || this.state.zoomK >= 2 * this.lastUpdate?.zoom) {
-        console.log("updating");
+      // console.log(this.state.zoomK, this.zoom);
+      if (
+        !this.lastUpdate ||
+        this.state.levelType !== this.lastUpdate?.levelType ||
+        Math.abs(this.state.zoomK - this.lastUpdate?.zoomK) >= 1 / 10
+      ) {
+        // console.log("updating now");
+        // console.log(this.state.zoomK); //, this.zoom);
         this.loadGraphData();
         this.updateGraph(this.state.data);
       }
@@ -225,9 +231,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         y: y * (this.props.minimapHeight ?? this.defaultMinimapSize),
       };
       this.updateAxis(this.transform);
+
+      // const kk = k/this.maxZoom/this.levels.length;
+      const kk = k; // k/this.maxZoom/2;
+      console.log("zoomK and zoom are", this.state.zoomK, this.state.zoom);
       this.setState(
         {
           zoomK: k,
+          zoom: kk - Math.floor(kk),
+          levelType: this.levels[Number(Math.floor(kk))],
           minimapSelectionSize,
           minimapPos,
         },
@@ -347,14 +359,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.state.levelType
     );
     this.lastUpdate = {
-      zoom: this.state.zoomK,
+      zoomK: this.state.zoomK,
       levelType: this.state.levelType,
     };
     const graphDataURL = `http://localhost:5000/${apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.props.dimx}&dimy=${this.props.dimy}&type=${this.state.levelType}&limit=1000`;
+    console.log(graphDataURL);
     axios.get(graphDataURL, headerConfig).then((res) => {
-      // console.log(res.data.nodes.length + " nodes");
-      // console.log(res.data.links.length + " links");
-      this.setState({ data: res.data });
+      console.log(res.data.nodes.length + " nodes");
+      console.log(res.data.links.length + " links");
+      this.setState({ data: res.data }, () => {
+        this.updateGraph(res.data);
+      });
     });
   };
 
@@ -548,8 +563,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
     const backgroundGradient = this.svg.select("defs").select("#mainGradient");
     const gradient = this.gradients[this.state.levelType];
-    backgroundGradient.select(".stop-left").attr("stop-color", gradient[0]);
-    backgroundGradient.select(".stop-right").attr("stop-color", gradient[1]);
+    if (gradient) {
+      backgroundGradient.select(".stop-left").attr("stop-color", gradient[0]);
+      backgroundGradient.select(".stop-right").attr("stop-color", gradient[1]);
+    }
   };
 
   componentDidUpdate(prevProps: GraphProps, prevState: any) {
@@ -569,26 +586,27 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     ) {
       this.updateGraph({ links: [], nodes: [] } as MusicGraph);
     }
-    if (
-      prevProps.dimx !== this.props.dimx ||
-      prevProps.dimy !== this.props.dimy ||
-      prevState.x !== this.state.x ||
-      prevState.y !== this.state.y ||
-      prevState.y !== this.state.y ||
-      prevState.zoom !== this.state.zoom ||
-      prevState.zoomLevel !== this.state.zoomLevel ||
-      prevState.levelType !== this.state.levelType
-    ) {
-      this.loadGraphData();
-    }
-    if (
-      prevState.data !== this.state.data ||
-      prevProps.width !== this.props.width ||
-      prevProps.height !== this.props.height
-    ) {
-      this.updateGraph(this.state.data);
-      this.updateAxis(this.transform);
-    }
+    // if (
+    //   prevProps.dimx !== this.props.dimx ||
+    //   prevProps.dimy !== this.props.dimy ||
+    //   prevState.x !== this.state.x ||
+    //   prevState.y !== this.state.y ||
+    //   prevState.y !== this.state.y ||
+    //   prevState.zoom !== this.state.zoom ||
+    //   prevState.zoomLevel !== this.state.zoomLevel ||
+    //   prevState.levelType !== this.state.levelType
+    // ) {
+    //   this.loadGraphData();
+    //   this.updateGraph(this.state.data);
+    // }
+    // if (
+    //   prevState.data !== this.state.data ||
+    //   prevProps.width !== this.props.width ||
+    //   prevProps.height !== this.props.height
+    // ) {
+    //   this.updateGraph(this.state.data);
+    //   this.updateAxis(this.transform);
+    // }
     // }
   }
 
@@ -642,7 +660,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("width", 3 * this.props.width)
       .attr("height", 3 * this.props.height);
 
-    console.log("loading");
     this.addAxis();
     this.addGraph();
     this.loadGraphData();

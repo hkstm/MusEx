@@ -81,6 +81,10 @@ class Wordcloud extends Component<WordcloudProps, WordcloudState> {
     );
   };
 
+  componentDidMount() {
+    this.updateWordcloud();
+  }
+
   updateWordcloud = () => {
     this.setState({ wordcloudLoading: true });
     axios
