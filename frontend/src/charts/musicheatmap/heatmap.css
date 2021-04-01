@@ -7,7 +7,7 @@
 .heatmap-legend {
     display: none;
     float: left;
-    margin: 40px 0 0 140px;
+    margin: 30px 0 0 140px;
 }
 .widget-fullscreen .heatmap-legend {
     display: block;
@@ -39,13 +39,13 @@
 /* custom-heatmap-css */
 
 .heatmap-grid {
-    margin-top: 2vw;
+    margin-right: 2vw;
     overflow-x: auto;
-    padding: 10px 0;
+    padding: 20px 0;
 }
 
 .widget-fullscreen .heatmap-grid {
-    margin-top: 120px;
+    padding-top: 120px;
 }
 
 .heatmap-row {
@@ -141,8 +141,9 @@
 } */
 
 .hm-slider-label {
-    float: right;
-    margin-top: 25px;
+    float: left;
+    margin-top: 30px;
+    margin-left: 25px;
 }
 
 .animation-cell-1 {
