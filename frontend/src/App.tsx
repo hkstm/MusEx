@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import ReactWordcloud, { Word } from "react-wordcloud";
 import ReactDOM from "react-dom";
 import axios from "axios";
-import { Size, Position, Genre, Node, NodeType } from "./common";
+import { Size, Position, Genre, Node, NodeType, Recommendations } from "./common";
 import Graph, { GraphDataDimensions } from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select, { SelectOptions } from "./Select";
@@ -79,6 +79,8 @@ type AppState = {
   type: NodeType;
   dimx?: string;
   dimy?: string;
+  selected?: String[];
+  recommendation?: Recommendations;
 };
 
 class App extends Component<{}, AppState> {
@@ -120,6 +122,11 @@ class App extends Component<{}, AppState> {
         tiles: [],
         xSize: 20,
         ySize: 20,
+      },
+      selected: [],
+      recommendation:{
+        id: '',
+        value: 0
       },
       // Wordcloud
       wordcloudEnabled: true,
@@ -263,6 +270,23 @@ class App extends Component<{}, AppState> {
     });
   };
 
+  getRecommendations=(childData:Set<string>)=>{
+    var temp:string[] =[]
+    childData.forEach(element => temp.push(element))
+    this.setState({selected: temp})
+    if (this.state.selected!.length >= 1){ 
+    axios
+      .get(
+        `http://localhost:5000/${this.apiVersion}/select?node=${this.state.selected![0]}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=10`, config)
+        .then((res)=>{
+          console.log(res.data)
+          this.setState({recommendation: res.data})
+          console.log(this.state.recommendation)
+        })}else{
+          console.log("We are not getting anything rn")
+        }
+  }
+
   updateGraph = () => {
     console.log(
       "updating graph for ",
@@ -306,6 +330,7 @@ class App extends Component<{}, AppState> {
   }
 
   render() {
+    const {recommendation}= this.state;
     return (
       <div className="app">
         <header>
@@ -375,6 +400,8 @@ class App extends Component<{}, AppState> {
                   dimensions={this.state.dimensions}
                   onZoom={this.handleZoom}
                   data={this.state.graph}
+                  onClick = {this.getRecommendations}
+                  sendRecommendations={this.getRecommendations.bind(this)}
                 ></Graph>
               )}
             </Widget>
@@ -454,7 +481,7 @@ class App extends Component<{}, AppState> {
             </Widget>
             <Widget>
               <h3>Evolution of musical features</h3>
-              <Heatmap apiVersion={this.apiVersion}></Heatmap>
+              <Heatmap></Heatmap>
             </Widget>
           </div>
         </div>
