@@ -38,7 +38,12 @@ class App extends Component<{}, AppState> {
   }
 
   onButtonClickHandler = () => {
-    window.alert("Help!");
+    window.alert(
+      'FAQ\n'
+    + '\n??Need help searching for specific genres or artists??\n--Type in the top right search bar and pick from artist or genre!'
+    + '\n??Want to see stats of audio features throughout the years??\n--Try the slidebar underneath the heatmap!'
+    + '\n??Want to focus only on the graph??\n--Click the three stacked bars next to the wordcloud to blend them out!'
+    + '\n??Need to know how to click??\n--LeftClick -> (Un)highlight node\n--Shift + LeftClick -> Play/stop music\n--Double LeftClick -> Zooming\n')
   };
 
   setSearchQuery = (event: React.FormEvent) => {
@@ -86,6 +91,10 @@ class App extends Component<{}, AppState> {
             <div className="controls">
               <span id="app-name">MusEx</span>
             </div>
+            <div className="helpButton"
+              id="app-help">
+              <button onClick={this.onButtonClickHandler}>Help</button>
+              </div>
           </nav>
         </header>
         <div id="content">
