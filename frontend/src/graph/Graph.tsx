@@ -213,6 +213,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           Math.max(1, k),
       };
       // console.log(x, y);
+
+      if (this.zoomK >= 2 * this.lastUpdate.zoom) {
+        // this.updateGraph();
+        this.loadGraphData();
+        this.updateGraph(this.state.data);
+      }
+
       const minimapPos = {
         x: x * (this.props.minimapWidth ?? this.defaultMinimapSize),
         y: y * (this.props.minimapHeight ?? this.defaultMinimapSize),
@@ -340,7 +347,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.state.levelType
     );
     this.lastUpdate = {
-      zoom: this.state.zoom,
+      zoom: this.state.zoomK,
       levelType: this.state.levelType,
     };
     const graphDataURL = `http://localhost:5000/${apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.props.dimx}&dimy=${this.props.dimy}&type=${this.state.levelType}&limit=1000`;

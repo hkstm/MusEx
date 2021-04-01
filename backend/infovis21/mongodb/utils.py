@@ -105,7 +105,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     )
 
     # plot filtered nodes
-    if plot:
+    if False and plot:
         dims = ["x", "y"]
         sns.scatterplot(data=pd.DataFrame(points, columns=dims), x="x", y="y")
         plt.show()
@@ -143,6 +143,17 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
                     "y2": dest_pos[1],
                 }
             )
+
+    # plot filtered nodes
+    if plot:
+        import networkx as nx
+        G = nx.Graph()
+        G.add_nodes_from(filtered_node)
+        dims = ["x", "y"]
+        sns.scatterplot(data=pd.DataFrame(points, columns=dims), x="x", y="y")
+        plt.show()
+        sns.scatterplot(data=pd.DataFrame(filtered_nodes, columns=dims), x="x", y="y")
+        plt.show()
 
     print("computed %d links" % len(preprocessed_links))
 
