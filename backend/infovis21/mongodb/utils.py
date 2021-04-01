@@ -174,6 +174,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     # plot filtered nodes
     if plot:
         import networkx as nx
+
         G = nx.Graph()
         G.add_nodes_from(filtered_node)
         dims = ["x", "y"]
