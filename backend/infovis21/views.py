@@ -449,7 +449,7 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
         },
         {
             "$project": {
-                "id": {"$toString": "$_id"},
+                "id": "$id",
                 "x": "$x",
                 "y": "$y",
                 "name": "$name",
@@ -487,7 +487,7 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
         },
         {
             "$project": {
-                "id": {"$toString": "$_id"},
+                "id": "$id",
                 "src": "$src",
                 "dest": "$dest",
                 "x1": "$x1",
