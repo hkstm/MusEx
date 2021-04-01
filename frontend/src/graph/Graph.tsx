@@ -81,6 +81,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   defaultMinimapSize = 100;
   baseLinkStrokeWidth = 2;
   baseNodeStrokeWidth = 1.5;
+  minNodeSize = 5;
   scalePadding = 30;
   // threshold for the node labels that should always remain visible
   largeNodeLabel = 45;
@@ -128,8 +129,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   playIconCoordinates(d: MusicGraphNode, zoom: number, enlarge: number) {
     const x = (d.x ?? 0) * enlarge;
     const y = (d.y ?? 0) * enlarge;
-    // const x: number = this.getCoordinateX(d.x);
-    // const y: number = this.getCoordinateY(d.y);
     const offset = (0.35 * (d.size ?? 0)) / 3 / 2 / zoom;
     return `${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${
       y - 3 * offset
@@ -187,7 +186,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .selectAll<SVGGElement, MusicGraphNode>(".node");
       nodes
         .select("circle")
-        .attr("r", (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / k)
+        .attr("r", (d: MusicGraphNode) =>
+          Math.max(this.minNodeSize, ((d.size ?? 0) * 0.35) / k)
+        )
         .attr("stroke-width", this.baseNodeStrokeWidth / k);
       nodes
         .select("polygon")
@@ -385,15 +386,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .select("circle")
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
       .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
-    // .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-    // .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     nodes
       .select("text")
       .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
       .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
-    // .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-    // .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     // add elements that were not in the graph before
     const newNodes = nodes.enter().append("g").attr("class", "node");
@@ -448,8 +445,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("class", (d: MusicGraphNode) => `${d.id}`)
       .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
       .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
-      // .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-      // .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y))) // used to be enlarge
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
@@ -462,7 +457,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     newNodes
       .append("polygon")
       .attr("class", "playIcon")
-      // .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d))
       .attr("points", (d: MusicGraphNode) =>
         this.playIconCoordinates(d, this.state.zoomK, enlarge)
       )
@@ -483,19 +477,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("opacity", 0)
       .style("font-size", this.baseTextSize / this.state.zoomK + "px")
       .text((d) => d.name)
-      // .text((d) => d.name + " " +  d.x.toFixed(3) + "," + d.y.toFixed(3)) // For debugging coordinates
-      // .attr(
-      //   "x",
-      //   (d: MusicGraphNode) =>
-      //     (d.x ?? 0) * enlarge // + (d.size ?? 0) * 0.35 + 5
-      // )
       .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
       .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
-      // .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-      // .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
       .attr("fill", "white")
-      // .style("stroke", "black")
-      // .style("stroke-width", 0.4)
       .style("visibility", (d: MusicGraphNode) =>
         d.size! > this.largeNodeLabel ? "visible" : "hidden"
       );
@@ -505,9 +489,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .select("circle")
       .transition("enter")
       .duration(300)
-      .attr(
-        "r",
-        (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / this.state.zoomK
+      .attr("r", (d: MusicGraphNode) =>
+        Math.max(this.minNodeSize, ((d.size ?? 0) * 0.35) / this.state.zoomK)
       )
       .style("opacity", 0.8);
 
@@ -537,12 +520,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .select("line")
       .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
       .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
-      // .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
-      // .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
       .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
       .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
-    // .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
-    // .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // add links that were not in the graph before
     const newLinks = links
@@ -554,12 +533,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke-width", "0px")
       .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
       .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
-      // .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
-      // .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
       .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
       .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
-    // .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
-    // .attr("y2", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // animate entering of new links
     newLinks
@@ -594,21 +569,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     ) {
       this.updateGraph({ links: [], nodes: [] } as MusicGraph);
     }
-    if ( 
-      prevProps.dimx !== this.props.dimx || 
-      prevProps.dimy !== this.props.dimy || 
-      prevState.x !== this.state.x || 
-      prevState.y !== this.state.y || 
-      prevState.y !== this.state.y || 
-      prevState.zoom !== this.state.zoom || 
-      prevState.zoomLevel !== this.state.zoomLevel || 
-      prevState.levelType !== this.state.levelType 
+    if (
+      prevProps.dimx !== this.props.dimx ||
+      prevProps.dimy !== this.props.dimy ||
+      prevState.x !== this.state.x ||
+      prevState.y !== this.state.y ||
+      prevState.y !== this.state.y ||
+      prevState.zoom !== this.state.zoom ||
+      prevState.zoomLevel !== this.state.zoomLevel ||
+      prevState.levelType !== this.state.levelType
     ) {
-        this.loadGraphData();
+      this.loadGraphData();
     }
     if (
-      prevState.data !== this.state.data || 
-      prevProps.width !== this.props.width || 
+      prevState.data !== this.state.data ||
+      prevProps.width !== this.props.width ||
       prevProps.height !== this.props.height
     ) {
       this.updateGraph(this.state.data);

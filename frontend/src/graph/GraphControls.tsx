@@ -13,11 +13,14 @@ type GraphControlState = {
   searchType: string;
 };
 
-class GraphControl extends Component<{sideviewExpanded: boolean}, GraphControlState> {
+class GraphControl extends Component<
+  { sideviewExpanded: boolean },
+  GraphControlState
+> {
   mainViewWidthPercent = 0.6;
   zoomLevels = 5;
 
-  constructor(props: {sideviewExpanded: true}) {
+  constructor(props: { sideviewExpanded: true }) {
     super(props);
     this.state = {
       dimensions: {},
@@ -82,16 +85,15 @@ class GraphControl extends Component<{sideviewExpanded: boolean}, GraphControlSt
               id="select-dimx"
               default="energy"
               onChange={this.handleDimXChange}
-              options={this.state.dimensions}>
-            </Select>
+              options={this.state.dimensions}
+            ></Select>
             <Select
               id="select-dimy"
               default="tempo"
               onChange={this.handleDimYChange}
               options={this.state.dimensions}
-              >
-            </Select>
-        </div>
+            ></Select>
+          </div>
           <form className="forms" onSubmit={this.search}>
             <input
               type="text"
@@ -104,8 +106,8 @@ class GraphControl extends Component<{sideviewExpanded: boolean}, GraphControlSt
               id="search-type-select"
               default="artist"
               onChange={this.handleSearchTypeChange}
-              options={{ artist: {}, genre: {} }}>
-            </Select>
+              options={{ artist: {}, genre: {} }}
+            ></Select>
             <button id="app-search" type="submit">
               Search
             </button>
@@ -114,27 +116,26 @@ class GraphControl extends Component<{sideviewExpanded: boolean}, GraphControlSt
             </button>
           </form>
         </div>
-        {this.state.dimx === this.state.dimy ? 
-          (<h1>Please select two different dimensions</h1>) 
-          : (
-                <Graph
-                  enabled={true}
-                  zoomLevels={this.zoomLevels}
-                  width={
-                    window.innerWidth *
-                      (this.props.sideviewExpanded
-                        ? this.mainViewWidthPercent
-                        : 1.0) -
-                    30
-                  }
-                  height={window.innerHeight - 40}
-                  dimx={this.state.dimx}
-                  dimy={this.state.dimy}
-                  dimensions={this.state.dimensions}
-                ></Graph>
-              )}
-
-    </div>
+        {this.state.dimx === this.state.dimy ? (
+          <h1>Please select two different dimensions</h1>
+        ) : (
+          <Graph
+            enabled={true}
+            zoomLevels={this.zoomLevels}
+            width={
+              window.innerWidth *
+                (this.props.sideviewExpanded
+                  ? this.mainViewWidthPercent
+                  : 1.0) -
+              30
+            }
+            height={window.innerHeight - 40}
+            dimx={this.state.dimx}
+            dimy={this.state.dimy}
+            dimensions={this.state.dimensions}
+          ></Graph>
+        )}
+      </div>
     );
   }
 }

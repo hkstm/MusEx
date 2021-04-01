@@ -46,23 +46,6 @@ class App extends Component<{}, AppState> {
     this.setState({ searchQuery: target.value });
   };
 
-  // handleZoom = (zoom: number) => {
-  //   const zoomLevel = Math.floor(zoom);
-  //   const levelType = this.levels[Math.min(zoomLevel, this.levels.length - 1)];
-  //   // console.log("zoom changed to", zoom, zoomLevel, levelType);
-  //   // TODO: make this a lot smarter please!
-  //   this.setState({ zoom: zoom - zoomLevel, zoomLevel, levelType }, () => {
-  //     if (
-  //       this.lastUpdate &&
-  //       (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
-  //         1 / this.zoomLevels ||
-  //         this.lastUpdate.levelType !== levelType)
-  //     )
-  //       console.log("trigger zoom based update");
-  //     // this.updateGraph();
-  //   });
-  // };
-
   handleDimYChange = (dimy: string) => {
     console.log("changed y dim to", dimy);
     this.setState({ dimy });
@@ -110,7 +93,7 @@ class App extends Component<{}, AppState> {
             className={this.state.sideviewExpanded ? "expanded" : ""}
             id="main-view"
           >
-            <GraphControl sideviewExpanded={this.state.sideviewExpanded}/>
+            <GraphControl sideviewExpanded={this.state.sideviewExpanded} />
           </div>
           <div
             className={this.state.sideviewExpanded ? "expanded" : ""}
@@ -125,12 +108,12 @@ class App extends Component<{}, AppState> {
             <Widget>
               <Wordcloud></Wordcloud>
             </Widget>
-            { /* <Widget>
+            {/* <Widget>
               <Streamgraph
                 width={window.innerWidth * (1 - this.mainViewWidthPercent) - 30}
                 height={300}
               ></Streamgraph>
-            </Widget> */ }
+            </Widget> */}
             <Widget>
               <h3>Evolution of musical features</h3>
               <Heatmap apiVersion={apiVersion}></Heatmap>
