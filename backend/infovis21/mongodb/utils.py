@@ -117,13 +117,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     pipeline = [
         {"$unwind": "$labels"},
         {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"}}},
-        {
-            "$project": {
-                "id": "$_id",
-                "members": "$members",
-                "color": "black",  # needs to be set programmatically
-            }
-        },
+        {"$project": {"id": "$_id", "members": "$members",}},
     ]
 
     preprocessed_links = []
@@ -141,7 +135,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
                 {
                     "src": src_id,
                     "dest": dest_id,
-                    "color": music_label.get("color"),
+                    "color": music_label.get("genre_color"),
                     "name": music_label.get("id"),
                     "x1": src_pos[0],
                     "y1": src_pos[1],
@@ -211,6 +205,55 @@ def min_distance_based_filtering(points, radius=0.1, verbosity=100_000):
 
     end = time.time()
     return ans, discarded, end - start
+
+
+def compute_genre_popularity_per_year(
+    out="genre_popularity_per_year", use_super_genre=True
+):
+    ma.db[out].create_index("year")
+    pipeline = [
+        {
+            "$project": {
+                "genres": 1,
+                "genre_color": 1,
+                "genre_super": 1,
+                "year": 1,
+                "popularity": 1,
+            }
+        },
+    ]
+    if not use_super_genre:
+        pipeline.append({"$unwind": "$genres"})
+    pipeline += [
+        {
+            "$group": {
+                "_id": {
+                    "year": "$year",
+                    "genre": "$genres" if not use_super_genre else "$genre_super",
+                },
+                "popularity": {"$avg": "$popularity"},
+                "color": {"$first": "$genre_color"},
+                "super_genre": {"$first": "$genre_super"},
+            }
+        },
+        {
+            "$project": {
+                "name": "$_id.genre",
+                "genre": "$_id.genre",
+                "year": "$_id.year",
+                "super_genre": 1,
+                "color": 1,
+                "popularity": 1,
+                "_id": 0,
+            }
+        },
+        {"$sort": {"year": 1, "popularity": -1}},
+        {"$out": out},
+    ]
+    ma.coll_tracks.aggregate(
+        pipeline, allowDiskUse=True,
+    )
+    ma.db[out].create_index("year")
 
 
 def create_album_collection():
