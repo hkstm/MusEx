@@ -7,11 +7,23 @@ import { faMusic } from "@fortawesome/free-solid-svg-icons";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
 import { Size, Position } from "../common";
 
+export type GraphDataDimensions = {
+  [key: string]: {
+    description: string;
+    lower: string;
+    higher: string;
+    min: number;
+    max: number;
+  };
+};
+
 interface GraphProps {
   enabled: boolean;
   zoomLevels: number;
   width: number;
   height: number;
+  highlighted: string[];
+  dimensions: GraphDataDimensions;
   data: MusicGraph;
   interests: MinimapData;
   minimapWidth?: number;
@@ -36,10 +48,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   zoom!: d3.ZoomBehavior<SVGSVGElement, MusicGraph>;
   audio: HTMLAudioElement = new Audio("");
   transform!: d3.ZoomTransform;
-  xScale: any;
-  yScale: any;
-  xAxis: any;
-  yAxis: any;
 
   maxZoom = 20;
   baseTextSize = 15;
@@ -68,7 +76,27 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     };
   }
 
+  getCoordinateX(y: number = 0){
+    const offset =  0.99971815107 * this.props.width - 61.9177001127;
+    return 46 + (y * offset);
+  }
+
+  getCoordinateY(y: number = 0){
+    const offset =  1.003 * this.props.height - 62.52; // 1.00262467192 * height + 62.5196850394
+    // console.log('updated ', d.name, ' ' , d.y, '> ', 30 + ((1-d.y) * offset));
+    return 30 + ((1-y) * offset)
+  }
+
+  playIconCoordinates(d: any, zoom: number = 1){
+    const x: number = this.getCoordinateX(d.x);
+    const y: number = this.getCoordinateY(d.y);
+    const s: number = d.size;
+    var offset = 0.05 * d.size * zoom;
+    return (`${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${y - 3 * offset} ${x + 3 * offset},${y}`);
+  }
+
   addAxis = () => {
+    // add the axis
     this.svg
       .append("g")
       .attr("class", "x axis")
@@ -81,6 +109,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("g")
       .attr("class", "y axis")
       .attr("transform", `translate(${this.scalePadding},0)`);
+
+    // add the axis description labels
+    this.svg.append("text").attr("class", "x label description");
+    this.svg.append("text").attr("class", "y label description");
+
+    // add the axis description labels
+    this.svg.append("text").attr("class", "x label higher");
+    this.svg.append("text").attr("class", "x label lower");
+    this.svg.append("text").attr("class", "y label higher");
+    this.svg.append("text").attr("class", "y label lower");
   };
 
   addGraph = () => {
@@ -94,10 +132,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.transform = event.transform;
       const k = event.transform.k;
       // console.log(event.transform.x/k, event.transform.y/k);
+      // window.innerWidth
+      // const w =
       const x =
-        (window.innerWidth - event.transform.x / k) / 2 / window.innerWidth;
+        (this.props.width - event.transform.x / k) / 2 / this.props.width;
       const y =
-        (window.innerHeight - event.transform.y / k) / 2 / window.innerHeight;
+        (this.props.height - event.transform.y / k) / 2 / this.props.height;
 
       const zoomLevel =
         (this.props.zoomLevels * clip(k, 0, this.maxZoom)) / this.maxZoom;
@@ -109,6 +149,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .select("circle")
         .attr("r", (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / k)
         .attr("stroke-width", this.baseNodeStrokeWidth / k);
+      nodes
+        .select("polygon")
+        .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d, 1/k))
       nodes.select("text").style("font-size", this.baseTextSize / k + "px");
 
       const links = this.graph
@@ -127,21 +170,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           (this.props.minimapHeight ?? this.defaultMinimapSize) /
           Math.max(1, k),
       };
-      // const minimapPos = {
-      //   x:
-      //     // this.minimapPos.x +
-      //     (this.props.minimapWidth ?? this.defaultMinimapSize) / 2 -
-      //     // minimapSelectionSize.width / 2,
-      //   y:
-      //     (this.props.minimapHeight ?? this.defaultMinimapSize) / 2 -
-      //     minimapSelectionSize.height / 2,
-      // };
+      // console.log(x, y);
+      const minimapPos = {
+        x: x * (this.props.minimapWidth ?? this.defaultMinimapSize),
+        y: y * (this.props.minimapHeight ?? this.defaultMinimapSize),
+      };
       this.updateAxis(this.transform);
       this.setState(
         {
           zoomK: k,
           minimapSelectionSize,
-          // minimapPos
+          minimapPos,
         },
         () => {
           if (this.props.onZoom) this.props.onZoom(zoomLevel);
@@ -155,16 +194,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   updateAxis = (transform: d3.ZoomTransform) => {
     if (!transform) return;
 
+    const xdim = this.props.dimensions[this.state.dimx ?? ""];
+    const ydim = this.props.dimensions[this.state.dimy ?? ""];
+
     const xScale = d3
       .scaleLinear()
-      // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
-      .domain([0, 1])
+      .domain([xdim?.min ?? 0, xdim?.max ?? 0])
       .range([this.scalePadding, this.props.width - this.scalePadding]);
 
     const yScale = d3
       .scaleLinear()
-      // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
-      .domain([1, 0])
+      .domain([ydim?.max ?? 1, ydim?.min ?? 0])
       .range([this.scalePadding, this.props.height - this.scalePadding]);
 
     const xrange = xScale.range().map(transform.invertX, transform),
@@ -176,12 +216,70 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const yAxis = d3.axisLeft(yScale.copy().domain(ydomain));
 
     this.svg
+      .select<SVGGElement>(".x.label.description")
+      .attr(
+        "transform",
+        `translate(${this.props.width / 2}, ${
+          this.props.height - this.scalePadding - 10
+        })`
+      )
+      .text(() => this.state.dimx ?? "");
+
+    this.svg
+      .select<SVGGElement>(".y.label.description")
+      .attr(
+        "transform",
+        `translate(${15 + this.scalePadding},${
+          this.props.height / 2
+        }) rotate(-90)`
+      )
+      .text(() => this.state.dimy ?? "");
+
+    this.svg
+      .select<SVGGElement>(".x.label.higher")
+      .attr(
+        "transform",
+        `translate(${this.props.width - 75}, ${
+          this.props.height - this.scalePadding - 10
+        })`
+      )
+      .text(() => xdim?.higher ?? "higher");
+
+    this.svg
+      .select<SVGGElement>(".x.label.lower")
+      .attr(
+        "transform",
+        `translate(${85}, ${this.props.height - this.scalePadding - 10})`
+      )
+      .text(xdim?.lower ?? "lower");
+
+    this.svg
+      .select<SVGGElement>(".y.label.higher")
+      .attr(
+        "transform",
+        `translate(${15 + this.scalePadding},${75}) rotate(-90)`
+      )
+      .text(ydim?.higher ?? "higher");
+
+    this.svg
+      .select<SVGGElement>(".y.label.lower")
+      .attr(
+        "transform",
+        `translate(${15 + this.scalePadding},${
+          this.props.height - this.scalePadding - 60
+        }) rotate(-90)`
+      )
+      .text(ydim?.lower ?? "lower");
+
+    // update the x and y axis
+    this.svg
       .select<SVGGElement>(".x.axis")
       .attr(
         "transform",
         `translate(0,${this.props.height - this.scalePadding})`
       )
       .call(xAxis);
+
     this.svg
       .select<SVGGElement>(".y.axis")
       .attr("transform", `translate(${this.scalePadding},0)`)
@@ -214,13 +312,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // update the position for nodes that will survive the update
     nodes
       .select("circle")
-      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      // .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      // .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+      .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     nodes
       .select("text")
-      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      // .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      // .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+      .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+      .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     // add elements that were not in the graph before
     const newNodes = nodes.enter().append("g").attr("class", "node");
@@ -274,8 +376,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("circle")
       .attr("id", (d: MusicGraphNode) => d.name)
       .attr("class", (d: MusicGraphNode) => `${d.id}`)
-      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * this.props.width) // used to be enlarge
-      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height) // used to be enlarge
+      // .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      // .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+      .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y))) // used to be enlarge
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
@@ -283,9 +387,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       )
       .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
       // .style("stroke-width", 1.5)
-      .style("fill", (d: MusicGraphNode) =>
-        d.genre && d.genre.length > 0 ? color(d.genre.join("/")) : "white"
-      );
+      .style("fill", (d: MusicGraphNode) => d.color ?? "white");
+
+    newNodes
+      .append("polygon")
+      .attr("class", "playIcon")
+      .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d))
+      .style("stroke", "black")
+      .style("fill", "#242424")
+      .style("opacity", "0")
 
     // add the text labels for the nodes
     newNodes
@@ -300,12 +410,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("opacity", 0)
       .style("font-size", this.baseTextSize / this.state.zoomK + "px")
       .text((d) => d.name)
-      .attr(
-        "x",
-        (d: MusicGraphNode) =>
-          (d.x ?? 0) * this.props.width + (d.size ?? 0) * 0.35 + 5
-      )
-      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * this.props.height + 5)
+      // .text((d) => d.name + " " +  d.x.toFixed(3) + "," + d.y.toFixed(3)) // For debugging coordinates
+      // .attr(
+      //   "x",
+      //   (d: MusicGraphNode) =>
+      //     (d.x ?? 0) * enlarge // + (d.size ?? 0) * 0.35 + 5
+      // )
+      // .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+      .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
       .attr("fill", "white")
       // .style("stroke", "black")
       // .style("stroke-width", 0.4)
@@ -322,6 +435,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         "r",
         (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / this.state.zoomK
       )
+      .style("opacity", 0.8); // transparency for better visualization
+
+      newNodes
+      .select("polygon")
+      .transition("enter")
+      .duration(300)
       .style("opacity", 0.8); // transparency for better visualization
 
     newNodes
@@ -342,23 +461,31 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // update the position for links that will survive the update
     links
       .select("line")
-      .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
-      .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
-      .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
-      .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
+      // .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
+      // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
+      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
+      // .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
+      // .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge)
+      .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
+      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // add links that were not in the graph before
     const newLinks = links
       .enter()
       .append("line")
-      .attr("class", (d: MusicGraphLink) => `link ${d.id}`)
+      .attr("class", (d: MusicGraphLink) => `link ${d.name}-${d.id}`)
       .style("stroke", "#FFFFFF")
       .style("stroke-opacity", 0)
       .style("stroke-width", "0px")
-      .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
-      .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
-      .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
-      .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
+      // .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
+      // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
+      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
+      // .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
+      // .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge)
+      .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
+      .attr("y2", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // animate entering of new links
     newLinks
@@ -367,7 +494,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke-opacity", 1)
       .style(
         "stroke-width",
-        Math.max(1, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
+        Math.max(0.4, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
       );
   };
 
@@ -396,6 +523,22 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.updateGraph();
       this.updateAxis(this.transform);
     }
+    if (prevProps.highlighted !== this.props.highlighted) {
+      this.highlightNodes();
+    }
+  }
+
+  highlightNodes() {
+    const s = this;
+    const nodes = this.graph
+      .selectAll(".nodes")
+      .selectAll<SVGGElement, MusicGraphNode>(".node");
+    nodes.each(function (d: MusicGraphNode) {
+      const node = d3.select(this);
+      if (s.props.highlighted.includes(node.attr("id"))) {
+        console.log("found", node.attr("id"));
+      }
+    });
   }
 
   componentDidMount() {
@@ -408,7 +551,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const svgDefs = this.svg.append("defs");
     const backgroundGradient = svgDefs
       .append("linearGradient")
-      .attr("id", "mainGradient");
+      .attr("id", "mainGradient")
+      .attr("gradientTransform", "rotate(45)");
 
     backgroundGradient
       .append("stop")
@@ -441,21 +585,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
   handleMinimapUpdate = (pos: Position, size: Size) => {
     // console.log(pos, size);
-    this.setState(
-      {
-        minimapPos: pos,
-        minimapSelectionSize: size,
-      },
-      () => {
-        this.svg.call(
-          // .transition().duration(750).call(
-          this.zoom.transform,
-          // d3.zoomIdentity.translate(pos.x, pos.y).scale(size.width)
-          d3.zoomIdentity
-          // d3.mouse(svg.node())
-        );
-      }
-    );
+    // this.setState(
+    //   {
+    //     minimapPos: pos,
+    //     minimapSelectionSize: size,
+    //   },
+    //   () => {
+    //     this.svg.call(
+    //       // .transition().duration(750).call(
+    //       this.zoom.transform,
+    //       // d3.zoomIdentity.translate(pos.x, pos.y).scale(size.width)
+    //       d3.zoomIdentity
+    //       // d3.mouse(svg.node())
+    //     );
+    //   }
+    // );
   };
 
   render() {

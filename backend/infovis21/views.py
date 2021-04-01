@@ -55,15 +55,28 @@ def not_found(e):
 @cross_origin()
 def _dimensions(version):
     """ Return a list of all dimensions of the dataset """
-    return jsonify(ma.dimensions)
+    return jsonify(
+        {
+            k: {**v, **dim_minmax.get(k, {})}
+            for k, v in ma.dimension_descriptions.items()
+        }
+    )
 
 
 @app.route("/<version>/search")
 def search(version):
-    searchterm = request.args.get("searchterm")
     coll_type = request.args.get("type")
+    if coll_type is None or len(coll_type) < 1:
+        return abort(400, description="missing type parameter (artist/track/genre)")
     dimx = request.args.get("dimx")
     dimy = request.args.get("dimy")
+    if dimx is None or dimy is None:
+        return abort(400, description="missing dimension parameters dimx and dimy")
+
+    searchterm = request.args.get("searchterm")
+    if searchterm is None or len(searchterm) < 1:
+        return abort(404, description="not found")
+
     collection = get_collection(coll_type)
     d = {}
     if not (searchterm and coll_type and dimx and dimy):
@@ -139,16 +152,42 @@ def _labels(version):
 @cross_origin()
 def _most_popular(version):
     """ Return a list of most popular genre|artist|track per year """
-    limit = request.args.get("limit")
-    year = request.args.get("year")
-    coll_type = request.args.get("type")
-    d = {}
-    if year:
-        d["year"] = int(year)
 
+    limit = request.args.get("limit")
+    year_min = request.args.get("year_min")
+    year_max = request.args.get("year_max")
+    coll_type = request.args.get("type")
+    use_super = request.args.get("use_super", False)
+    streamgraph = request.args.get("streamgraph", False)
+
+    if not year_min or not year_max or not coll_type:
+        return abort(
+            400,
+            description="must specify year_min, year_max, and type e.g. /most_popular?year_min=2020&year_max=2020&type=artist&limit=10",
+        )
+
+    d = {
+        "year_min": int(year_min),
+        "year_max": int(year_max),
+    }
     pipeline = [
-        {"$project": {"popularity": 1, "_id": 0, "year": 1, "name": 1}},
-        {"$match": {"year": d["year"]}},
+        {
+            "$project": {
+                "popularity": 1,
+                "_id": 0,
+                "year": 1,
+                "super_genre": 1,
+                "genre": 1,
+                "name": 1,
+                "color": 1,
+            }
+        },
+        {
+            "$match": {
+                "$and": [{"year": {"$gte": d["year_min"], "$lte": d["year_max"]}},]
+            }
+        },
+        {"$group": {"_id": "$year", "entries": {"$push": "$$ROOT"}}},
         {"$sort": {"popularity": -1}},
     ]
 
@@ -159,7 +198,7 @@ def _most_popular(version):
         d["type"] = str(coll_type)
 
     if d["type"] == "genre":
-        collection = ma.coll_genre_pop
+        collection = ma.coll_super_genre_pop if use_super else ma.coll_genre_pop
     elif d["type"] == "artist":
         collection = ma.coll_artist_pop
     elif d["type"] == "track":
@@ -167,13 +206,17 @@ def _most_popular(version):
     else:
         return abort(400, description="invalid node type not: genre, artist, track")
 
-    if not (d["year"] and d["type"]):
-        return abort(
-            400,
-            description="a year and type are required, optionally specify a limit e.g. /most_popular?year=2020&type=artist&limit=10",
-        )
-    print(pipeline, flush=True)
-    d.update({"most_popular": list(collection.aggregate(pipeline))})
+    popular = list(collection.aggregate(pipeline))
+    keys = [k["name"] for k in popular[0]["entries"]]
+    if streamgraph:
+        popular = [
+            {**{"year": i["_id"]}, **{k["name"]: k["popularity"] for k in i["entries"]}}
+            for i in popular
+        ]
+    else:
+        popular = popular[0]["entries"]
+
+    d.update({"most_popular": popular, "keys": keys})
     return jsonify(d)
 
 
@@ -454,10 +497,11 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 "y": "$y",
                 "name": "$name",
                 "preview_url": "$preview_url",
+                "color": "$genre_color",
                 "size": "$popularity",
                 "type": typ,
-                "genre": "$genres",
-                "color": "#00000",
+                "subgenres": "$genres",
+                "genre": "$genre_super",
                 "_id": 0,
             }
         },

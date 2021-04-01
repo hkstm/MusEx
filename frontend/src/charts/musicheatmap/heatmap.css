@@ -1,22 +1,13 @@
-.heatmap-container {
-    /* position: relative; */
-    /* padding: 5px; */
-    /* color: white; */
-    /* background: black; */
-    /* color:black; */
-    /* background: white; */
-}
-
-#heatmap-svg {
+/* #heatmap-svg {
     float: left;
     width: 480px;
     height: 480px;
-}
+} */
 
 .heatmap-legend {
     display: none;
     float: left;
-    margin: 40px 0 0 140px;
+    margin: 30px 0 0 140px;
 }
 .widget-fullscreen .heatmap-legend {
     display: block;
@@ -24,12 +15,12 @@
 
 .heatmap-gradient-legend {
     display: flex;
-    border: 2px solid red;
+    border: 1px solid black;
     height: 20px;
     width: 280px;
     /*width: 280px;*/
     width: 420px;
-    background-image: linear-gradient(to right, white , red);
+    background-image: linear-gradient(to right, #242424 , white);
 }
 .heatmap-legend-lowval { float: left; margin-top: 0px;}
 .heatmap-legend-highval { float: left; margin-left: 300px; margin-top: 0px;}
@@ -48,11 +39,13 @@
 /* custom-heatmap-css */
 
 .heatmap-grid {
-    margin-right: 4vw;
+    margin-right: 2vw;
+    overflow-x: auto;
+    padding: 20px 0;
 }
 
 .widget-fullscreen .heatmap-grid {
-    margin-top: 160px;
+    padding-top: 120px;
 }
 
 .heatmap-row {
@@ -102,10 +95,10 @@
 }
 .heatmap-tick-y {
     position: relative;
-    min-width: 130px;
+    min-width: 112px;
     text-transform: capitalize;
     text-align: right;
-    padding:5px;
+    padding:2px 5px 0 0;
 }
 .y-tooltip {
     position: absolute;
@@ -121,7 +114,7 @@
     display: block;
 }
 
-.hm-slider-bar {
+/* .hm-slider-bar {
     position: relative;
     float: left;
     cursor: pointer;
@@ -145,9 +138,36 @@
     height: 20px;
     background: red;
     border: 1px solid white;
-}
+} */
 
 .hm-slider-label {
-    float: right;
-    margin-top: 25px;
+    float: left;
+    margin-top: 30px;
+    margin-left: 25px;
 }
+
+.animation-cell-1 {
+    animation-name: cell-animate;
+    animation-duration: 0.5s;
+}
+.animation-cell-2 {
+    animation-name: cell-animate;
+    animation-duration: 0.8s;
+}
+.animation-cell-3 {
+    animation-name: cell-animate;
+    animation-duration: 1s;
+}
+.animation-cell-4 {
+    animation-name: cell-animate;
+    animation-duration: 1.4s;
+}
+.animation-cell-5 {
+    animation-name: cell-animate;
+    animation-duration: 2s;
+}
+
+@keyframes cell-animate {
+    from {background-color: #242424; opacity: 0.5}
+}
+  

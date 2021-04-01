@@ -5,7 +5,7 @@ a
   position: absolute
   height: 100px
   width: 100px
-  bottom: 50px
+  bottom: 60px
   right: 20px
 
 .graph-metrics
@@ -14,6 +14,11 @@ a
   bottom: 0
   height: 100px
 
+text
+  &.label
+    fill: white
+    text-anchor: middle
+    font-size: 10px
 
 .stop-left
   stop-color: #3f51b5
@@ -22,8 +27,3 @@ a
 
 .filled
   fill: url(#mainGradient)
-
-.outlined
-  fill:   none
-  stroke: url(#mainGradient)
-  stroke-width: 4

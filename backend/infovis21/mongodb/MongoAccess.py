@@ -25,22 +25,76 @@ collnames = [
     "artists",
 ]
 
-dimensions = [
-    "danceability",
-    "duration_ms",
-    "energy",
-    "speechiness",
-    "tempo",
-    "valence",
-    "popularity",
-    "key",
-    "mode",
-    "acousticness",
-    "instrumentalness",
-    "liveness",
-    "loudness",
+dimension_descriptions = {
     # "year"  # year not included in genre and artist collection by default, lots of values seem to default to the year 1920 so I haven't manually calculated them for year and artist by grouping and taking average for example
-]
+    "danceability": {
+        "description": "subjective metric that rates danceablitity of a song",
+        "higher": "more danceable",
+        "lower": "less danceable",
+    },
+    "duration_ms": {
+        "description": "the duration of a track",
+        "higher": "more danceable",
+        "lower": "less danceable",
+    },
+    "energy": {
+        "description": "subjective metric that rates the energy of a song",
+        "higher": "higher energy",
+        "lower": "lower energy",
+    },
+    "speechiness": {
+        "description": "subjective metric that rates the speechiness of a song",
+        "higher": "more speechiness",
+        "lower": "less speechiness",
+    },
+    "tempo": {
+        "description": "the tempo of a song",
+        "higher": "faster tempo",
+        "lower": "slower tempo",
+    },
+    "valence": {
+        "description": "subjective metric that rates the musical positiveness of a song",
+        "higher": "higher valence / more happy",
+        "lower": "lower valence / less happy",
+    },
+    "popularity": {
+        "description": "the quantitative popularity of a song",
+        "higher": "more popular",
+        "lower": "less popular",
+    },
+    "key": {
+        "description": "the musical key of a song",
+        "higher": "higher key",
+        "lower": "lower key",
+    },
+    "mode": {
+        "description": "the musical mode of a song",
+        "higher": "higher mode",
+        "lower": "lower mode",
+    },
+    "acousticness": {
+        "description": "subjective metric of the acousticness of a song",
+        "higher": "more acoustic",
+        "lower": "less acoustic",
+    },
+    "instrumentalness": {
+        "description": "subjective metric of the instrumentalness of a song",
+        "higher": "more instrumental",
+        "lower": "less instrumental",
+    },
+    "liveness": {
+        "description": "subjective metric of the liveness of a song",
+        "higher": "more liveness",
+        "lower": "less liveness",
+    },
+    "loudness": {
+        "description": "quanititative measure of the loudness of a song",
+        "higher": "louder",
+        "lower": "quieter",
+    },
+}
+
+dimensions = dimension_descriptions.keys()
 
 genre_str = "Genre"
 artist_str = "Artist"
@@ -55,6 +109,7 @@ coll_years = db["years_api"]
 
 coll_dim_minmax = db["dim_minmax"]
 coll_genre_pop = db["genre_popularity_per_year"]
+coll_super_genre_pop = db["super_genre_popularity_per_year"]
 coll_artist_pop = db["artist_popularity_per_year"]
 
 collections = {
@@ -241,7 +296,7 @@ def load_kaggle_csvs_into_mongodb():
     # Extract Artist data from spotipy data to artist_extracted
     db["artists"].drop()
     res = db["tracks_spotipy_merged"].aggregate(
-        [{"$unwind": "$artists"}, {"$group": {"_id": "$artists.id",}}]
+        [{"$unwind": "$artists"}, {"$group": {"_id": "$artists.id",}},]
     )
     [db["artists"].insert_one(sp.artist(doc["_id"])) for doc in res]
     db["artists"].create_index("id")
