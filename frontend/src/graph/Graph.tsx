@@ -6,6 +6,7 @@ import "./Graph.sass";
 import { faMusic } from "@fortawesome/free-solid-svg-icons";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
 import { Size, Position } from "../common";
+import { NodeType } from "../common";
 
 export type GraphDataDimensions = {
   [key: string]: {
@@ -89,7 +90,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const y = (d.y ?? 0) * enlarge;
     // const x: number = this.getCoordinateX(d.x);
     // const y: number = this.getCoordinateY(d.y);
-    const offset = (0.35 * d.size) / 3 / 2 / zoom;
+    const offset = (0.35 * (d.size ?? 0)) / 3 / 2 / zoom;
     return `${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${
       y - 3 * offset
     } ${x + 3 * offset},${y}`;

@@ -32,7 +32,7 @@ type HeatmapProps = {
 type HeatmapState = {};
 
 class Heatmap extends Component<HeatmapProps, HeatmapState> {
-  svg!: d3.Selection<SVGElement, HeatmapTile[], HTMLElement, any>;
+  svg!: d3.Selection<SVGElement, HeatmapTile, HTMLElement, any>;
 
   constructor(props: HeatmapProps) {
     super(props);
@@ -46,7 +46,7 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
   }
 
   addHeatmap = () => {
-    this.svg = d3.select<SVGElement, HeatmapTile[]>("#heatmap-svg");
+    this.svg = d3.select<SVGElement, HeatmapTile>("#heatmap-svg");
     this.svg.append("g").attr("class", "heatmap");
 
     this.svg.append("g").attr("class", "y axis");
@@ -102,9 +102,9 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
       );
 
     const tiles = this.svg
-      .selectAll(".heatmap")
-      .selectAll<SVGGElement, HeatmapTile[]>(".tile")
-      .data(this.props.data, (d) => d);
+      .selectAll<SVGGElement, HeatmapTile>(".heatmap")
+      .selectAll<SVGGElement, HeatmapTile>(".tile")
+      .data(this.props.data.tiles, (d: HeatmapTile) => d.title ?? "test");
 
     // remove the ones that are no longer in the data
     tiles
