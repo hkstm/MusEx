@@ -120,6 +120,7 @@ class MusicHeatmap extends Component<{ apiVersion: string }, any> {
             </div>
             {this.state.x.map((year: any, i: number) => (
               <div
+                key={i}
                 className={
                   "heatmap-cell " +
                   "animation-cell-" +

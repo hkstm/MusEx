@@ -5,8 +5,27 @@ import { clip, capitalize } from "../utils";
 import "./Graph.sass";
 import { faMusic } from "@fortawesome/free-solid-svg-icons";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
-import { Size, Position } from "../common";
-import { NodeType } from "../common";
+import { Size, Position, NodeType, apiVersion, headerConfig } from "../common";
+import axios from "axios";
+import { HeatmapTile } from "../charts/heatmap/Heatmap";
+
+const buildData = (w: number, h: number) => {
+  let data: HeatmapTile[] = [];
+  Array(w)
+    .fill(0)
+    .forEach((_, wi) => {
+      Array(h)
+        .fill(0)
+        .forEach((_, hi) => {
+          data.push({
+            x: wi,
+            y: hi,
+            value: 1,
+          });
+        });
+    });
+  return data;
+};
 
 export type GraphDataDimensions = {
   [key: string]: {
@@ -20,27 +39,29 @@ export type GraphDataDimensions = {
 
 interface GraphProps {
   enabled: boolean;
-  zoomLevels: number;
-  levelType: NodeType;
   width: number;
   height: number;
-  highlighted: string[];
-  dimensions: GraphDataDimensions;
-  data: MusicGraph;
-  interests: MinimapData;
   minimapWidth?: number;
   minimapHeight?: number;
-  useForce?: boolean;
-  onZoom?: (zoom: number) => void;
+  zoomLevels: number;
+  dimx?: string;
+  dimy?: string;
+  dimensions: GraphDataDimensions;
 }
 
 interface GraphState {
-  dimx?: string;
-  dimy?: string;
+  x: number;
+  y: number;
+  zoom: number;
+  levelType: NodeType;
+  zoomLevel: number;
   zoomK: number;
   selected: Set<string>;
   minimapPos: Position;
   minimapSelectionSize: Size;
+  data: MusicGraph;
+  interests: MinimapData;
+  highlighted: string[];
 }
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
@@ -50,6 +71,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   zoom!: d3.ZoomBehavior<SVGSVGElement, MusicGraph>;
   audio: HTMLAudioElement = new Audio("");
   transform!: d3.ZoomTransform;
+
+  levels: NodeType[] = ["genre", "artist", "track"];
+  lastUpdateZoomLevel?: number = undefined;
+  lastUpdate?: { zoom: number; levelType: NodeType } = undefined;
 
   maxZoom = 20;
   baseTextSize = 15;
@@ -82,6 +107,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       minimapSelectionSize: minimapSelectionSize,
       zoomK: 1,
       selected: new Set<string>(),
+      x: 0.5,
+      y: 0.5,
+      zoom: 0,
+      zoomLevel: 0,
+      levelType: "genre",
+      data: {
+        nodes: [],
+        links: [],
+      },
+      highlighted: [],
+      interests: {
+        tiles: buildData(20, 20),
+        xSize: 20,
+        ySize: 20,
+      },
     };
   }
 
@@ -185,7 +225,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           minimapPos,
         },
         () => {
-          if (this.props.onZoom) this.props.onZoom(zoomLevel);
+          // if (this.props.onZoom) this.props.onZoom(zoomLevel);
         }
       );
     });
@@ -196,8 +236,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   updateAxis = (transform: d3.ZoomTransform) => {
     if (!transform) return;
 
-    const xdim = this.props.dimensions[this.state.dimx ?? ""];
-    const ydim = this.props.dimensions[this.state.dimy ?? ""];
+    const xdim = this.props.dimensions[this.props.dimx ?? ""];
+    const ydim = this.props.dimensions[this.props.dimy ?? ""];
 
     const xScale = d3
       .scaleLinear()
@@ -225,7 +265,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           this.props.height - this.scalePadding - 10
         })`
       )
-      .text(() => this.state.dimx ?? "");
+      .text(() => this.props.dimx ?? "");
 
     this.svg
       .select<SVGGElement>(".y.label.description")
@@ -235,7 +275,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           this.props.height / 2
         }) rotate(-90)`
       )
-      .text(() => this.state.dimy ?? "");
+      .text(() => this.props.dimy ?? "");
 
     this.svg
       .select<SVGGElement>(".x.label.higher")
@@ -288,7 +328,30 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .call(yAxis);
   };
 
-  updateGraphData = (data: MusicGraph) => {
+  loadGraphData = () => {
+    console.log(
+      "updating graph for ",
+      this.props.dimx,
+      this.props.dimy,
+      this.state.x,
+      this.state.y,
+      this.state.zoom,
+      this.state.zoomLevel,
+      this.state.levelType
+    );
+    this.lastUpdate = {
+      zoom: this.state.zoom,
+      levelType: this.state.levelType,
+    };
+    const graphDataURL = `http://localhost:5000/${apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.props.dimx}&dimy=${this.props.dimy}&type=${this.state.levelType}&limit=1000`;
+    axios.get(graphDataURL, headerConfig).then((res) => {
+      // console.log(res.data.nodes.length + " nodes");
+      // console.log(res.data.links.length + " links");
+      this.setState({ data: res.data });
+    });
+  };
+
+  updateGraph = (data: MusicGraph) => {
     const enlarge = Math.min(window.screen.width, window.screen.height);
 
     this.svg.attr("width", this.props.width).attr("height", this.props.height);
@@ -388,7 +451,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
       )
       .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
-      // .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) => d.color ?? "white");
 
     // add the play icon
@@ -442,13 +504,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         "r",
         (d: MusicGraphNode) => ((d.size ?? 0) * 0.35) / this.state.zoomK
       )
-      .style("opacity", 0.8); // transparency for better visualization
+      .style("opacity", 0.8);
 
     newNodes
       .select("polygon")
       .transition("enter")
       .duration(300)
-      .style("opacity", 0.8); // transparency for better visualization
+      .style("opacity", 0.8);
 
     newNodes
       .select("text")
@@ -505,44 +567,33 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       );
 
     const backgroundGradient = this.svg.select("defs").select("#mainGradient");
-    const gradient = this.gradients[this.props.levelType];
+    const gradient = this.gradients[this.state.levelType];
     backgroundGradient.select(".stop-left").attr("stop-color", gradient[0]);
     backgroundGradient.select(".stop-right").attr("stop-color", gradient[1]);
   };
 
-  updateGraph = () => {
-    if (!this.props.enabled) return;
-    if (!this.props.data) return;
-    if (this.props.data.nodes.length < 1) return;
-
-    if (
-      this.state.dimx !== this.props.data.dimx ||
-      this.state.dimy !== this.props.data.dimy
-    ) {
-      this.updateGraphData({ links: [], nodes: [] } as MusicGraph);
-    }
-    this.setState({ dimx: this.props.data.dimx });
-    this.setState({ dimy: this.props.data.dimy });
-    this.updateGraphData(this.props.data);
-  };
-
   componentDidUpdate(prevProps: GraphProps) {
+    // if (
+    //   prevProps.width !== this.props.width ||
+    //   prevProps.height !== this.props.height ||
+    //   prevProps.dimx !== this.props.dimx ||
+    //   prevProps.dimx !== this.props.dimx ||
+    //   prevProps.dimensions !== this.props.dimensions ||
+    //   prevProps.zoomLevels !== this.props.zoomLevels ||
+    //   prevProps.enabled !== this.props.enabled
+    // ) {
+    if (!this.props.enabled) return;
     if (
-      prevProps.width !== this.props.width ||
-      prevProps.height !== this.props.height ||
-      prevProps.data !== this.props.data
+      this.props.dimx !== this.state.data.dimx ||
+      this.props.dimy !== this.state.data.dimy
     ) {
-      console.log(prevProps.width !== this.props.width);
-      console.log(prevProps.height !== this.props.height);
-      console.log(prevProps.data !== this.props.data);
-      console.log(prevProps.data, this.props.data);
-      console.log("graph did update");
-      this.updateGraph();
-      // this.updateAxis(this.transform);
+      this.updateGraph({ links: [], nodes: [] } as MusicGraph);
     }
-    if (prevProps.highlighted !== this.props.highlighted) {
-      // this.highlightNodes();
-    }
+    console.log("component did update");
+    this.loadGraphData();
+    this.updateGraph(this.state.data);
+    this.updateAxis(this.transform);
+    // }
   }
 
   highlightNodes() {
@@ -552,7 +603,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .selectAll<SVGGElement, MusicGraphNode>(".node");
     nodes.each(function (d: MusicGraphNode) {
       const node = d3.select(this);
-      if (s.props.highlighted.includes(node.attr("id"))) {
+      if (s.state.highlighted.includes(node.attr("id"))) {
         console.log("found", node.attr("id"));
       }
     });
@@ -595,12 +646,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("width", 3 * this.props.width)
       .attr("height", 3 * this.props.height);
 
+    console.log("loading");
     this.addAxis();
     this.addGraph();
-    this.updateGraph();
+    this.loadGraphData();
+    this.updateGraph(this.state.data);
   }
 
   handleMinimapUpdate = (pos: Position, size: Size) => {
+    // // this code can be used for zooming to the seletion
     // console.log(pos, size);
     // this.setState(
     //   {
@@ -625,20 +679,18 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         <div className="minimap-container">
           <Minimap
             enabled={true}
-            onUpdate={this.handleMinimapUpdate}
-            data={this.props.interests}
+            data={this.state.interests}
             pos={this.state.minimapPos}
             size={this.state.minimapSelectionSize}
-            width={100}
-            height={100}
+            width={this.props.minimapWidth}
+            height={this.props.minimapHeight}
           ></Minimap>
         </div>
         <div id="graph-container"></div>
         <div className="graph-metrics">
           <span className="level-type-label">
-            {capitalize(this.props.levelType)}
+            {capitalize(this.state.levelType)}
           </span>
-          {/*<span>Zoom Level: {Math.round(this.state.zoomLevel)}</span>*/}
         </div>
       </div>
     );

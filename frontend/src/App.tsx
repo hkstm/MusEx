@@ -36,71 +36,27 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 type AppState = {
-  graph: MusicGraph;
-  interests: MinimapData;
-  highlighted: string[];
   dimensions: GraphDataDimensions;
+  dimx?: string;
+  dimy?: string;
   sideviewExpanded: boolean;
   searchQuery: string;
   searchType: string;
-  x: number;
-  y: number;
-  zoom: number;
-  zoomLevel: number;
-  levelType: NodeType;
-  dimx?: string;
-  dimy?: string;
 };
 
 class App extends Component<{}, AppState> {
-  levels: NodeType[] = ["genre", "artist", "track"];
-  zoomLevels = 5;
-  lastUpdateZoomLevel?: number = undefined;
-  lastUpdate?: { zoom: number; levelType: NodeType } = undefined;
   mainViewWidthPercent = 0.6;
+  zoomLevels = 5;
 
   constructor(props: {}) {
     super(props);
     this.state = {
       dimensions: {},
-      graph: {
-        nodes: [],
-        links: [],
-      },
-      highlighted: [],
-      interests: {
-        tiles: this.buildData(20, 20),
-        xSize: 20,
-        ySize: 20,
-      },
       sideviewExpanded: true,
       searchQuery: "",
       searchType: "artist",
-      x: 0.5,
-      y: 0.5,
-      zoom: 0,
-      zoomLevel: 0,
-      levelType: "genre",
     };
   }
-
-  buildData = (w: number, h: number) => {
-    let data: HeatmapTile[] = [];
-    Array(w)
-      .fill(0)
-      .forEach((_, wi) => {
-        Array(h)
-          .fill(0)
-          .forEach((_, hi) => {
-            data.push({
-              x: wi,
-              y: hi,
-              value: 1,
-            });
-          });
-      });
-    return data;
-  };
 
   onButtonClickHandler = () => {
     window.alert("Help!");
@@ -111,31 +67,31 @@ class App extends Component<{}, AppState> {
     this.setState({ searchQuery: target.value });
   };
 
-  handleZoom = (zoom: number) => {
-    const zoomLevel = Math.floor(zoom);
-    const levelType = this.levels[Math.min(zoomLevel, this.levels.length - 1)];
-    // console.log("zoom changed to", zoom, zoomLevel, levelType);
-    // TODO: make this a lot smarter please!
-    this.setState({ zoom: zoom - zoomLevel, zoomLevel, levelType }, () => {
-      if (
-        this.lastUpdate &&
-        (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
-          1 / this.zoomLevels ||
-          this.lastUpdate.levelType !== levelType)
-      )
-        console.log("trigger zoom based update");
-      // this.updateGraph();
-    });
-  };
+  // handleZoom = (zoom: number) => {
+  //   const zoomLevel = Math.floor(zoom);
+  //   const levelType = this.levels[Math.min(zoomLevel, this.levels.length - 1)];
+  //   // console.log("zoom changed to", zoom, zoomLevel, levelType);
+  //   // TODO: make this a lot smarter please!
+  //   this.setState({ zoom: zoom - zoomLevel, zoomLevel, levelType }, () => {
+  //     if (
+  //       this.lastUpdate &&
+  //       (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
+  //         1 / this.zoomLevels ||
+  //         this.lastUpdate.levelType !== levelType)
+  //     )
+  //       console.log("trigger zoom based update");
+  //     // this.updateGraph();
+  //   });
+  // };
 
   handleDimYChange = (dimy: string) => {
     console.log("changed y dim to", dimy);
-    this.setState({ dimy }, this.updateGraph);
+    this.setState({ dimy });
   };
 
   handleDimXChange = (dimx: string) => {
     console.log("changed x dim to", dimx);
-    this.setState({ dimx }, this.updateGraph);
+    this.setState({ dimx });
   };
 
   handleSearchTypeChange = (typ: string) => {
@@ -161,30 +117,6 @@ class App extends Component<{}, AppState> {
     });
   };
 
-  updateGraph = () => {
-    console.log(
-      "updating graph for ",
-      this.state.dimx,
-      this.state.dimy,
-      this.state.x,
-      this.state.y,
-      this.state.zoom,
-      this.state.zoomLevel,
-      this.state.levelType
-    );
-    this.lastUpdate = {
-      zoom: this.state.zoom,
-      levelType: this.state.levelType,
-    };
-
-    const graphDataURL = `http://localhost:5000/${apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.levelType}&limit=1000`;
-    axios.get(graphDataURL, headerConfig).then((res) => {
-      // console.log(res.data.nodes.length + " nodes");
-      // console.log(res.data.links.length + " links");
-      this.setState({ graph: res.data });
-    });
-  };
-
   updateDimensions = (): Promise<void> => {
     return axios
       .get(`http://localhost:5000/${apiVersion}/dimensions`, headerConfig)
@@ -193,18 +125,8 @@ class App extends Component<{}, AppState> {
       });
   };
 
-  select(node: Node) {
-    // TODO
-  }
-
   componentDidMount() {
-    this.updateDimensions().then(() => {
-      this.setState((state) => {
-        return {};
-      });
-      // this.updateGraph();
-      // this.updateStreamgraph();
-    });
+    this.updateDimensions();
   }
 
   render() {
@@ -263,10 +185,7 @@ class App extends Component<{}, AppState> {
               ) : (
                 <Graph
                   enabled={true}
-                  interests={this.state.interests}
-                  highlighted={this.state.highlighted}
                   zoomLevels={this.zoomLevels}
-                  levelType={this.state.levelType}
                   width={
                     window.innerWidth *
                       (this.state.sideviewExpanded
@@ -275,9 +194,9 @@ class App extends Component<{}, AppState> {
                     30
                   }
                   height={window.innerHeight - 40}
+                  dimx={this.state.dimx}
+                  dimy={this.state.dimy}
                   dimensions={this.state.dimensions}
-                  onZoom={this.handleZoom}
-                  data={this.state.graph}
                 ></Graph>
               )}
             </Widget>
