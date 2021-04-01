@@ -26,6 +26,7 @@ interface GraphProps {
   dimensions: GraphDataDimensions;
   data: MusicGraph;
   interests: MinimapData;
+  recommendations: any;
   minimapWidth?: number;
   minimapHeight?: number;
   useForce?: boolean;
@@ -89,6 +90,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   getCoordinateX(y: number = 0){
     const offset =  0.99971815107 * this.props.width - 61.9177001127;
     return 46 + (y * offset);
+  }
+
+  isRecommended(id: string) {
+    return this.props.recommendations?.nodes.indexOf(id) > -1;
   }
 
   getCoordinateY(y: number = 0){
@@ -397,9 +402,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
-        this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
+        // this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
+        this.isRecommended(d.id) || this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
       )
-      .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
+      // .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
+      .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 2 : this.baseNodeStrokeWidth / this.state.zoomK )
       // .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) => d.color ?? "white");
 
@@ -540,6 +547,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     if (prevProps.highlighted !== this.props.highlighted) {
       this.highlightNodes();
     }
+    if (prevProps.recommendations !== this.props.recommendations) {
+      this.highlightRecos();
+    }
   }
 
   highlightNodes() {
@@ -553,6 +563,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         console.log("found", node.attr("id"));
       }
     });
+  }
+  highlightRecos() {
+    const s = this;
+    const nodes = this.graph
+      .selectAll(".nodes")
+      .selectAll<SVGGElement, MusicGraphNode>(".node")
+      .select("circle")
+      .style("stroke", (d: MusicGraphNode) => this.isRecommended(d.id) || this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF")
+    .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 2 : s.state.selected.has(d.id) ? 5 : this.baseNodeStrokeWidth / this.state.zoomK )
   }
 
   componentDidMount() {
@@ -616,9 +635,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // );
   };
 
-  onGetRecommendations(){
-    this.props.sendRecommendations(this.state.recs);
-  };
+  // onGetRecommendations(){
+  //   this.props.sendRecommendations(this.state.recs);
+  // };
 
   render() {
     return (

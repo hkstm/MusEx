@@ -124,10 +124,7 @@ class App extends Component<{}, AppState> {
         ySize: 20,
       },
       selected: [],
-      recommendation:{
-        id: '',
-        value: 0
-      },
+      recommendation:{ nodes: []},
       // Wordcloud
       wordcloudEnabled: true,
       wordcloudLoading: true,
@@ -387,6 +384,7 @@ class App extends Component<{}, AppState> {
                 <Graph
                   enabled={true}
                   interests={this.state.interests}
+                  recommendations={this.state.recommendation}
                   highlighted={this.state.highlighted}
                   zoomLevels={this.zoomLevels}
                   width={
@@ -401,7 +399,7 @@ class App extends Component<{}, AppState> {
                   onZoom={this.handleZoom}
                   data={this.state.graph}
                   onClick = {this.getRecommendations}
-                  sendRecommendations={this.getRecommendations.bind(this)}
+                  // sendRecommendations={this.getRecommendations.bind(this)}
                 ></Graph>
               )}
             </Widget>

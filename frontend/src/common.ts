@@ -24,6 +24,7 @@ export type Genre = {
 export type Node = string[];
 
 export type Recommendations = {
-  id:  string;
-  value: number;
+  id?:  string;
+  value?: number;
+  nodes?: any;
 }
