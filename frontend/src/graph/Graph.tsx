@@ -502,8 +502,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // animate entering nodes and labels
     newNodes
       .select("circle")
-      .transition("enter")
-      .duration(300)
+      // .transition("enter")
+      // .duration(300)
       .attr("r", (d: MusicGraphNode) =>
         Math.max(this.minNodeSize, ((d.size ?? 0) * 0.35) / this.state.zoomK)
       )
@@ -511,14 +511,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
     newNodes
       .select("polygon")
-      .transition("enter")
-      .duration(300)
+      // .transition("enter")
+      // .duration(300)
       .style("opacity", 0.8);
 
     newNodes
       .select("text")
-      .transition("enter")
-      .duration(300)
+      // .transition("enter")
+      // .duration(300)
       .attr("opacity", 1);
 
     // update the link data
@@ -585,6 +585,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.props.dimy !== this.state.data.dimy
     ) {
       this.updateGraph({ links: [], nodes: [] } as MusicGraph);
+      this.loadGraphData();
+      this.updateGraph(this.state.data);
     }
     // if (
     //   prevProps.dimx !== this.props.dimx ||
