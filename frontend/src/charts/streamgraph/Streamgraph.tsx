@@ -2,6 +2,10 @@ import React, { Component } from "react";
 import * as d3 from "d3";
 import "./Streamgraph.sass";
 import { clip } from "../../utils";
+import { headerConfig, apiVersion } from "../../common";
+import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 export type StreamgraphStream = {
   [key: string]: number;
@@ -16,11 +20,17 @@ type StreamgraphProps = {
   enabled?: boolean;
   width?: number;
   height?: number;
-  keys: string[];
-  data: StreamgraphStream[];
 };
 
-type StreamgraphState = {};
+type StreamgraphState = {
+  yearStart: number;
+  yearEnd: number;
+  loading?: boolean;
+  data: {
+    keys: string[];
+    most_popular: StreamgraphStream[];
+  };
+};
 
 class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
   svg!: d3.Selection<SVGSVGElement, StreamgraphStream[], HTMLElement, any>;
@@ -28,7 +38,13 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
   constructor(props: StreamgraphProps) {
     super(props);
     this.state = {
-      data: [],
+      yearStart: 2000,
+      yearEnd: 2020,
+      loading: true,
+      data: {
+        keys: [],
+        most_popular: [],
+      },
     };
   }
 
@@ -40,8 +56,7 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
   componentDidUpdate(prevProps: StreamgraphProps) {
     if (
       prevProps.width !== this.props.width ||
-      prevProps.height !== this.props.height ||
-      prevProps.data !== this.props.data
+      prevProps.height !== this.props.height
     ) {
       this.updateStreamgraph();
     }
@@ -56,9 +71,27 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
       .attr("height", this.props.height ?? 100);
   };
 
+  updateStreamgraph2 = () => {
+    this.setState({ loading: true });
+    axios
+      .get(
+        `http://localhost:5000/${apiVersion}/most_popular?year_min=${this.state.yearStart}&year_max=${this.state.yearEnd}&type=genre&use_super=yes&streamgraph=yes`,
+        headerConfig
+      )
+      .then((res) => {
+        // console.log(res.data);
+        this.setState({
+          data: res.data as {
+            keys: string[];
+            most_popular: StreamgraphStream[];
+          },
+        });
+      })
+      .finally(() => this.setState({ loading: false }));
+  };
+
   updateStreamgraph = () => {
     if (this.props.enabled === true) return;
-    if (!this.props.data) return;
     // const keys = [
     //   "AE",
     //   "AREN",
@@ -108,7 +141,7 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
     //   return d;
     // });
 
-    console.log("this is streamgraph data", this.props.data);
+    // console.log("this is streamgraph data", this.state.data);
     // console.log("this is streamgraph data", data);
     // return;
 
@@ -118,12 +151,12 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
 
     const stack = d3
       .stack()
-      .keys(this.props.keys)
+      .keys(this.state.data.keys)
       .order(d3.stackOrderInsideOut)
       // .order(d3.stackOrderNone)
       .offset(d3.stackOffsetWiggle);
 
-    const series = stack(this.props.data);
+    const series = stack(this.state.data.most_popular);
 
     // const x = d3
     //   .scaleLinear()
@@ -205,7 +238,18 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
   render() {
     return (
       <div className="streamgraph-container">
-        <div id="streamgraph" className="streamgraph"></div>
+        <h3>Evolution of genres</h3>
+        {this.state.loading && (
+          <FontAwesomeIcon
+            className="loading-spinner icon toggle"
+            id="streamgraph-loading-spinner"
+            icon={faSpinner}
+            spin
+          />
+        )}
+        {this.props.enabled && !this.state.loading && (
+          <div className="streamgraph"></div>
+        )}
       </div>
     );
   }

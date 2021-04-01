@@ -40,16 +40,6 @@ type AppState = {
   interests: MinimapData;
   highlighted: string[];
   dimensions: GraphDataDimensions;
-
-  // Streamgraph
-  streamgraphEnabled?: boolean;
-  streamgraphYearStart: number;
-  streamgraphYearEnd: number;
-  streamgraphLoading?: boolean;
-  streamgraphData: {
-    keys: string[];
-    most_popular: StreamgraphStream[];
-  };
   sideviewExpanded: boolean;
   searchQuery: string;
   searchType: string;
@@ -82,15 +72,6 @@ class App extends Component<{}, AppState> {
         tiles: this.buildData(20, 20),
         xSize: 20,
         ySize: 20,
-      },
-      // Streamgraph
-      streamgraphEnabled: true,
-      streamgraphYearStart: 2000,
-      streamgraphYearEnd: 2020,
-      streamgraphLoading: true,
-      streamgraphData: {
-        keys: [],
-        most_popular: [],
       },
       sideviewExpanded: true,
       searchQuery: "",
@@ -145,25 +126,6 @@ class App extends Component<{}, AppState> {
         console.log("trigger zoom based update");
       // this.updateGraph();
     });
-  };
-
-  updateStreamgraph = () => {
-    this.setState({ streamgraphLoading: true });
-    axios
-      .get(
-        `http://localhost:5000/${apiVersion}/most_popular?year_min=${this.state.streamgraphYearStart}&year_max=${this.state.streamgraphYearEnd}&type=genre&use_super=yes&streamgraph=yes`,
-        headerConfig
-      )
-      .then((res) => {
-        // console.log(res.data);
-        this.setState({
-          streamgraphData: res.data as {
-            keys: string[];
-            most_popular: StreamgraphStream[];
-          },
-        });
-      })
-      .finally(() => this.setState({ streamgraphLoading: false }));
   };
 
   handleDimYChange = (dimy: string) => {
@@ -334,27 +296,10 @@ class App extends Component<{}, AppState> {
               <Wordcloud></Wordcloud>
             </Widget>
             <Widget>
-              <h3>Evolution of genres</h3>
-              {this.state.streamgraphLoading && (
-                <FontAwesomeIcon
-                  className="loading-spinner icon toggle"
-                  id="streamgraph-loading-spinner"
-                  icon={faSpinner}
-                  spin
-                />
-              )}
-
-              {this.state.streamgraphEnabled &&
-                !this.state.streamgraphLoading && (
-                  <Streamgraph
-                    data={this.state.streamgraphData.most_popular}
-                    keys={this.state.streamgraphData.keys}
-                    width={
-                      window.innerWidth * (1 - this.mainViewWidthPercent) - 30
-                    }
-                    height={300}
-                  ></Streamgraph>
-                )}
+              <Streamgraph
+                width={window.innerWidth * (1 - this.mainViewWidthPercent) - 30}
+                height={300}
+              ></Streamgraph>
             </Widget>
             <Widget>
               <h3>Evolution of musical features</h3>
