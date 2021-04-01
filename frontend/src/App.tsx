@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import axios from "axios";
 import { headerConfig, apiVersion } from "./common";
 import Graph, { GraphDataDimensions } from "./graph/Graph";
+import GraphControl from "./graph/GraphControls";
 import Select from "./Select";
 import Heatmap from "./charts/musicheatmap/heatmap";
 import Wordcloud from "./charts/wordcloud/Wordcloud";
@@ -94,18 +95,6 @@ class App extends Component<{}, AppState> {
     });
   };
 
-  updateDimensions = (): Promise<void> => {
-    return axios
-      .get(`http://localhost:5000/${apiVersion}/dimensions`, headerConfig)
-      .then((res) => {
-        this.setState({ dimensions: res.data });
-      });
-  };
-
-  componentDidMount() {
-    this.updateDimensions();
-  }
-
   render() {
     return (
       <div className="app">
@@ -113,41 +102,6 @@ class App extends Component<{}, AppState> {
           <nav>
             <div className="controls">
               <span id="app-name">MusEx</span>
-              <div className="dimensions">
-                <Select
-                  id="select-dimx"
-                  default="energy"
-                  onChange={this.handleDimXChange}
-                  options={this.state.dimensions}
-                ></Select>
-                <Select
-                  id="select-dimy"
-                  default="tempo"
-                  onChange={this.handleDimYChange}
-                  options={this.state.dimensions}
-                ></Select>
-              </div>
-              <form className="forms" onSubmit={this.search}>
-                <input
-                  type="text"
-                  value={this.state.searchQuery}
-                  onChange={this.setSearchQuery}
-                  id="search-query-input"
-                  placeholder="Search"
-                />
-                <Select
-                  id="search-type-select"
-                  default="artist"
-                  onChange={this.handleSearchTypeChange}
-                  options={{ artist: {}, genre: {} }}
-                ></Select>
-                <button id="app-search" type="submit">
-                  Search
-                </button>
-                <button id="app-help" onClick={this.onButtonClickHandler}>
-                  Help
-                </button>
-              </form>
             </div>
           </nav>
         </header>
@@ -156,27 +110,7 @@ class App extends Component<{}, AppState> {
             className={this.state.sideviewExpanded ? "expanded" : ""}
             id="main-view"
           >
-            <Widget>
-              {this.state.dimx === this.state.dimy ? (
-                <h1>Please select two different dimensions</h1>
-              ) : (
-                <Graph
-                  enabled={true}
-                  zoomLevels={this.zoomLevels}
-                  width={
-                    window.innerWidth *
-                      (this.state.sideviewExpanded
-                        ? this.mainViewWidthPercent
-                        : 1.0) -
-                    30
-                  }
-                  height={window.innerHeight - 40}
-                  dimx={this.state.dimx}
-                  dimy={this.state.dimy}
-                  dimensions={this.state.dimensions}
-                ></Graph>
-              )}
-            </Widget>
+            <GraphControl sideviewExpanded={this.state.sideviewExpanded}/>
           </div>
           <div
             className={this.state.sideviewExpanded ? "expanded" : ""}
