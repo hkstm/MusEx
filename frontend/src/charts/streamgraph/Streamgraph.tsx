@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import * as d3 from "d3";
 import "./Streamgraph.sass";
-import { clip } from "../../utils";
 import { headerConfig, apiVersion } from "../../common";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -149,14 +148,14 @@ class Streamgraph extends Component<StreamgraphProps, StreamgraphState> {
     // const keys = this.props.keys;
     // console.log(this.props.keys);
 
-    const stack = d3
-      .stack()
-      .keys(this.state.data.keys)
-      .order(d3.stackOrderInsideOut)
-      // .order(d3.stackOrderNone)
-      .offset(d3.stackOffsetWiggle);
+    // const stack = d3
+    //   .stack()
+    //   .keys(this.state.data.keys)
+    //   .order(d3.stackOrderInsideOut)
+    //   // .order(d3.stackOrderNone)
+    //   .offset(d3.stackOffsetWiggle);
 
-    const series = stack(this.state.data.most_popular);
+    // const series = stack(this.state.data.most_popular);
 
     // const x = d3
     //   .scaleLinear()

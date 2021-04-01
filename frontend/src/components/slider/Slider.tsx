@@ -25,7 +25,7 @@ class Slider extends Component<
 
   onMouseDown(e: any) {
     console.log("Slider drag start at ", e.clientX);
-    this.state.config.start = e.clientX;
+    this.setState({ config: { start: e.clientX } });
   }
 
   onMouseUp(e: any) {

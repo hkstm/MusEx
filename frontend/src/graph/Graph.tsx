@@ -3,7 +3,6 @@ import * as d3 from "d3";
 import { MusicGraph, MusicGraphNode, MusicGraphLink } from "./model";
 import { clip, capitalize } from "../utils";
 import "./Graph.sass";
-import { faMusic } from "@fortawesome/free-solid-svg-icons";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
 import { Size, Position, NodeType, apiVersion, headerConfig } from "../common";
 import axios from "axios";
@@ -20,7 +19,7 @@ const buildData = (w: number, h: number) => {
           data.push({
             x: wi,
             y: hi,
-            value: 1,
+            value: 0,
           });
         });
     });
@@ -47,14 +46,15 @@ interface GraphProps {
   dimx?: string;
   dimy?: string;
   dimensions: GraphDataDimensions;
+  onZoom?: (zoom: number) => void;
 }
 
 interface GraphState {
   x: number;
   y: number;
   zoom: number;
-  levelType: NodeType;
   zoomLevel: number;
+  levelType: NodeType;
   zoomK: number;
   selected: Set<string>;
   minimapPos: Position;
@@ -225,7 +225,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           minimapPos,
         },
         () => {
-          // if (this.props.onZoom) this.props.onZoom(zoomLevel);
+          if (this.props.onZoom) this.props.onZoom(zoomLevel);
         }
       );
     });
@@ -436,7 +436,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       });
 
     // add the node circles
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
     newNodes
       .append("circle")
       .attr("id", (d: MusicGraphNode) => d.name)

@@ -1,17 +1,12 @@
 import React, { Component } from "react";
 import ReactWordcloud, { Word } from "react-wordcloud";
-import Select, { SelectOptions } from "../../Select";
+import Select from "../../Select";
 import { capitalize } from "../../utils";
 import { NodeType, headerConfig, apiVersion } from "../../common";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "./Wordcloud.sass";
 import axios from "axios";
-import {
-  faBars,
-  faSpinner,
-  faHighlighter,
-} from "@fortawesome/free-solid-svg-icons";
-import { MusicGraphNode } from "../../graph/model";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 interface WordcloudWord extends Word {
   color?: string;

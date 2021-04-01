@@ -48,7 +48,7 @@ export default class Select extends Component<SelectProps, SelectState> {
     ) {
       if (
         this.props.default !== undefined &&
-        this.state.selected == undefined &&
+        this.state.selected === undefined &&
         Object.keys(this.props.options).includes(this.props.default)
       ) {
         this.onOptionClicked(this.props.default)();

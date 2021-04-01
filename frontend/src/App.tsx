@@ -1,39 +1,17 @@
 import React, { Component } from "react";
-import ReactWordcloud, { Word } from "react-wordcloud";
-import ReactDOM from "react-dom";
 import axios from "axios";
-import {
-  Size,
-  Position,
-  Genre,
-  Node,
-  NodeType,
-  headerConfig,
-  apiVersion,
-} from "./common";
+import { headerConfig, apiVersion } from "./common";
 import Graph, { GraphDataDimensions } from "./graph/Graph";
-import { MusicGraph } from "./graph/model";
-import Select, { SelectOptions } from "./Select";
-import { HeatmapTile } from "./charts/heatmap/Heatmap";
+import Select from "./Select";
 import Heatmap from "./charts/musicheatmap/heatmap";
 import Wordcloud from "./charts/wordcloud/Wordcloud";
-import Streamgraph, {
-  StreamgraphStream,
-} from "./charts/streamgraph/Streamgraph";
-import Slider from "@material-ui/core/Slider";
-import GraphState from "./graph/Graph";
+import Streamgraph from "./charts/streamgraph/Streamgraph";
 import "./App.sass";
-import { MinimapData } from "./charts/minimap/Minimap";
-import { capitalize } from "./utils";
 
 import Widget from "./components/expandable-widget/widget";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBars,
-  faSpinner,
-  faHighlighter,
-} from "@fortawesome/free-solid-svg-icons";
+import { faBars } from "@fortawesome/free-solid-svg-icons";
 
 type AppState = {
   dimensions: GraphDataDimensions;
@@ -108,7 +86,6 @@ class App extends Component<{}, AppState> {
   search = (event?: React.FormEvent<HTMLFormElement>) => () => {
     console.log("searching");
     event?.preventDefault();
-    return;
     let searchURL = `http://localhost:5000/${apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
     console.log(searchURL);
     axios.get(searchURL, headerConfig).then((res) => {

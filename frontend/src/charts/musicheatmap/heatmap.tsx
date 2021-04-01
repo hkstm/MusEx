@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import * as d3 from "d3";
 import axios from "axios";
 import Slider from "../../components/slider/Slider";
 import "./heatmap.sass";
@@ -80,7 +79,6 @@ class MusicHeatmap extends Component<{ apiVersion: string }, any> {
       });
       y.push(info);
     });
-    const heatmapGrid = document.querySelector(".heatmap-grid");
     this.setState({ x, y, min, max, yearsLimit });
   }
 
@@ -141,7 +139,7 @@ class MusicHeatmap extends Component<{ apiVersion: string }, any> {
           <div className="heatmap-tick-y" />
           {this.state.x.map((year: any, i: number) => (
             <div key={i} className="heatmap-tick">
-              {year % roundOff == 0 ? year : ""}
+              {year % roundOff === 0 ? year : ""}
             </div>
           ))}
         </div>
