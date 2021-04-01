@@ -249,7 +249,7 @@ class MusicHeatmap extends Component<{}, any> {
       max = this.state.hash[key].max;
     var range = max - min;
     var shade = (255 * (val - min)) / range;
-    return `rgb(${255 + "," + (255 - shade) + "," + (255 - shade)})`;
+    return `rgb(${255 - shade + "," + (255 - shade) + "," + (255 - shade)})`;
   }
 
   draw() {

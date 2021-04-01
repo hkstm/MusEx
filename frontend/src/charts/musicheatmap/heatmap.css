@@ -15,12 +15,12 @@
 
 .heatmap-gradient-legend {
     display: flex;
-    border: 2px solid red;
+    border: 1px solid black;
     height: 20px;
     width: 280px;
     /*width: 280px;*/
     width: 420px;
-    background-image: linear-gradient(to right, white , red);
+    background-image: linear-gradient(to right, #242424 , white);
 }
 .heatmap-legend-lowval { float: left; margin-top: 0px;}
 .heatmap-legend-highval { float: left; margin-left: 300px; margin-top: 0px;}
