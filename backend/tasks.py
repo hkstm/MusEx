@@ -94,6 +94,12 @@ def restore(c, sudo=False):
         f"{_sudo} docker exec -i $({_sudo} docker ps -a | grep musexmongodb | awk '{{print $1}}') sh -c 'mongorestore  --drop --db kaggle --authenticationDatabase admin --username root --password example --archive' < {DATA_DIR}/db.dump"
     )
 
+@task
+def add_genre_super_info(c):
+    '''Adds the genre_super and genre_color fields to the genre and artist per year collections'''
+    from infovis21.mongodb import utils as dbutils
+    dbutils.add_genre_super_info('genre', 'genre', 'name')
+    dbutils.add_genre_super_info('artist', 'artist', 'id')
 
 @task
 def compute_track_api(

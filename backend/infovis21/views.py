@@ -207,7 +207,6 @@ def _most_popular(version):
         return abort(400, description="invalid node type not: genre, artist, track")
 
     popular = list(collection.aggregate(pipeline))
-    # return jsonify(popular)
     keys = [k["name"] for k in popular[0]["entries"]]
     if streamgraph:
         popular = [

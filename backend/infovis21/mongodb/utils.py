@@ -12,6 +12,33 @@ from sklearn.neighbors import KDTree
 from infovis21.mongodb import MongoAccess as ma
 
 
+def add_genre_super_info(base_coll_name, local_field, foreign_field):
+    ma.db[f"{base_coll_name}s_api"].create_index("name")
+    ma.db[f"{base_coll_name}_popularity_per_year"].aggregate(
+        [
+            {
+                "$lookup": {
+                    "from": f"{base_coll_name}s_api",
+                    "localField": local_field,
+                    "foreignField": foreign_field,
+                    "as": f"{base_coll_name}s_api",
+                }
+            },
+            {"$unwind": f"${base_coll_name}s_api"},
+            {
+                "$set": {
+                    "id": f"${base_coll_name}s_api.id",
+                    "genre_super": f"${base_coll_name}s_api.genre_super",
+                    "genre_color": f"${base_coll_name}s_api.genre_color",
+                }
+            },
+            {"$unset": f"{base_coll_name}s_api"},
+            {"$out": f"{base_coll_name}_popularity_per_year"},
+        ]
+    )
+    ma.db[f"{base_coll_name}s_api"].drop_index("name_1")
+
+
 def normalize(dim, value, _min=0.0, _max=1.0):
     """ Normalize orignal data values """
     return np.interp(

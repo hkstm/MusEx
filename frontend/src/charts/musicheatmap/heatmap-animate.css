@@ -1,0 +1,24 @@
+.animation-cell-1 {
+    animation-name: cell-animate;
+    animation-duration: 0.5s;
+}
+.animation-cell-2 {
+    animation-name: cell-animate;
+    animation-duration: 0.8s;
+}
+.animation-cell-3 {
+    animation-name: cell-animate;
+    animation-duration: 1s;
+}
+.animation-cell-4 {
+    animation-name: cell-animate;
+    animation-duration: 1.4s;
+}
+.animation-cell-5 {
+    animation-name: cell-animate;
+    animation-duration: 2s;
+}
+
+@keyframes cell-animate {
+    from {background-color: #242424; opacity: 0.5}
+}
