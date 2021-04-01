@@ -54,13 +54,13 @@ class MusicHeatmap extends Component<{apiVersion: string}, any> {
   getData() {
     axios.get(`http://localhost:5000/${this.props.apiVersion}/years?limit=200`).then((res)=>{
       this.setState({data: res.data.data}, ()=> {
-        this.setAxes(res.data.data, 40);
+        this.setAxes(res.data.data, 30);
       })
     });
   }
 
   setAxes (data:any[], sliderValue: number = 80 ) {
-    const yearsLimit = Math.floor(sliderValue / 200 * 50);
+    const yearsLimit = Math.floor(sliderValue / 2);
     let years = (data.sort((a: any,b: any) => a.year > b.year ? 1 : -1))
     years = years.slice(data.length - yearsLimit);
     var x:number[] = [], y:any[] = [];
@@ -100,7 +100,7 @@ class MusicHeatmap extends Component<{apiVersion: string}, any> {
   }
 
   draw() {
-    const roundOff: number = (this.state.yearsLimit >= 20 ? 5 : 2);
+    const roundOff: number = (this.state.yearsLimit < 20 ? 2 :  this.state.yearsLimit < 60 ? 5 : 10);
     return (
       <div className="heatmap-grid">
         {Object.keys(this.state.y[0] || {}).map((key: string) => (
@@ -147,7 +147,7 @@ class MusicHeatmap extends Component<{apiVersion: string}, any> {
       <div className="heatmap-container">
         {this.draw()}
         {this.drawLegend()}
-        <Slider id="heatmap" min={40} onUpdate={(n:number)=>{this.updateHeatmap(n);}}/>
+        <Slider id="heatmap" min={30} onUpdate={(n:number)=>{this.updateHeatmap(n);}}/>
           <div className="hm-slider-label">Show last {this.state.yearsLimit} years</div>
       </div>
     );
