@@ -454,7 +454,7 @@ class App extends Component<{}, AppState> {
             </Widget>
             <Widget>
               <h3>Evolution of musical features</h3>
-              <Heatmap></Heatmap>
+              <Heatmap apiVersion={this.apiVersion}></Heatmap>
             </Widget>
           </div>
         </div>

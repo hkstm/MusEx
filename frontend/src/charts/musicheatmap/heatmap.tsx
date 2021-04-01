@@ -19,7 +19,7 @@ import "./heatmap.css";
 //   year: number
 // }
 
-class MusicHeatmap extends Component<{}, any> {
+class MusicHeatmap extends Component<{apiVersion: string}, any> {
   constructor(props: any) {
     super(props);
     this.state = {
@@ -52,7 +52,7 @@ class MusicHeatmap extends Component<{}, any> {
 
   getData() {
     // setTimeout(this.d3heatmap, 0);
-    axios.get(`http://localhost:5000/v2/years?limit=200`).then((res)=>{
+    axios.get(`http://localhost:5000/${this.props.apiVersion}/years?limit=200`).then((res)=>{
       this.setState({data: res.data.data}, ()=> {
         this.setAxes(res.data.data, 40);
       })
