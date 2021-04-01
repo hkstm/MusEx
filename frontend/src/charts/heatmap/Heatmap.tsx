@@ -46,8 +46,6 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
   }
 
   updateHeatmap() {
-    // console.log("updating the heatmap");
-    // console.log(this.props.data);
     const x = d3
       .scaleBand<number>()
       .padding(0.01)

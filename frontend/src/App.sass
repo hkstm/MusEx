@@ -40,6 +40,10 @@ nav
     position: absolute
     top: 0
 
+  #app-help
+    &:hover
+      // cursor: pointer
+      // border: 1px solid white
   
   #app-stats
     height: 30px
@@ -73,10 +77,10 @@ nav
       width: 350px
 
       > *
+        display: inline-block
         font-size: 0.5rem
         height: 22px
         margin: 4px
-        display: inline-block
         top: 0
         width: 60px
 
@@ -127,6 +131,9 @@ nav
     &.expanded
       right: 0
 
+    .wordcloud-container
+      min-height: 350px
+
     .toggle
       position: absolute
       font-size: 40px
@@ -136,11 +143,6 @@ nav
       padding: 5px
       z-index: 500
 
-    .sideview-widget
-      width: 100%
-      overflow: hidden
-      border-bottom: $border-width solid #a9a9a9
-      
     #wordcloud-year-input
       border: 1px solid white
       font-size: 0.8rem
@@ -151,15 +153,6 @@ nav
 
     #wordcloud-loading-spinner
       position: relative
-
-    .genre-wordcloud
-      position: relative
-      height: calc(50% - 35px)
-      height:  300px
-
-    .artist-wordcloud
-      position: relative
-      height:  250px
 
     .slider
       position: relative

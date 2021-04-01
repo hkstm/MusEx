@@ -3,10 +3,13 @@ import ReactWordcloud, { Word } from "react-wordcloud";
 import ReactDOM from "react-dom";
 import axios from "axios";
 import { Size, Position, Genre, Node, NodeType } from "./common";
-import Graph from "./graph/Graph";
+import Graph, { GraphDataDimensions } from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
-import Select from "./Select";
+import Select, { SelectOptions } from "./Select";
 import Heatmap from "./charts/musicheatmap/heatmap";
+import Streamgraph, {
+  StreamgraphStream,
+} from "./charts/streamgraph/Streamgraph";
 import Slider from "@material-ui/core/Slider";
 import GraphState from "./graph/Graph";
 import "./App.sass";
@@ -44,15 +47,28 @@ interface WordcloudWord extends Word {
 }
 
 type AppState = {
-  genres: Genre[];
   graph: MusicGraph;
   interests: MinimapData;
-  wordcloudData: WordcloudWord[];
-  dimensions: string[];
-  wordcloudEnabled: boolean;
+  highlighted: string[];
+  dimensions: GraphDataDimensions;
+
+  // Wordcloud
+  wordcloudEnabled?: boolean;
   wordcloudYear: number;
   wordcloudType: NodeType;
   wordcloudLoading: boolean;
+  wordcloudData: WordcloudWord[];
+
+  // Streamgraph
+  streamgraphEnabled?: boolean;
+  streamgraphYearStart: number;
+  streamgraphYearEnd: number;
+  streamgraphLoading?: boolean;
+  streamgraphData: {
+    keys: string[];
+    most_popular: StreamgraphStream[];
+  };
+
   sideviewExpanded: boolean;
   searchQuery: string;
   searchType: string;
@@ -71,33 +87,56 @@ class App extends Component<{}, AppState> {
   lastUpdateZoomLevel?: number = undefined;
   lastUpdate?: { zoom: number; type: NodeType } = undefined;
   apiVersion = "v2";
-  sideViewWidthPercent = 0.6;
+  mainViewWidthPercent = 0.6;
+
   wordCloudCallbacks = {
     getWordColor: (word: WordcloudWord) => word?.color ?? "white",
-    // onWordMouseOver: console.log,
-    getWordTooltip: (word: WordcloudWord) =>
-      `${capitalize(word.text)} (${Math.round(word.value)})`,
+    onWordMouseOver: (event: WordcloudWord) => {},
+    onWordClick: (event: { text: string }) => {
+      // const attr = this.wordcloudType === "genre" ? "genre" : "name"
+      const highlighted = this.state.graph.nodes
+        // .forEach((n) => console.log(n, event.text))
+        .filter((n) => n["name"].toLowerCase() == event.text.toLowerCase())
+        .map((n) => n["id"]);
+      console.log("highlighed", highlighted);
+      this.setState({
+        highlighted,
+      });
+    },
+    getWordTooltip: (word: WordcloudWord) => "",
+    // `${capitalize(word.text)} (${Math.round(word.value)})`,
   };
 
   constructor(props: {}) {
     super(props);
     this.state = {
-      genres: [],
-      dimensions: [],
+      dimensions: {},
       graph: {
         nodes: [],
         links: [],
       },
+      highlighted: [],
       interests: {
         tiles: [],
         xSize: 20,
         ySize: 20,
       },
+      // Wordcloud
       wordcloudEnabled: true,
       wordcloudLoading: true,
       wordcloudYear: 2020,
       wordcloudType: "genre",
       wordcloudData: [],
+      //
+      // Streamgraph
+      streamgraphEnabled: true,
+      streamgraphYearStart: 2000,
+      streamgraphYearEnd: 2020,
+      streamgraphLoading: true,
+      streamgraphData: {
+        keys: [],
+        most_popular: [],
+      },
       sideviewExpanded: true,
       searchQuery: "",
       searchType: "artist",
@@ -138,7 +177,7 @@ class App extends Component<{}, AppState> {
 
   handleWordcloudTypeChange = (typ: string) => {
     console.log("wordcloud type changed to", typ);
-    this.setState({ wordcloudType: typ }, this.updateWordcloud);
+    this.setState({ wordcloudType: typ as NodeType }, this.updateWordcloud);
   };
 
   handleWordcloudYearChange = (event: React.FormEvent) => {
@@ -149,22 +188,40 @@ class App extends Component<{}, AppState> {
     );
   };
 
+  updateStreamgraph = () => {
+    this.setState({ streamgraphLoading: true });
+    axios
+      .get(
+        `http://localhost:5000/${this.apiVersion}/most_popular?year_min=${this.state.streamgraphYearStart}&year_max=${this.state.streamgraphYearEnd}&type=genre&use_super=yes&streamgraph=yes`,
+        config
+      )
+      .then((res) => {
+        console.log(res.data);
+        this.setState({
+          streamgraphData: res.data as {
+            keys: string[];
+            most_popular: StreamgraphStream[];
+          },
+        });
+      })
+      .finally(() => this.setState({ streamgraphLoading: false }));
+  };
+
   updateWordcloud = () => {
-    console.log(this.state.wordcloudType, this.state.wordcloudYear);
     this.setState({ wordcloudLoading: true });
     axios
       .get(
-        `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.wordcloudYear}&type=${this.state.wordcloudType}&limit=${MAX_WORDCLOUD_SIZE}`,
+        `http://localhost:5000/${this.apiVersion}/most_popular?year_min=${this.state.wordcloudYear}&year_max=${this.state.wordcloudYear}&type=${this.state.wordcloudType}&limit=${MAX_WORDCLOUD_SIZE}`,
         config
       )
       .then((res) => {
         this.setState({
           wordcloudData: res.data.most_popular.map(
-            (word: { name: string; popularity: number; color: string }) => {
+            (data: { popularity: number; color: string; name: string }) => {
               return {
-                text: capitalize(word.name),
-                value: word.popularity,
-                color: word.color,
+                text: capitalize(data.name),
+                value: data.popularity,
+                color: data.color,
               };
             }
           ),
@@ -219,7 +276,6 @@ class App extends Component<{}, AppState> {
     this.lastUpdate = { zoom: this.state.zoom, type: this.state.type };
 
     const graphDataURL = `http://localhost:5000/${this.apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`;
-    // console.log(graphDataURL);
     axios.get(graphDataURL, config).then((res) => {
       console.log(res.data.nodes.length + " nodes");
       console.log(res.data.links.length + " links");
@@ -235,30 +291,8 @@ class App extends Component<{}, AppState> {
       });
   };
 
-  // updateGenres = () => {};
-
-  // updateArtists = () => {
-  //   axios
-  //     .get(
-  //       `http://localhost:5000/${this.apiVersion}/most_popular?year=${this.state.cloudYear}&type=artist&limit=${MAX_WORDCLOUD_SIZE}`
-  //     )
-  //     .then((res) => {
-  //       this.setState({
-  //         wordcloudData: res.data.most_popular.map(
-  //           (a: { name: string; popularity: number }) => {
-  //             return { text: capitalize(a.name), value: a.popularity };
-  //           }
-  //         ),
-  //       });
-  //     });
-  // };
-
   select(node: Node) {
-    axios
-      .get(`http://localhost:5000/${this.apiVersion}/dimensions`, config)
-      .then((res) => {
-        this.setState({ dimensions: res.data.sort() });
-      });
+    // TODO
   }
 
   componentDidMount() {
@@ -267,7 +301,7 @@ class App extends Component<{}, AppState> {
         return {};
       });
       this.updateGraph();
-      // this.updateWordcloud();
+      this.updateStreamgraph();
     });
   }
 
@@ -304,7 +338,7 @@ class App extends Component<{}, AppState> {
                   id="search-type-select"
                   default="artist"
                   onChange={this.handleSearchTypeChange}
-                  options={["artist", "genre"]}
+                  options={{ artist: {}, genre: {} }}
                 ></Select>
                 <button id="app-search" type="submit">
                   Search
@@ -328,15 +362,17 @@ class App extends Component<{}, AppState> {
                 <Graph
                   enabled={true}
                   interests={this.state.interests}
+                  highlighted={this.state.highlighted}
                   zoomLevels={this.zoomLevels}
                   width={
                     window.innerWidth *
                       (this.state.sideviewExpanded
-                        ? this.sideViewWidthPercent
+                        ? this.mainViewWidthPercent
                         : 1.0) -
                     30
                   }
                   height={window.innerHeight - 40}
+                  dimensions={this.state.dimensions}
                   onZoom={this.handleZoom}
                   data={this.state.graph}
                 ></Graph>
@@ -354,14 +390,14 @@ class App extends Component<{}, AppState> {
             />
 
             <Widget>
-              <div className="sideview-widget wordcloud artist-wordcloud">
+              <div className="wordcloud-container">
                 <h3>
                   Most popular{" "}
                   <Select
                     id="select-wordcloud-type"
                     default="genre"
                     onChange={this.handleWordcloudTypeChange}
-                    options={["genre", "artist"]}
+                    options={{ genre: {}, artist: {} }}
                   ></Select>{" "}
                   in{" "}
                   <input
@@ -394,7 +430,30 @@ class App extends Component<{}, AppState> {
               </div>
             </Widget>
             <Widget>
-              <h3>Stats through different years</h3>
+              <h3>Evolution of genres</h3>
+              {this.state.streamgraphLoading && (
+                <FontAwesomeIcon
+                  className="loading-spinner icon toggle"
+                  id="streamgraph-loading-spinner"
+                  icon={faSpinner}
+                  spin
+                />
+              )}
+
+              {this.state.streamgraphEnabled &&
+                !this.state.streamgraphLoading && (
+                  <Streamgraph
+                    data={this.state.streamgraphData.most_popular}
+                    keys={this.state.streamgraphData.keys}
+                    width={
+                      window.innerWidth * (1 - this.mainViewWidthPercent) - 30
+                    }
+                    height={300}
+                  ></Streamgraph>
+                )}
+            </Widget>
+            <Widget>
+              <h3>Evolution of musical features</h3>
               <Heatmap></Heatmap>
             </Widget>
           </div>
