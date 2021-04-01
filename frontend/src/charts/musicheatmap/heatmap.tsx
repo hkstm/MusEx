@@ -253,6 +253,7 @@ class MusicHeatmap extends Component<{}, any> {
   }
 
   draw() {
+    const roundOff: number = (this.state.yearsLimit >= 20 ? 5 : 2);
     return (
       <div className="heatmap-grid">
         {Object.keys(this.state.y[0] || {}).map((key: string) => (
@@ -266,7 +267,7 @@ class MusicHeatmap extends Component<{}, any> {
               </div>
             </div>
             {this.state.x.map((year: any, i: number) => (
-              <div className="heatmap-row">
+              // <div className="heatmap-row">
                 <div
                   className={"heatmap-cell " + "animation-cell-"+ Math.ceil(Math.random()*5)} style={{
                     background: this.getShade(key, this.state.y[i][key]),
@@ -277,7 +278,7 @@ class MusicHeatmap extends Component<{}, any> {
                     {`${key} in ${year} is ${this.state.y[i][key].toFixed(3)}`}
                   </div>
                 </div>
-              </div>
+              // </div>
             ))}
           </div>
         ))}
@@ -285,8 +286,7 @@ class MusicHeatmap extends Component<{}, any> {
           <div className="heatmap-tick-y" />
           {this.state.x.map((year: any, i: number) => (
             <div className="heatmap-tick">
-              {" "}
-              {year}{" "}
+              {year % roundOff == 0 ? year : '' }
             </div>
           ))}
         </div>
