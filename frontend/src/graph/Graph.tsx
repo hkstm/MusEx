@@ -30,6 +30,8 @@ interface GraphProps {
   minimapHeight?: number;
   useForce?: boolean;
   onZoom?: (zoom: number) => void;
+  //sendRecommendations?:any;//  TBA. get the recommendations from app.tsx
+  onClick: any;
 }
 
 interface GraphState {
@@ -39,6 +41,8 @@ interface GraphState {
   selected: Set<string>;
   minimapPos: Position;
   minimapSelectionSize: Size;
+  recs?:[];
+ 
 }
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
@@ -56,7 +60,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   baseNodeStrokeWidth = 1.5;
   scalePadding = 30;
   // threshold for the node labels that should always remain visible
-  largeNodeLabel = 45;
+  largeNodeLabel = 50;
 
   constructor(props: GraphProps) {
     super(props);
@@ -73,7 +77,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       minimapSelectionSize: minimapSelectionSize,
       zoomK: 1,
       selected: new Set<string>(),
+      recs: [],
     };
+
+  }
+
+  sendList = () => {
+    this.props.onClick(this.state.selected);
   }
 
   getCoordinateX(y: number = 0){
@@ -354,12 +364,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               .style("stroke", "#FFFFFF")
               .style("stroke-width", 1.5);
             s.state.selected.delete(d.id);
+            s.sendList()
           } else {
             clicked
               .select("circle")
               .style("stroke", "#F8FF20")
               .style("stroke-width", 5);
             s.state.selected.add(d.id);
+            console.log(s.state.selected);
+            s.sendList();
+            console.log(s.state.recs)
           }
         }
       })
@@ -602,8 +616,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // );
   };
 
+  onGetRecommendations(){
+    this.props.sendRecommendations(this.state.recs);
+  };
+
   render() {
     return (
+
+      
       <div>
         <div className="minimap-container">
           <Minimap
