@@ -200,18 +200,13 @@ def _most_popular(version):
     if d["type"] == "genre":
         collection = ma.coll_super_genre_pop if use_super else ma.coll_genre_pop
     elif d["type"] == "artist":
-        collection = ma.coll_artist_pop
+        collection = ma.coll_super_artist_pop if use_super else ma.coll_artist_pop
     elif d["type"] == "track":
         collection = ma.coll_tracks
     else:
         return abort(400, description="invalid node type not: genre, artist, track")
 
     popular = list(collection.aggregate(pipeline))
-
-    # pprint(popular)
-    print("len popular")
-    print(len(popular))
-
     keys = [k["name"] for k in popular[0]["entries"]]
     if streamgraph:
         popular = [
@@ -221,10 +216,7 @@ def _most_popular(version):
     else:
         popular = popular[0]["entries"]
 
-    # print(len(popular))
-    # print(pipeline, flush=True)
-
-    d.update({"most_popular": popular, "keys": keys})
+    d.update({"most_popular": popular, "keys": (keys if d["type"] == "genre" else [])})
     return jsonify(d)
 
 
