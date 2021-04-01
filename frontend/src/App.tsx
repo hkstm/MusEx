@@ -100,7 +100,6 @@ class App extends Component<{}, AppState> {
             + '\n??Need help searching for specific genres or artists??\n--Type in the top right search bar and pick from artist or genre!'
             + '\n??Want to see stats of audio features throughout the years??\n--Try the slidebar underneath the heatmap!'
             + '\n??Want to focus only on the graph??\n--Click the three stacked bars next to the wordcloud to blend them out!'
-            + '\n??Want to know where the most popular artists in the wordcloud are in the graph??\n--Just click a name in the wordcloud and the artist will get highlighted!'
             + '\n??Need to know how to click??\n--LeftClick -> (Un)highlight node\n--Shift + LeftClick -> Play/stop music\n--Double LeftClick -> Zooming\n')
 
     };
