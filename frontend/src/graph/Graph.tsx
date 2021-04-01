@@ -213,9 +213,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           Math.max(1, k),
       };
       // console.log(x, y);
-
-      if (this.zoomK >= 2 * this.lastUpdate.zoom) {
-        // this.updateGraph();
+      if (!this.lastUpdate || this.state.zoomK >= 2 * this.lastUpdate?.zoom) {
+        console.log("updating");
         this.loadGraphData();
         this.updateGraph(this.state.data);
       }

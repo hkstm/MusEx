@@ -125,12 +125,12 @@ class App extends Component<{}, AppState> {
             <Widget>
               <Wordcloud></Wordcloud>
             </Widget>
-            <Widget>
+            { /* <Widget>
               <Streamgraph
                 width={window.innerWidth * (1 - this.mainViewWidthPercent) - 30}
                 height={300}
               ></Streamgraph>
-            </Widget>
+            </Widget> */ }
             <Widget>
               <h3>Evolution of musical features</h3>
               <Heatmap apiVersion={apiVersion}></Heatmap>
