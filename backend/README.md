@@ -48,9 +48,14 @@ Optionally, you can also use type annotations and check for type errors:
 ```bash
 invoke type-check
 ```
+
 #### Precompute zoom level data
 
 ```bash
+# Bootstrap
+invoke bootstrap
+
+# You can also run tasks individually
 invoke compute-genre-popularity-per-year
 invoke precompute --dimx energy --dimy tempo
 ```

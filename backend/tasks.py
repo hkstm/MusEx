@@ -102,6 +102,28 @@ def add_genre_super_info(c):
     dbutils.add_genre_super_info('artist', 'artist', 'id')
 
 @task
+def compute_track_api(
+    c,
+):
+    from infovis21.mongodb import utils as dbutils
+    dbutils.compute_track_api()
+
+@task
+def compute_artist_popularity_per_year(
+    c,
+):
+    from infovis21.mongodb import utils as dbutils
+
+    dbutils.compute_artist_popularity_per_year(
+        out="super_artist_popularity_per_year", use_super_genre=True
+    )
+    dbutils.compute_artist_popularity_per_year(
+        out="artist_popularity_per_year", use_super_genre=False
+    )
+    print("done")
+
+
+@task
 def compute_genre_popularity_per_year(
     c,
 ):
@@ -313,3 +335,10 @@ def dist(c):
 def release(c):
     """Make a release of the python package to pypi"""
     c.run("twine upload dist/*")
+
+
+@task(
+    pre=[restore, compute_artist_popularity_per_year, compute_genre_popularity_per_year]
+)
+def bootstrap(c):
+    print("Bootrapping ...")
