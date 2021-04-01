@@ -364,21 +364,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         } else {
           // toggle selection of the node
           if (s.state.selected.has(d.id)) {
+          
             clicked
               .select("circle")
               .style("stroke", "#FFFFFF")
               .style("stroke-width", 1.5);
-            s.state.selected.delete(d.id);
-            s.sendList()
+              s.state.selected.delete(d.id);
+              s.sendList()
           } else {
+           
             clicked
               .select("circle")
               .style("stroke", "#F8FF20")
               .style("stroke-width", 5);
-            s.state.selected.add(d.id);
-            console.log(s.state.selected);
-            s.sendList();
-            console.log(s.state.recs)
+              s.state.selected.add(d.id);
+              s.sendList();
           }
         }
       })
@@ -406,7 +406,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         this.isRecommended(d.id) || this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
       )
       // .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
-      .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 2 : this.baseNodeStrokeWidth / this.state.zoomK )
+      .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 5 : this.baseNodeStrokeWidth  )
       // .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) => d.color ?? "white");
 
@@ -441,8 +441,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
       .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
       .attr("fill", "white")
-      // .style("stroke", "black")
-      // .style("stroke-width", 0.4)
+      .style("stroke", "#DCDCDC")
+      .style("stroke-width", 0.4/this.state.zoomK)
       .style("visibility", (d: MusicGraphNode) =>
         d.size! > this.largeNodeLabel ? "visible" : "hidden"
       );
@@ -477,7 +477,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .data(data.links, (d) => d.id);
 
     // remove links that are no longer required
-    links.exit().transition("exit").duration(300).style("opacity", 0).remove();
+    links.exit().transition("exit").duration(300).style("opacity", 0.6).remove();
 
     // update the position for links that will survive the update
     links
@@ -497,7 +497,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("line")
       .attr("class", (d: MusicGraphLink) => `link ${d.name}-${d.id}`)
       .style("stroke", "#FFFFFF")
-      .style("stroke-opacity", 0)
+      .style("stroke-opacity", 0.6)
       .style("stroke-width", "0px")
       // .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
       // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
@@ -512,7 +512,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     newLinks
       .transition("enter")
       .duration(300)
-      .style("stroke-opacity", 1)
+      .style("stroke-opacity", 0.6)
       .style(
         "stroke-width",
         Math.max(0.4, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
@@ -570,8 +570,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .selectAll(".nodes")
       .selectAll<SVGGElement, MusicGraphNode>(".node")
       .select("circle")
-      .style("stroke", (d: MusicGraphNode) => this.isRecommended(d.id) || this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF")
-    .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 2 : s.state.selected.has(d.id) ? 5 : this.baseNodeStrokeWidth / this.state.zoomK )
+      .style("stroke", (d: MusicGraphNode) => this.isRecommended(d.id)? "#800080":this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF")
+    .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 5 : s.state.selected.has(d.id) ? 5 : this.baseNodeStrokeWidth  )
   }
 
   componentDidMount() {
