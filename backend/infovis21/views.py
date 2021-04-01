@@ -207,6 +207,11 @@ def _most_popular(version):
         return abort(400, description="invalid node type not: genre, artist, track")
 
     popular = list(collection.aggregate(pipeline))
+
+    # pprint(popular)
+    print("len popular")
+    print(len(popular))
+
     keys = [k["name"] for k in popular[0]["entries"]]
     if streamgraph:
         popular = [
@@ -215,6 +220,9 @@ def _most_popular(version):
         ]
     else:
         popular = popular[0]["entries"]
+
+    # print(len(popular))
+    # print(pipeline, flush=True)
 
     d.update({"most_popular": popular, "keys": keys})
     return jsonify(d)
