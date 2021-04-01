@@ -12,7 +12,11 @@ type SelectProps = {
   id?: string;
   default?: string;
   onChange: (dim: string) => void;
-  options: string[];
+  options: { [key: string]: { description?: string } };
+};
+
+export type SelectOptions = {
+  [key: string]: { description?: string };
 };
 
 export default class Select extends Component<SelectProps, SelectState> {
@@ -45,7 +49,7 @@ export default class Select extends Component<SelectProps, SelectState> {
       if (
         this.props.default !== undefined &&
         this.state.selected == undefined &&
-        this.props.options.includes(this.props.default)
+        Object.keys(this.props.options).includes(this.props.default)
       ) {
         this.onOptionClicked(this.props.default)();
       }
@@ -56,19 +60,20 @@ export default class Select extends Component<SelectProps, SelectState> {
     return (
       <div id={this.props.id} className="dropdown-container">
         <div className="dropdown-header" onClick={this.toggling}>
-          {this.state.selected || this.props.options[0]}
+          {this.state.selected || Object.keys(this.props.options)[0]}
           <FontAwesomeIcon className="icon" icon={faCaretDown} />
         </div>
         {this.state.isOpen && (
           <div className="dropdown-list-container">
             <div className="dropdown-list">
-              {this.props.options.map((option) => (
+              {Object.keys(this.props.options).map((key) => (
                 <div
                   className="dropdown-list-item"
-                  onClick={this.onOptionClicked(option)}
-                  key={option}
+                  onClick={this.onOptionClicked(key)}
+                  key={key}
+                  title={this.props.options[key].description}
                 >
-                  {option}
+                  {key}
                 </div>
               ))}
             </div>

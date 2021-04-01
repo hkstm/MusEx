@@ -7,11 +7,23 @@ import { faMusic } from "@fortawesome/free-solid-svg-icons";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
 import { Size, Position } from "../common";
 
+export type GraphDataDimensions = {
+  [key: string]: {
+    description: string;
+    lower: string;
+    higher: string;
+    min: number;
+    max: number;
+  };
+};
+
 interface GraphProps {
   enabled: boolean;
   zoomLevels: number;
   width: number;
   height: number;
+  highlighted: string[];
+  dimensions: GraphDataDimensions;
   data: MusicGraph;
   interests: MinimapData;
   minimapWidth?: number;
@@ -65,6 +77,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   }
 
   addAxis = () => {
+    // add the axis
     this.svg
       .append("g")
       .attr("class", "x axis")
@@ -77,6 +90,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("g")
       .attr("class", "y axis")
       .attr("transform", `translate(${this.scalePadding},0)`);
+
+    // add the axis description labels
+    this.svg.append("text").attr("class", "x label description");
+    this.svg.append("text").attr("class", "y label description");
+
+    // add the axis description labels
+    this.svg.append("text").attr("class", "x label higher");
+    this.svg.append("text").attr("class", "x label lower");
+    this.svg.append("text").attr("class", "y label higher");
+    this.svg.append("text").attr("class", "y label lower");
   };
 
   addGraph = () => {
@@ -90,10 +113,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.transform = event.transform;
       const k = event.transform.k;
       // console.log(event.transform.x/k, event.transform.y/k);
+      // window.innerWidth
+      // const w =
       const x =
-        (window.innerWidth - event.transform.x / k) / 2 / window.innerWidth;
+        (this.props.width - event.transform.x / k) / 2 / this.props.width;
       const y =
-        (window.innerHeight - event.transform.y / k) / 2 / window.innerHeight;
+        (this.props.height - event.transform.y / k) / 2 / this.props.height;
 
       const zoomLevel =
         (this.props.zoomLevels * clip(k, 0, this.maxZoom)) / this.maxZoom;
@@ -147,16 +172,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   updateAxis = (transform: d3.ZoomTransform) => {
     if (!transform) return;
 
+    const xdim = this.props.dimensions[this.state.dimx ?? ""];
+    const ydim = this.props.dimensions[this.state.dimy ?? ""];
+
     const xScale = d3
       .scaleLinear()
-      // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
-      .domain([0, 1])
+      .domain([xdim?.min ?? 0, xdim?.max ?? 0])
       .range([this.scalePadding, this.props.width - this.scalePadding]);
 
     const yScale = d3
       .scaleLinear()
-      // .domain([d3.min(this.props.data.nodes,function(d:any){return d.x}), d3.max(this.props.data.nodes, function(d:any){ return d.x; })])
-      .domain([1, 0])
+      .domain([ydim?.max ?? 1, ydim?.min ?? 0])
       .range([this.scalePadding, this.props.height - this.scalePadding]);
 
     const xrange = xScale.range().map(transform.invertX, transform),
@@ -167,6 +193,63 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const xAxis = d3.axisBottom(xScale.copy().domain(xdomain));
     const yAxis = d3.axisLeft(yScale.copy().domain(ydomain));
 
+    this.svg
+      .select<SVGGElement>(".x.label.description")
+      .attr(
+        "transform",
+        `translate(${this.props.width / 2}, ${
+          this.props.height - this.scalePadding - 10
+        })`
+      )
+      .text(() => this.state.dimx ?? "");
+
+    this.svg
+      .select<SVGGElement>(".y.label.description")
+      .attr(
+        "transform",
+        `translate(${15 + this.scalePadding},${
+          this.props.height / 2
+        }) rotate(-90)`
+      )
+      .text(() => this.state.dimy ?? "");
+
+    this.svg
+      .select<SVGGElement>(".x.label.higher")
+      .attr(
+        "transform",
+        `translate(${this.props.width - 75}, ${
+          this.props.height - this.scalePadding - 10
+        })`
+      )
+      .text(() => xdim?.higher ?? "higher");
+
+    this.svg
+      .select<SVGGElement>(".x.label.lower")
+      .attr(
+        "transform",
+        `translate(${85}, ${this.props.height - this.scalePadding - 10})`
+      )
+      .text(xdim?.lower ?? "lower");
+
+    this.svg
+      .select<SVGGElement>(".y.label.higher")
+      .attr(
+        "transform",
+        `translate(${15 + this.scalePadding},${75}) rotate(-90)`
+      )
+      .text(ydim?.higher ?? "higher");
+
+    this.svg
+      .select<SVGGElement>(".y.label.lower")
+      .attr(
+        "transform",
+        `translate(${15 + this.scalePadding},${
+          this.props.height - this.scalePadding - 60
+        }) rotate(-90)`
+      )
+      .text(ydim?.lower ?? "lower");
+
+    // update the x and y axis
     this.svg
       .select<SVGGElement>(".x.axis")
       .attr(
@@ -386,6 +469,22 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.updateGraph();
       this.updateAxis(this.transform);
     }
+    if (prevProps.highlighted !== this.props.highlighted) {
+      this.highlightNodes();
+    }
+  }
+
+  highlightNodes() {
+    const s = this;
+    const nodes = this.graph
+      .selectAll(".nodes")
+      .selectAll<SVGGElement, MusicGraphNode>(".node");
+    nodes.each(function (d: MusicGraphNode) {
+      const node = d3.select(this);
+      if (s.props.highlighted.includes(node.attr("id"))) {
+        console.log("found", node.attr("id"));
+      }
+    });
   }
 
   componentDidMount() {

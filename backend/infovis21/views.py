@@ -55,7 +55,12 @@ def not_found(e):
 @cross_origin()
 def _dimensions(version):
     """ Return a list of all dimensions of the dataset """
-    return jsonify(ma.dimensions)
+    return jsonify(
+        {
+            k: {**v, **dim_minmax.get(k, {})}
+            for k, v in ma.dimension_descriptions.items()
+        }
+    )
 
 
 @app.route("/<version>/search")
@@ -149,13 +154,22 @@ def _most_popular(version):
     """ Return a list of most popular genre|artist|track per year """
 
     limit = request.args.get("limit")
-    year = request.args.get("year")
+    year_min = request.args.get("year_min")
+    year_max = request.args.get("year_max")
     coll_type = request.args.get("type")
     use_super = request.args.get("use_super", False)
-    d = {}
-    if year:
-        d["year"] = int(year)
+    streamgraph = request.args.get("streamgraph", False)
 
+    if not year_min or not year_max or not coll_type:
+        return abort(
+            400,
+            description="must specify year_min, year_max, and type e.g. /most_popular?year_min=2020&year_max=2020&type=artist&limit=10",
+        )
+
+    d = {
+        "year_min": int(year_min),
+        "year_max": int(year_max),
+    }
     pipeline = [
         {
             "$project": {
@@ -168,7 +182,12 @@ def _most_popular(version):
                 "color": 1,
             }
         },
-        {"$match": {"year": d["year"]}},
+        {
+            "$match": {
+                "$and": [{"year": {"$gte": d["year_min"], "$lte": d["year_max"]}},]
+            }
+        },
+        {"$group": {"_id": "$year", "entries": {"$push": "$$ROOT"}}},
         {"$sort": {"popularity": -1}},
     ]
 
@@ -187,13 +206,17 @@ def _most_popular(version):
     else:
         return abort(400, description="invalid node type not: genre, artist, track")
 
-    if not (d["year"] and d["type"]):
-        return abort(
-            400,
-            description="a year and type are required, optionally specify a limit e.g. /most_popular?year=2020&type=artist&limit=10",
-        )
-    print(pipeline, flush=True)
-    d.update({"most_popular": list(collection.aggregate(pipeline))})
+    popular = list(collection.aggregate(pipeline))
+    keys = [k["name"] for k in popular[0]["entries"]]
+    if streamgraph:
+        popular = [
+            {**{"year": i["_id"]}, **{k["name"]: k["popularity"] for k in i["entries"]}}
+            for i in popular
+        ]
+    else:
+        popular = popular[0]["entries"]
+
+    d.update({"most_popular": popular, "keys": keys})
     return jsonify(d)
 
 
