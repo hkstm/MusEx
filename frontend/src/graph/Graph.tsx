@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as d3 from "d3";
 import { MusicGraph, MusicGraphNode, MusicGraphLink } from "./model";
-import { clip } from "../utils";
+import { clip, capitalize } from "../utils";
 import "./Graph.sass";
 import { faMusic } from "@fortawesome/free-solid-svg-icons";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
@@ -20,6 +20,7 @@ export type GraphDataDimensions = {
 interface GraphProps {
   enabled: boolean;
   zoomLevels: number;
+  levelType: NodeType;
   width: number;
   height: number;
   highlighted: string[];
@@ -57,6 +58,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   scalePadding = 30;
   // threshold for the node labels that should always remain visible
   largeNodeLabel = 45;
+  gradients = {
+    // #3f51b5
+    // #009688
+    genre: ["blue", "red"],
+    artist: ["orange", "red"],
+    track: ["yellow", "green"],
+  };
 
   constructor(props: GraphProps) {
     super(props);
@@ -76,23 +84,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     };
   }
 
-  getCoordinateX(y: number = 0){
-    const offset =  0.99971815107 * this.props.width - 61.9177001127;
-    return 46 + (y * offset);
-  }
-
-  getCoordinateY(y: number = 0){
-    const offset =  1.003 * this.props.height - 62.52; // 1.00262467192 * height + 62.5196850394
-    // console.log('updated ', d.name, ' ' , d.y, '> ', 30 + ((1-d.y) * offset));
-    return 30 + ((1-y) * offset)
-  }
-
-  playIconCoordinates(d: any, zoom: number = 1){
-    const x: number = this.getCoordinateX(d.x);
-    const y: number = this.getCoordinateY(d.y);
-    const s: number = d.size;
-    var offset = 0.05 * d.size * zoom;
-    return (`${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${y - 3 * offset} ${x + 3 * offset},${y}`);
+  playIconCoordinates(d: MusicGraphNode, zoom: number, enlarge: number) {
+    const x = (d.x ?? 0) * enlarge;
+    const y = (d.y ?? 0) * enlarge;
+    // const x: number = this.getCoordinateX(d.x);
+    // const y: number = this.getCoordinateY(d.y);
+    const offset = (0.35 * d.size) / 3 / 2 / zoom;
+    return `${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${
+      y - 3 * offset
+    } ${x + 3 * offset},${y}`;
   }
 
   addAxis = () => {
@@ -132,13 +132,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.transform = event.transform;
       const k = event.transform.k;
       // console.log(event.transform.x/k, event.transform.y/k);
-      // window.innerWidth
-      // const w =
       const x =
         (this.props.width - event.transform.x / k) / 2 / this.props.width;
       const y =
         (this.props.height - event.transform.y / k) / 2 / this.props.height;
 
+      const enlarge = Math.min(window.screen.width, window.screen.height);
       const zoomLevel =
         (this.props.zoomLevels * clip(k, 0, this.maxZoom)) / this.maxZoom;
 
@@ -151,7 +150,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .attr("stroke-width", this.baseNodeStrokeWidth / k);
       nodes
         .select("polygon")
-        .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d, 1/k))
+        .attr("points", (d: MusicGraphNode) =>
+          this.playIconCoordinates(d, k, enlarge)
+        );
       nodes.select("text").style("font-size", this.baseTextSize / k + "px");
 
       const links = this.graph
@@ -312,17 +313,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // update the position for nodes that will survive the update
     nodes
       .select("circle")
-      // .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      // .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
-      .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-      .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
+      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+    // .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+    // .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     nodes
       .select("text")
-      // .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      // .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
-      .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-      .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
+      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge);
+    // .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+    // .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)));
 
     // add elements that were not in the graph before
     const newNodes = nodes.enter().append("g").attr("class", "node");
@@ -376,10 +377,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("circle")
       .attr("id", (d: MusicGraphNode) => d.name)
       .attr("class", (d: MusicGraphNode) => `${d.id}`)
-      // .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
-      // .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
-      .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-      .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y))) // used to be enlarge
+      .attr("cx", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      .attr("cy", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      // .attr("cx", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+      // .attr("cy", (d: MusicGraphNode) => (this.getCoordinateY(d.y))) // used to be enlarge
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
@@ -389,13 +390,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       // .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) => d.color ?? "white");
 
+    // add the play icon
     newNodes
       .append("polygon")
       .attr("class", "playIcon")
-      .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d))
+      // .attr("points", (d:MusicGraphNode) => this.playIconCoordinates(d))
+      .attr("points", (d: MusicGraphNode) =>
+        this.playIconCoordinates(d, this.state.zoomK, enlarge)
+      )
       .style("stroke", "black")
       .style("fill", "#242424")
-      .style("opacity", "0")
+      .style("opacity", "0");
 
     // add the text labels for the nodes
     newNodes
@@ -416,9 +421,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       //   (d: MusicGraphNode) =>
       //     (d.x ?? 0) * enlarge // + (d.size ?? 0) * 0.35 + 5
       // )
-      // .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
-      .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
-      .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
+      .attr("x", (d: MusicGraphNode) => (d.x ?? 0) * enlarge)
+      .attr("y", (d: MusicGraphNode) => (d.y ?? 0) * enlarge)
+      // .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
+      // .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
       .attr("fill", "white")
       // .style("stroke", "black")
       // .style("stroke-width", 0.4)
@@ -437,7 +443,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       )
       .style("opacity", 0.8); // transparency for better visualization
 
-      newNodes
+    newNodes
       .select("polygon")
       .transition("enter")
       .duration(300)
@@ -461,14 +467,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // update the position for links that will survive the update
     links
       .select("line")
-      // .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
-      // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
-      .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
-      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
-      // .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
-      // .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge)
-      .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
-      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
+      .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
+      .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      // .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
+      // .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
+      .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
+      .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
+    // .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
+    // .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // add links that were not in the graph before
     const newLinks = links
@@ -478,14 +484,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke", "#FFFFFF")
       .style("stroke-opacity", 0)
       .style("stroke-width", "0px")
-      // .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
-      // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
-      .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
-      .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
-      // .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
-      // .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge)
-      .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
-      .attr("y2", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
+      .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
+      .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
+      // .attr("x1", (d: MusicGraphLink) => this.getCoordinateX(d.x1 ?? 0))
+      // .attr("y1", (d: MusicGraphLink) => this.getCoordinateY(d.y1))
+      .attr("x2", (d: MusicGraphLink) => (d.x2 ?? 0) * enlarge)
+      .attr("y2", (d: MusicGraphLink) => (d.y2 ?? 0) * enlarge);
+    // .attr("x2", (d: MusicGraphLink) => this.getCoordinateX(d.x2 ?? 0))
+    // .attr("y2", (d: MusicGraphLink) => this.getCoordinateY(d.y2))
 
     // animate entering of new links
     newLinks
@@ -496,6 +502,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         "stroke-width",
         Math.max(0.4, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
       );
+
+    const backgroundGradient = this.svg.select("defs").select("#mainGradient");
+    const gradient = this.gradients[this.props.levelType];
+    backgroundGradient.select(".stop-left").attr("stop-color", gradient[0]);
+    backgroundGradient.select(".stop-right").attr("stop-color", gradient[1]);
   };
 
   updateGraph = () => {
@@ -520,11 +531,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       prevProps.height !== this.props.height ||
       prevProps.data !== this.props.data
     ) {
+      console.log(prevProps.width !== this.props.width);
+      console.log(prevProps.height !== this.props.height);
+      console.log(prevProps.data !== this.props.data);
+      console.log(prevProps.data, this.props.data);
+      console.log("graph did update");
       this.updateGraph();
-      this.updateAxis(this.transform);
+      // this.updateAxis(this.transform);
     }
     if (prevProps.highlighted !== this.props.highlighted) {
-      this.highlightNodes();
+      // this.highlightNodes();
     }
   }
 
@@ -618,6 +634,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         </div>
         <div id="graph-container"></div>
         <div className="graph-metrics">
+          <span className="level-type-label">
+            {capitalize(this.props.levelType)}
+          </span>
           {/*<span>Zoom Level: {Math.round(this.state.zoomLevel)}</span>*/}
         </div>
       </div>

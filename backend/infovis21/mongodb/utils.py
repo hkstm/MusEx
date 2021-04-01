@@ -207,10 +207,104 @@ def min_distance_based_filtering(points, radius=0.1, verbosity=100_000):
     return ans, discarded, end - start
 
 
+project_stage = {
+    "$project": {
+        "_id": 0,
+        "id": 1,
+        "name": 1,
+        "artist": "$artists",
+        "preview_url": 1,
+        "genres": 1,
+        "labels": 1,
+        "danceability": 1,
+        "duration_ms": 1,
+        "energy": 1,
+        "instrumentalness": 1,
+        "liveness": 1,
+        "loudness": 1,
+        "speechiness": 1,
+        "tempo": 1,
+        "valence": 1,
+        "popularity": 1,
+        "key": 1,
+        "mode": 1,
+        "acousticness": 1,
+        "year": 1,
+    }
+}
+
+
+def compute_track_api(out="tracks_api"):
+    ma.db[out].drop()
+    ma.db["tracks_full"].aggregate(
+        [
+            {"$unwind": "$artists"},
+            {"$set": {"labels": ["$labels"]}},
+            project_stage,
+            {"$out": out},
+        ]
+    )
+    ma.db[out].create_index("id")
+
+
+def compute_artist_popularity_per_year(
+    out="artist_popularity_per_year", use_super_genre=True
+):
+    ma.db[out].drop()
+    pipeline = [
+        {
+            "$project": {
+                "name": 1,
+                "year": 1,
+                "popularity": 1,
+                "genres": 1,
+                "genre_color": 1,
+                "genre_super": 1,
+            }
+        },
+        # {
+        #     "$set": {
+        #         "year": {"$toInt": "$explicit"},
+        #     }
+        # },
+        {
+            "$group": {
+                "_id": {
+                    "year": "$year",
+                    "artist": "$artist" if not use_super_genre else "$genre_super",
+                },
+                "popularity": {"$first": "$popularity"},
+                "name": {"$first": "$name"},
+                "genres": {"$first": "$genres"},
+                "color": {"$first": "$genre_color"},
+                "super_genre": {"$first": "$genre_super"},
+            }
+        },
+        {
+            "$project": {
+                "artist": "$_id.artist",
+                "year": "$_id.year",
+                "popularity": 1,
+                "name": 1,
+                "genres": 1,
+                "color": 1,
+                "super_genre": 1,
+                "_id": 0,
+            }
+        },
+        {"$sort": {"year": 1, "popularity": -1}},
+        {"$out": out},
+    ]
+    ma.coll_tracks.aggregate(
+        pipeline, allowDiskUse=True,
+    )
+    ma.db[out].create_index("year")
+
+
 def compute_genre_popularity_per_year(
     out="genre_popularity_per_year", use_super_genre=True
 ):
-    ma.db[out].create_index("year")
+    db[out].drop()
     pipeline = [
         {
             "$project": {

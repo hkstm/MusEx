@@ -6,6 +6,7 @@ import { Size, Position, Genre, Node, NodeType } from "./common";
 import Graph, { GraphDataDimensions } from "./graph/Graph";
 import { MusicGraph } from "./graph/model";
 import Select, { SelectOptions } from "./Select";
+import { HeatmapTile } from "./charts/heatmap/Heatmap";
 import Heatmap from "./charts/musicheatmap/heatmap";
 import Streamgraph, {
   StreamgraphStream,
@@ -76,16 +77,16 @@ type AppState = {
   y: number;
   zoom: number;
   zoomLevel: number;
-  type: NodeType;
+  levelType: NodeType;
   dimx?: string;
   dimy?: string;
 };
 
 class App extends Component<{}, AppState> {
-  type: NodeType[] = ["genre", "artist", "track"];
+  levels: NodeType[] = ["genre", "artist", "track"];
   zoomLevels = 5;
   lastUpdateZoomLevel?: number = undefined;
-  lastUpdate?: { zoom: number; type: NodeType } = undefined;
+  lastUpdate?: { zoom: number; levelType: NodeType } = undefined;
   apiVersion = "v2";
   mainViewWidthPercent = 0.6;
 
@@ -117,7 +118,7 @@ class App extends Component<{}, AppState> {
       },
       highlighted: [],
       interests: {
-        tiles: [],
+        tiles: this.buildData(20, 20),
         xSize: 20,
         ySize: 20,
       },
@@ -127,7 +128,6 @@ class App extends Component<{}, AppState> {
       wordcloudYear: 2020,
       wordcloudType: "genre",
       wordcloudData: [],
-      //
       // Streamgraph
       streamgraphEnabled: true,
       streamgraphYearStart: 2000,
@@ -144,9 +144,27 @@ class App extends Component<{}, AppState> {
       y: 0.5,
       zoom: 0,
       zoomLevel: 0,
-      type: "genre",
+      levelType: "genre",
     };
   }
+
+  buildData = (w: number, h: number) => {
+    let data: HeatmapTile[] = [];
+    Array(w)
+      .fill(0)
+      .forEach((_, wi) => {
+        Array(h)
+          .fill(0)
+          .forEach((_, hi) => {
+            data.push({
+              x: wi,
+              y: hi,
+              value: 1,
+            });
+          });
+      });
+    return data;
+  };
 
   onButtonClickHandler = () => {
     window.alert("Help!");
@@ -159,24 +177,23 @@ class App extends Component<{}, AppState> {
 
   handleZoom = (zoom: number) => {
     const zoomLevel = Math.floor(zoom);
-    const levelType = this.type[Math.min(zoomLevel, this.type.length - 1)];
+    const levelType = this.levels[Math.min(zoomLevel, this.levels.length - 1)];
     // console.log("zoom changed to", zoom, zoomLevel, levelType);
-    this.setState(
-      { zoom: zoom - zoomLevel, zoomLevel, type: levelType },
-      () => {
-        if (
-          this.lastUpdate &&
-          (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
-            1 / this.zoomLevels ||
-            this.lastUpdate.type !== levelType)
-        )
-          this.updateGraph();
-      }
-    );
+    // TODO: make this a lot smarter please!
+    this.setState({ zoom: zoom - zoomLevel, zoomLevel, levelType }, () => {
+      if (
+        this.lastUpdate &&
+        (Math.abs(this.lastUpdate.zoom - (zoom - zoomLevel)) >=
+          1 / this.zoomLevels ||
+          this.lastUpdate.levelType !== levelType)
+      )
+        console.log("trigger zoom based update");
+      // this.updateGraph();
+    });
   };
 
   handleWordcloudTypeChange = (typ: string) => {
-    console.log("wordcloud type changed to", typ);
+    // console.log("wordcloud type changed to", typ);
     this.setState({ wordcloudType: typ as NodeType }, this.updateWordcloud);
   };
 
@@ -196,7 +213,7 @@ class App extends Component<{}, AppState> {
         config
       )
       .then((res) => {
-        console.log(res.data);
+        // console.log(res.data);
         this.setState({
           streamgraphData: res.data as {
             keys: string[];
@@ -271,14 +288,18 @@ class App extends Component<{}, AppState> {
       this.state.x,
       this.state.y,
       this.state.zoom,
-      this.state.type
+      this.state.zoomLevel,
+      this.state.levelType
     );
-    this.lastUpdate = { zoom: this.state.zoom, type: this.state.type };
+    this.lastUpdate = {
+      zoom: this.state.zoom,
+      levelType: this.state.levelType,
+    };
 
-    const graphDataURL = `http://localhost:5000/${this.apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=1000`;
+    const graphDataURL = `http://localhost:5000/${this.apiVersion}/graph?x=${this.state.x}&y=${this.state.y}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.levelType}&limit=1000`;
     axios.get(graphDataURL, config).then((res) => {
-      console.log(res.data.nodes.length + " nodes");
-      console.log(res.data.links.length + " links");
+      // console.log(res.data.nodes.length + " nodes");
+      // console.log(res.data.links.length + " links");
       this.setState({ graph: res.data });
     });
   };
@@ -300,8 +321,8 @@ class App extends Component<{}, AppState> {
       this.setState((state) => {
         return {};
       });
-      this.updateGraph();
-      this.updateStreamgraph();
+      // this.updateGraph();
+      // this.updateStreamgraph();
     });
   }
 
@@ -364,6 +385,7 @@ class App extends Component<{}, AppState> {
                   interests={this.state.interests}
                   highlighted={this.state.highlighted}
                   zoomLevels={this.zoomLevels}
+                  levelType={this.state.levelType}
                   width={
                     window.innerWidth *
                       (this.state.sideviewExpanded

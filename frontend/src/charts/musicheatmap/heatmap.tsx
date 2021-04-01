@@ -46,46 +46,48 @@ class MusicHeatmap extends Component<{}, any> {
         year: { max: 2021, min: 1920 },
       },
     };
-    this.setAxes = this.setAxes.bind(this);
+  }
+
+  componentDidMount() {
     this.getData();
   }
 
   getData() {
     // setTimeout(this.d3heatmap, 0);
-    axios.get(`http://localhost:5000/v2/years?limit=200`).then((res)=>{
-      this.setState({data: res.data.data}, ()=> {
+    axios.get(`http://localhost:5000/v2/years?limit=200`).then((res) => {
+      this.setState({ data: res.data.data }, () => {
         this.setAxes(res.data.data, 40);
-      })
+      });
     });
   }
 
-  setAxes (data:any[], sliderValue: number = 80 ) {
-    const yearsLimit = Math.floor(sliderValue / 200 * 50);
-    let years = (data.sort((a: any,b: any) => a.year > b.year ? 1 : -1))
+  setAxes = (data: any[], sliderValue: number = 80) => {
+    const yearsLimit = Math.floor((sliderValue / 200) * 50);
+    let years = data.sort((a: any, b: any) => (a.year > b.year ? 1 : -1));
     years = years.slice(data.length - yearsLimit);
-    var x:number[] = [], y:any[] = [];
-    var min: any = this.state.min, max: any = this.state.max;
-    years.forEach((d:any) => {
+    var x: number[] = [],
+      y: any[] = [];
+    var min: any = this.state.min,
+      max: any = this.state.max;
+    years.forEach((d: any) => {
       x.push(d.year);
-      const {year, loudness, duration_ms, ...info} = d;
-      Object.keys(d).forEach((k:any) => {
-        if (!max[k] || max[k] < d[k])
-          max[k] = d[k]
-        if (!min[k] || min[k] > d[k])
-          min[k] = d[k]
+      const { year, loudness, duration_ms, ...info } = d;
+      Object.keys(d).forEach((k: any) => {
+        if (!max[k] || max[k] < d[k]) max[k] = d[k];
+        if (!min[k] || min[k] > d[k]) min[k] = d[k];
       });
       y.push(info);
-    })
-    const heatmapGrid = document.querySelector('.heatmap-grid');
+    });
+    const heatmapGrid = document.querySelector(".heatmap-grid");
 
     // let cellSize = Math.floor(heatmapGrid ? heatmapGrid.clientWidth / (yearsLimit + 5) : 25 )
     // if (cellSize > 40 ) cellSize = 40;
     // console.log('grid ', heatmapGrid?.clientWidth, ' limit ', yearsLimit, ' cellsize ', cellSize)
 
     // this.setState({x: [], y: [], min, max, yearsLimit}, ()=> {
-      this.setState({x, y, min, max, yearsLimit});
+    this.setState({ x, y, min, max, yearsLimit });
     // });
-  }
+  };
 
   d3heatmap() {
     var margin = { top: 60, right: 60, bottom: 60, left: 60 },
@@ -253,11 +255,11 @@ class MusicHeatmap extends Component<{}, any> {
   }
 
   draw() {
-    const roundOff: number = (this.state.yearsLimit >= 20 ? 5 : 2);
+    const roundOff: number = this.state.yearsLimit >= 20 ? 5 : 2;
     return (
       <div className="heatmap-grid">
         {Object.keys(this.state.y[0] || {}).map((key: string) => (
-          <div className="heatmap-row">
+          <div key={key} className="heatmap-row">
             <div className="heatmap-tick-y">
               {key}
               <div className="y-tooltip">
@@ -268,16 +270,22 @@ class MusicHeatmap extends Component<{}, any> {
             </div>
             {this.state.x.map((year: any, i: number) => (
               // <div className="heatmap-row">
-                <div
-                  className={"heatmap-cell " + "animation-cell-"+ Math.ceil(Math.random()*5)} style={{
-                    background: this.getShade(key, this.state.y[i][key]),
-                  }}
-                >
-                  <div className="heatmap-cell-tooltip">
-                    {" "}
-                    {`${key} in ${year} is ${this.state.y[i][key].toFixed(3)}`}
-                  </div>
+              <div
+                key={i}
+                className={
+                  "heatmap-cell " +
+                  "animation-cell-" +
+                  Math.ceil(Math.random() * 5)
+                }
+                style={{
+                  background: this.getShade(key, this.state.y[i][key]),
+                }}
+              >
+                <div className="heatmap-cell-tooltip">
+                  {" "}
+                  {`${key} in ${year} is ${this.state.y[i][key].toFixed(3)}`}
                 </div>
+              </div>
               // </div>
             ))}
           </div>
@@ -285,8 +293,8 @@ class MusicHeatmap extends Component<{}, any> {
         <div className="heatmap-row">
           <div className="heatmap-tick-y" />
           {this.state.x.map((year: any, i: number) => (
-            <div className="heatmap-tick">
-              {year % roundOff == 0 ? year : '' }
+            <div key={i} className="heatmap-tick">
+              {year % roundOff == 0 ? year : ""}
             </div>
           ))}
         </div>
@@ -294,7 +302,7 @@ class MusicHeatmap extends Component<{}, any> {
     );
   }
 
-  updateHeatmap(sliderValue: number){
+  updateHeatmap(sliderValue: number) {
     this.setAxes(this.state.data, sliderValue);
   }
 
@@ -304,8 +312,16 @@ class MusicHeatmap extends Component<{}, any> {
         {/* <svg id="heatmap-svg"></svg> */}
         {this.draw()}
         {this.drawLegend()}
-        <Slider id="heatmap" min={40} onUpdate={(n:number)=>{this.updateHeatmap(n);}}/>
-          <div className="hm-slider-label">Show last {this.state.yearsLimit} years</div>
+        <Slider
+          id="heatmap"
+          min={40}
+          onUpdate={(n: number) => {
+            this.updateHeatmap(n);
+          }}
+        />
+        <div className="hm-slider-label">
+          Show last {this.state.yearsLimit} years
+        </div>
       </div>
     );
   }

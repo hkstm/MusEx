@@ -32,7 +32,7 @@ type HeatmapProps = {
 type HeatmapState = {};
 
 class Heatmap extends Component<HeatmapProps, HeatmapState> {
-  svg!: d3.Selection<SVGGElement, unknown, HTMLElement, any>;
+  svg!: d3.Selection<SVGElement, HeatmapTile[], HTMLElement, any>;
 
   constructor(props: HeatmapProps) {
     super(props);
@@ -45,7 +45,23 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
     }
   }
 
+  addHeatmap = () => {
+    this.svg = d3.select<SVGElement, HeatmapTile[]>("#heatmap-svg");
+    this.svg.append("g").attr("class", "heatmap");
+
+    this.svg.append("g").attr("class", "y axis");
+    this.svg.append("g").attr("class", "x axis");
+    // .attr("transform", `translate(${this.scalePadding},0)`);
+  };
+
   updateHeatmap() {
+    console.log("data is ", this.props.data);
+
+    const myColor = (n: number) => {
+      var shade = n * 255;
+      return `rgb(${255 - shade}, ${255 - shade}, ${255})`;
+    };
+
     const x = d3
       .scaleBand<number>()
       .padding(0.01)
@@ -67,38 +83,48 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
       );
 
     if (this.props.showAxis) {
-      this.svg.append("g").call(d3.axisBottom(x));
-
-      this.svg.append("g").call(d3.axisLeft(y));
+      this.svg.select<SVGGElement>(".x.axis").call(d3.axisBottom(x));
+      this.svg.select<SVGGElement>(".y.axis").call(d3.axisLeft(y));
     }
 
-    const myColor = (n: number) => {
-      var shade = n * 255;
-      return `rgb(${255 - shade}, ${255 - shade}, ${255})`;
-    };
+    this.svg
+      .attr(
+        "width",
+        this.props.width +
+          (this.props.margin?.right ?? 0) +
+          (this.props.margin?.left ?? 0)
+      )
+      .attr(
+        "width",
+        this.props.height +
+          (this.props.margin?.top ?? 0) +
+          (this.props.margin?.bottom ?? 0)
+      );
 
-    const buildData = () => {
-      let data: HeatmapTile[] = [];
-      Array(this.props.data.xSize)
-        .fill(0)
-        .forEach((_, wi) => {
-          Array(this.props.data.ySize)
-            .fill(0)
-            .forEach((_, hi) => {
-              data.push({
-                x: wi,
-                y: hi,
-                value: Math.random(),
-              });
-            });
-        });
-      return data;
-    };
+    const tiles = this.svg
+      .selectAll(".heatmap")
+      .selectAll<SVGGElement, HeatmapTile[]>(".tile")
+      .data(this.props.data, (d) => d);
 
-    const data = buildData();
-    // console.log(data);
+    // remove the ones that are no longer in the data
+    tiles
+      .exit()
+      .transition("exit")
+      .duration(100)
+      .attr("r", 0)
+      .style("opacity", 0)
+      .remove();
 
-    const tiles = this.svg.selectAll().data(data).enter().append("rect");
+    // update the tiles that survived the upate
+    tiles.attr(
+      "transform",
+      `translate(${this.props.margin?.left ?? 0},${
+        this.props.margin?.top ?? 0
+      })`
+    );
+
+    // add the new tiles
+    const newTiles = tiles.enter().append("rect").attr("class", "tile");
 
     if (this.props.showTooltip) {
       const tooltip = d3
@@ -128,40 +154,20 @@ class Heatmap extends Component<HeatmapProps, HeatmapState> {
         .on("mouseleave", mouseleave);
     }
 
-    tiles
+    newTiles
       .attr("x", (d: HeatmapTile) => x(d.x) ?? 0)
       .attr("y", (d: HeatmapTile) => y(d.y) ?? 0)
       .attr("rx", 4)
       .attr("ry", 4)
       .attr("width", x.bandwidth())
       .attr("height", y.bandwidth())
-      .transition()
-      .duration(500)
       .style("fill", (d: HeatmapTile) => myColor(d.value));
+    // .transition()
+    // .duration(500)
   }
 
   componentDidMount() {
-    this.svg = d3
-      .select("#heatmap-svg")
-      .attr(
-        "width",
-        this.props.width +
-          (this.props.margin?.right ?? 0) +
-          (this.props.margin?.left ?? 0)
-      )
-      .attr(
-        "width",
-        this.props.height +
-          (this.props.margin?.top ?? 0) +
-          (this.props.margin?.bottom ?? 0)
-      )
-      .append("g")
-      .attr(
-        "transform",
-        `translate(${this.props.margin?.left ?? 0},${
-          this.props.margin?.top ?? 0
-        })`
-      );
+    this.addHeatmap();
     this.updateHeatmap();
   }
 
