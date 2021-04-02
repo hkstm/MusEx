@@ -39,6 +39,95 @@ def add_genre_super_info(base_coll_name, local_field, foreign_field):
     ma.db[f"{base_coll_name}s_api"].drop_index("name_1")
 
 
+def update_tracks_api_to_include_artists():
+    def label_to_color(label):
+        if label == "Classical":
+            return "#9370db"  # purple
+        if label == "Electronic":
+            return "#32cd32"  # green
+        if label == "Hiphop":
+            return "#ffbf00"  # orange
+        if label == "Rock":
+            return "#ff0000"  # red
+        if label == "Pop":
+            return "#ff69b4"  # pink
+        if label == "Indie":
+            return "#1e90ff"  # blue
+
+    project_stage = {
+        "$project": {
+            "id": 1,
+            "name": 1,
+            "preview_url": 1,
+            "genres": 1,
+            "labels": 1,
+            "danceability": 1,
+            "duration_ms": 1,
+            "energy": 1,
+            "instrumentalness": 1,
+            "liveness": 1,
+            "loudness": 1,
+            "speechiness": 1,
+            "tempo": 1,
+            "valence": 1,
+            "popularity": 1,
+            "key": 1,
+            "mode": 1,
+            "acousticness": 1,
+            "year": 1,
+            "artists": 1,
+        }
+    }
+    ma.db["tracks_api"].drop()
+    ma.db["tracks_full"].aggregate(
+        [{"$set": {"labels": ["$labels"]}}, project_stage, {"$out": "tracks_api"},]
+    )
+
+    ma.db["tracks_api"].create_index("id")
+    pipeline = [
+        {"$unwind": "$genres"},
+        {
+            "$lookup": {
+                "from": "genres_full",
+                "foreignField": "_id",
+                "localField": "genres",
+                "as": "genres_doc",
+            }
+        },
+        {"$unwind": "$genres_doc"},
+        {"$set": {"genre_super": "$genres_doc.genre_super",}},
+        {"$unset": "genres_doc"},
+        {"$group": {"_id": "$id", "genre_super": {"$push": "$genre_super"},}},
+        {"$unwind": "$genre_super"},
+        {
+            "$group": {
+                "_id": {"id": "$_id", "genre_super": "$genre_super"},
+                "genre_super_freq": {"$sum": 1},
+            }
+        },
+        {
+            "$group": {
+                "_id": "$_id.id",
+                "genre_info": {
+                    "$push": {
+                        "genre_super": "$_id.genre_super",
+                        "genre_super_freq": "$genre_super_freq",
+                    }
+                },
+            }
+        },
+    ]
+    res = list(ma.db[f"tracks_api"].aggregate(pipeline, allowDiskUse=True))
+    for doc in res:
+        label = sorted(doc["genre_info"], key=lambda k: k["genre_super_freq"])[-1][
+            "genre_super"
+        ]
+        ma.db[f"tracks_api"].update_one(
+            {"id": doc["_id"]},
+            {"$set": {"genre_super": label, "genre_color": label_to_color(label)}},
+        )
+
+
 def normalize(dim, value, _min=0.0, _max=1.0):
     """ Normalize orignal data values """
     return np.interp(

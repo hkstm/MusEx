@@ -100,6 +100,13 @@ def add_genre_super_info(c):
     from infovis21.mongodb import utils as dbutils
     dbutils.add_genre_super_info('genre', 'genre', 'name')
     dbutils.add_genre_super_info('artist', 'artist', 'id')
+    # dbutils.add_genre_super_info('artist', 'artist', 'id')
+
+@task
+def update_tracks_api_to_include_artists(c):
+    '''Adds the genre_super and genre_color fields to the genre and artist per year collections'''
+    from infovis21.mongodb import utils as dbutils
+    dbutils.update_tracks_api_to_include_artists()
 
 @task
 def compute_track_api(
