@@ -132,8 +132,7 @@ class GraphControl extends Component<
               window.innerWidth *
                 (this.props.sideviewExpanded
                   ? this.mainViewWidthPercent
-                  : 1.0) -
-              30
+                  : 1.0)
             }
             height={window.innerHeight - 40}
             dimx={this.state.dimx}

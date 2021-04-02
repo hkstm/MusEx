@@ -87,21 +87,45 @@ def precomputed_discarded_collection(dimx, dimy, typ, zoom):
     return _precomputed_collection(dimx, dimy, typ, zoom, "discarded")
 
 
-MAX_RADIUS = 0.1
-# N_ZOOM_LEVELS = 5
-N_ZOOM_LEVELS = 5
-ZOOM_LEVELS = [MAX_RADIUS / (2 ** i) for i in range(N_ZOOM_LEVELS - 1)] + [0.0]
-# ZOOM_LEVELS = [1.0, 0.9, 0.8, 0.6, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1] + [0.0]
+N_ZOOM_LEVELS = 6
+
+
+def exp(power=2):
+    def _exp(base, level):
+        return base / (power ** level)
+
+    return _exp
+
+
+def lin(factor=1):
+    def _lin(base, level):
+        return base / (factor * (level + 1))
+
+    return _lin
+
+
+scale_func = lin(factor=0.3)
+max_radius = 0.02
+BASE_RADI = {
+    "genre": scale_func(max_radius, 0),
+    "artist": scale_func(max_radius, N_ZOOM_LEVELS),
+    "track": scale_func(max_radius, N_ZOOM_LEVELS * 2),
+}
 
 
 def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     print("-" * 50)
-    print("precomputing", dimx, dimy, typ, zoom, ZOOM_LEVELS[zoom])
     nodes_out = precomputed_nodes_collection(dimx, dimy, typ, zoom)
     links_out = precomputed_links_collection(dimx, dimy, typ, zoom)
     discarded_out = precomputed_discarded_collection(dimx, dimy, typ, zoom)
 
+    base_radius = BASE_RADI[typ]
+    # ZOOM_LEVELS = [base_radius / (2 ** i) for i in range(N_ZOOM_LEVELS - 0)]
+    ZOOM_LEVELS = [scale_func(base_radius, i) for i in range(N_ZOOM_LEVELS - 0)]
+    # if ZOOM + [0.0]
     radius = ZOOM_LEVELS[zoom]
+    print("precomputing", dimx, dimy, typ, zoom, ZOOM_LEVELS[zoom])
+
     pipeline = [
         {"$match": {}},
         {"$sort": {"$id": ma.DESC}},
@@ -213,11 +237,10 @@ def min_distance_based_filtering(points, radius=0.1, verbosity=100_000):
     cell_size = (2 * radius, 2 * radius)
     # print("cell size is", cell_size)
     grid_size = (
-        math.ceil(abs(hi[0] - lo[0]) / cell_size[0]),
-        math.ceil(abs(hi[1] - lo[1]) / cell_size[1]),
+        math.ceil(abs(hi[0] - lo[0]) / cell_size[0]) + 1,
+        math.ceil(abs(hi[1] - lo[1]) / cell_size[1]) + 1,
     )
     # print("grid size is", grid_size)
-
     grid = [[set()] * grid_size[1] for _ in range(grid_size[0])]
 
     last_visited = 0
@@ -237,6 +260,7 @@ def min_distance_based_filtering(points, radius=0.1, verbosity=100_000):
             taken.add(idx)
             ans.append(idx)
             visited = visited.union(neighbours)
+            # print(px, py, grid_size, p)
             grid[px][py] = grid[px][py].union(neighbours)
             points_idx = points_idx.difference(neighbours)
         else:

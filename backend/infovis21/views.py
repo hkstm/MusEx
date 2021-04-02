@@ -513,7 +513,7 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     link_pipeline = [
         {
             "$match": {
-                "$or": [
+                "$and": [  # Note: use $or when including edges with only one endpoint in te viewport
                     {
                         "$and": [
                             {"x1": {"$gte": x_min, "$lte": x_max}},

@@ -26,7 +26,7 @@ type AppState = {
 
 class App extends Component<{}, AppState> {
   mainViewWidthPercent = 0.6;
-  zoomLevels = 5;
+  zoomLevels = 6;
 
   constructor(props: {}) {
     super(props);
