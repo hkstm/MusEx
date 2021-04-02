@@ -498,6 +498,8 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 "name": "$name",
                 "preview_url": "$preview_url",
                 "color": "$genre_color",
+                # todo: add the artist
+                # "artist": "$artist",
                 "size": "$popularity",
                 "type": typ,
                 "subgenres": "$genres",
@@ -513,7 +515,7 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
     link_pipeline = [
         {
             "$match": {
-                "$or": [
+                "$and": [  # Note: use $or when including edges with only one endpoint in te viewport
                     {
                         "$and": [
                             {"x1": {"$gte": x_min, "$lte": x_max}},
