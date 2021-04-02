@@ -98,6 +98,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   minNodeSize = 0.001;
   scalePadding = 30;
   largeNodeLabel = 40;
+  lastPlayed: any;
+  lastPlayLoop: any;
   gradients = {
     genre: ["#696969", "#A1CFCE"],
     artist: ["#696969", "#8D2639"],
@@ -446,6 +448,34 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     } ${x + 3 * offset},${y}`;
   };
 
+  musicPlaying(clicked: any, s: any) {
+    var strokeWidth = 2;
+    function animate() {
+      clicked
+        .select("polygon")
+        .style("fill", "black")
+        .style("stroke-width", strokeWidth)
+      strokeWidth = strokeWidth === 2 ? 3.2 : strokeWidth === 3.2 ? 4 : strokeWidth === 4 ? 3 : 2;
+    }
+    var i = setInterval(animate, 200);
+    s.musicStopped(s.lastPlayed, s.lastPlayLoop);
+    var x = s && s.lastPlayed && s.lastPlayed.__groups && s.lastPlayed.__groups[0];
+    debugger;
+    s.lastPlayed = clicked;
+    s.lastPlayLoop = i;
+    setTimeout( ()=> {this.musicStopped(clicked, i); clearInterval(i)}, 20000);
+  }
+  
+  musicStopped(lastPlayed: any, lastPlayLoop: any) {
+    if (lastPlayed){
+      lastPlayed
+        .select("polygon")
+        .style("fill", "#242424")
+        .style("stroke-width", 1)
+      clearInterval(lastPlayLoop);
+    }
+  }
+
   updateGraph = (data: MusicGraph) => {
     this.svg.attr("width", this.props.width).attr("height", this.props.height);
     this.graph
@@ -493,12 +523,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             s.audio.src = d.preview_url;
             s.audio.load();
             s.audio.play();
+            s.musicPlaying(clicked, s);
           } else if (!isPlaying) {
             s.audio.play();
+            s.musicPlaying(clicked, s);
           } else {
             // if we did not want double shift click to stop but only reset
             // s.audio.currentTime = 0;
             // s.audio.play();
+            s.musicStopped(s.lastPlayed, s.lastPlayLoop);
           }
         } else {
           // toggle selection of the node
