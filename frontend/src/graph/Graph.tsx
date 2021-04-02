@@ -99,12 +99,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   scalePadding = 30;
   largeNodeLabel = 40;
   gradients = {
-    // #3f51b5
-    // #009688
-    // TODO: change the colors
-    genre: ["blue", "red"],
-    artist: ["orange", "red"],
-    track: ["yellow", "green"],
+    genre: ["#696969", "#A1CFCE"],
+    artist: ["#696969", "#8D2639"],
+    track: ["#696969", "#008080"],
+    // genre: ["blue", "red"],
+    // artist: ["orange", "red"],
+    // track: ["yellow", "green"],
   };
 
   constructor(props: GraphProps) {
@@ -164,15 +164,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           console.log(this.state.recommendations);
         });
     } else {
-      this.setState({recommendations: {id: ''}})
+      this.setState({ recommendations: { id: "" } });
       console.log("We are not getting any recos rn");
     }
   };
 
   sendList = () => {
     this.getRecommendations(this.state.selected);
-  }
-  
+  };
+
   addAxis = () => {
     // add the axis
     this.svg
@@ -510,7 +510,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             clicked.select(".selected-info-tooltip").remove();
 
             s.state.selected.delete(d.id);
-            s.sendList()
+            s.sendList();
           } else {
             clicked
               .select("circle")
@@ -532,7 +532,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
               .attr("height", 25)
               .attr("width", (d: MusicGraphNode) => {
-                return Math.max(d.name.length, d.artist?.length ?? 0) * 10 + "px";
+                return (
+                  Math.max(d.name.length, d.artist?.length ?? 0) * 10 + "px"
+                );
               });
 
             if ("artist" in clicked.data()) {
@@ -545,7 +547,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                   "x",
                   (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
                 )
-                .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
+                .attr(
+                  "y",
+                  (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d)
+                )
                 .text((d: MusicGraphNode) => d.name);
 
               tooltip
@@ -557,11 +562,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                   "x",
                   (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
                 )
-                .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
-                .text((d: MusicGraphNode) => `by ${d.artist ?? ''}`);
+                .attr(
+                  "y",
+                  (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d)
+                )
+                .text((d: MusicGraphNode) => `by ${d.artist ?? ""}`);
             }
             s.state.selected.add(d.id);
-            s.sendList()
+            s.sendList();
           }
         }
       })

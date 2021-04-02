@@ -130,9 +130,7 @@ class GraphControl extends Component<
             zoomLevels={this.zoomLevels}
             width={
               window.innerWidth *
-                (this.props.sideviewExpanded
-                  ? this.mainViewWidthPercent
-                  : 1.0)
+              (this.props.sideviewExpanded ? this.mainViewWidthPercent : 1.0)
             }
             height={window.innerHeight - 40}
             dimx={this.state.dimx}
