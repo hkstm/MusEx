@@ -99,6 +99,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   minNodeSize = 0.005;
   scalePadding = 30;
   largeNodeLabel = 40;
+  lastPlayed: any;
+  lastPlayLoop: any;
   gradients = {
     genre: ["#696969", "#A1CFCE"],
     artist: ["#696969", "#8D2639"],
@@ -447,6 +449,52 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     } ${x + 3 * offset},${y}`;
   };
 
+  musicPlaying = (
+    clicked: d3.Selection<SVGGElement, MusicGraphNode, null, any>
+  ) => {
+    let strokeWidth = 2;
+    function animate() {
+      clicked
+        .select("polygon")
+        .style("fill", "black")
+        .style("stroke-width", strokeWidth);
+      strokeWidth =
+        strokeWidth === 2
+          ? 3.2
+          : strokeWidth === 3.2
+          ? 4
+          : strokeWidth === 4
+          ? 3
+          : 2;
+    }
+    const i = setInterval(animate, 200);
+    this.musicStopped(this.lastPlayed, this.lastPlayLoop);
+    // const x =
+    //   this &&
+    //   this.lastPlayed &&
+    //   this.lastPlayed.__groups &&
+    //   this.lastPlayed.__groups[0];
+    this.lastPlayed = clicked;
+    this.lastPlayLoop = i;
+    setTimeout(() => {
+      this.musicStopped(clicked, i);
+      clearInterval(i);
+    }, 20000);
+  };
+
+  musicStopped(
+    lastPlayed: d3.Selection<SVGGElement, MusicGraphNode, null, any>,
+    lastPlayLoop: any
+  ) {
+    if (lastPlayed) {
+      lastPlayed
+        .select("polygon")
+        .style("fill", "#242424")
+        .style("stroke-width", 1);
+      clearInterval(lastPlayLoop);
+    }
+  }
+
   updateGraph = (data: MusicGraph) => {
     this.svg.attr("width", this.props.width).attr("height", this.props.height);
     this.graph
@@ -490,18 +538,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           const isPlaying = !s.audio?.paused ?? false;
           const isNewAudio = !s.audio || s.audio.currentSrc !== d.preview_url;
           s.audio.pause();
-          clicked.select(".playIcon").style("opacity", 1);
           if (isNewAudio) {
             s.audio.src = d.preview_url;
             s.audio.load();
             s.audio.play();
-            clicked.select(".playIcon").style("opacity", 0);
+            s.musicPlaying(clicked);
           } else if (!isPlaying) {
             s.audio.play();
+            s.musicPlaying(clicked);
           } else {
-            // if we did not want double shift click to stop but only reset
-            // s.audio.currentTime = 0;
-            // s.audio.play();
+            s.musicStopped(s.lastPlayed, s.lastPlayLoop);
           }
         } else {
           // toggle selection of the node

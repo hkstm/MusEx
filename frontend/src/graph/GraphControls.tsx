@@ -4,6 +4,8 @@ import { headerConfig, apiVersion } from "../common";
 import Graph, { GraphDataDimensions } from "./Graph";
 import Select from "../Select";
 import "./GraphControls.sass";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 type GraphControlProps = {
   graphWidth: number;
@@ -182,9 +184,13 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
             <button id="app-search" type="submit">
               Search
             </button>
-            <button type="button" id="app-help" onClick={this.openHelp}>
-              Help
-            </button>
+            <FontAwesomeIcon
+              id="app-help"
+              className="help-icon"
+              title="Help"
+              icon={faInfoCircle}
+              onClick={this.openHelp}
+            />
           </form>
         </nav>
         {this.state.dimx === this.state.dimy ? (
