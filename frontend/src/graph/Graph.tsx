@@ -164,10 +164,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           console.log(this.state.recommendations);
         });
     } else {
-      console.log("We are not getting anything rn");
+      this.setState({recommendations: {id: ''}})
+      console.log("We are not getting any recos rn");
     }
   };
 
+  sendList = () => {
+    this.getRecommendations(this.state.selected);
+  }
   
   addAxis = () => {
     // add the axis
@@ -501,12 +505,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               .style("stroke", "#FFFFFF")
               .style("stroke-width", 1.5);
             s.state.selected.delete(d.id);
+            s.sendList()
           } else {
             clicked
               .select("circle")
               .style("stroke", "#F8FF20")
               .style("stroke-width", 5);
             s.state.selected.add(d.id);
+            s.sendList()
           }
         }
       })
