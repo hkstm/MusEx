@@ -7,6 +7,7 @@ export interface MusicGraphNode extends d3.SimulationNodeDatum {
   name: string;
   type: "Artist" | "Track" | "Genre";
   genre?: string[];
+  artist?: string;
   size?: number;
   preview_url?: string;
   color?: number;

@@ -31,11 +31,12 @@ class GraphControl extends Component<
 
   onButtonClickHandler = () => {
     window.alert(
-    'FAQ\n'
-    + '\n??Need help searching for specific genres or artists??\n--Type in the top right search bar and pick from artist or genre!'
-    + '\n??Want to see stats of audio features throughout the years??\n--Try the slidebar underneath the heatmap!'
-    + '\n??Want to focus only on the graph??\n--Click the three stacked bars next to the wordcloud to blend them out!'
-    + '\n??Need to know how to click??\n--LeftClick -> (Un)highlight node\n--Shift + LeftClick -> Play/stop music\n--Double LeftClick -> Zooming\n')
+      "FAQ\n" +
+        "\n??Need help searching for specific genres or artists??\n--Type in the top right search bar and pick from artist or genre!" +
+        "\n??Want to see stats of audio features throughout the years??\n--Try the slidebar underneath the heatmap!" +
+        "\n??Want to focus only on the graph??\n--Click the three stacked bars next to the wordcloud to blend them out!" +
+        "\n??Need to know how to click??\n--LeftClick -> (Un)highlight node\n--Shift + LeftClick -> Play/stop music\n--Double LeftClick -> Zooming\n"
+    );
   };
 
   setSearchQuery = (event: React.FormEvent) => {
@@ -131,8 +132,7 @@ class GraphControl extends Component<
               window.innerWidth *
                 (this.props.sideviewExpanded
                   ? this.mainViewWidthPercent
-                  : 1.0) -
-              30
+                  : 1.0)
             }
             height={window.innerHeight - 40}
             dimx={this.state.dimx}
