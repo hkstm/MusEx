@@ -164,10 +164,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           console.log(this.state.recommendations);
         });
     } else {
-      console.log("We are not getting anything rn");
+      this.setState({recommendations: {id: ''}})
+      console.log("We are not getting any recos rn");
     }
   };
 
+  sendList = () => {
+    this.getRecommendations(this.state.selected);
+  }
+  
   addAxis = () => {
     // add the axis
     this.svg
@@ -505,6 +510,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             clicked.select(".selected-info-tooltip").remove();
 
             s.state.selected.delete(d.id);
+            s.sendList()
           } else {
             clicked
               .select("circle")
@@ -555,6 +561,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                 .text((d: MusicGraphNode) => `by ${d.artist ?? ''}`);
             }
             s.state.selected.add(d.id);
+            s.sendList()
           }
         }
       })
