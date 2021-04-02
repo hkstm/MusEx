@@ -168,7 +168,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     }
   };
 
-  
   addAxis = () => {
     // add the axis
     this.svg
@@ -207,13 +206,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       const k = event.transform.k;
       // console.log(event.transform.x / k, event.transform.y / k);
       const x =
-        ((this.props.width - event.transform.x / k) / 2.8
-          // this.scalePadding * k) /
-        / this.props.width);
+        (this.props.width - event.transform.x / k) /
+        2.8 /
+        // this.scalePadding * k) /
+        this.props.width;
       const y =
-        ((this.props.height - event.transform.y / k) / 2.5
-          // this.scalePadding * k) /
-        / this.props.height);
+        (this.props.height - event.transform.y / k) /
+        2.5 /
+        // this.scalePadding * k) /
+        this.props.height;
 
       const enlarge = Math.min(window.screen.width, window.screen.height);
       const zoomLevel =
@@ -227,9 +228,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         .select("circle")
         .attr("r", this.radius)
         .attr("stroke-width", this.baseNodeStrokeWidth / k);
-      nodes
-        .select("polygon")
-        .attr("points", this.playIconCoordinates);
+      nodes.select("polygon").attr("points", this.playIconCoordinates);
       nodes.select("text").style("font-size", this.baseTextSize / k + "px");
 
       const links = this.graph
@@ -272,7 +271,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           if (
             !this.lastUpdate ||
             this.state.levelType !== this.lastUpdate?.levelType ||
-            Math.abs(this.state.zoomK - this.lastUpdate?.zoomK) >= 1 / (2*this.props.zoomLevels) ||
+            Math.abs(this.state.zoomK - this.lastUpdate?.zoomK) >=
+              1 / (2 * this.props.zoomLevels) ||
             Math.abs(this.state.x - this.lastUpdate?.position.x) >=
               k / this.maxZoom ||
             Math.abs(this.state.y - this.lastUpdate?.position.y) >=
@@ -417,13 +417,16 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   };
 
   radius = (node: MusicGraphNode): number => {
-    return Math.max(this.minNodeSize, ((node.size ?? 0) * 0.5) / this.state.zoomK);
-  }
+    return Math.max(
+      this.minNodeSize,
+      ((node.size ?? 0) * 0.5) / this.state.zoomK
+    );
+  };
 
   coordinate = (coord: number): number => {
     const enlarge = Math.min(window.screen.width, window.screen.height);
     return (coord ?? 0) * enlarge;
-  }
+  };
 
   coordinateX = (node: MusicGraphNode) => this.coordinate(node.x);
   coordinateY = (node: MusicGraphNode) => this.coordinate(node.y);
@@ -436,10 +439,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     return `${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${
       y - 3 * offset
     } ${x + 3 * offset},${y}`;
-  }
+  };
 
   updateGraph = (data: MusicGraph) => {
-
     this.svg.attr("width", this.props.width).attr("height", this.props.height);
     this.graph
       .attr("width", this.props.width)
@@ -477,7 +479,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     const s = this;
     newNodes
       .on("click", function (event: MouseEvent, d: MusicGraphNode) {
-        const clicked = d3.select(this);
+        const clicked = d3.select<SVGGElement, MusicGraphNode>(this);
         if (d.preview_url && event.shiftKey) {
           const isPlaying = !s.audio?.paused ?? false;
           const isNewAudio = !s.audio || s.audio.currentSrc !== d.preview_url;
@@ -500,12 +502,58 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               .select("circle")
               .style("stroke", "#FFFFFF")
               .style("stroke-width", 1.5);
+            clicked.select(".selected-info-tooltip").remove();
+
             s.state.selected.delete(d.id);
           } else {
             clicked
               .select("circle")
               .style("stroke", "#F8FF20")
               .style("stroke-width", 5);
+
+            const tooltip = clicked
+              .append("g")
+              .attr("class", "selected-info-tooltip");
+
+            tooltip
+              .append("rect")
+              .attr("fill", "white")
+              .attr("stroke", "black")
+              .attr(
+                "x",
+                (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+              )
+              .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
+              .attr("height", 25)
+              .attr("width", (d: MusicGraphNode) => {
+                return Math.max(d.name.length, d.artist?.length ?? 0) * 10 + "px";
+              });
+
+            if ("artist" in clicked.data()) {
+              tooltip
+                .append("text")
+                .attr("font-size", "10px")
+                .attr("fill", "black")
+                .attr("dy", "10px")
+                .attr(
+                  "x",
+                  (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+                )
+                .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
+                .text((d: MusicGraphNode) => d.name);
+
+              tooltip
+                .append("text")
+                .attr("font-size", "10px")
+                .attr("fill", "black")
+                .attr("dy", "20px")
+                .attr(
+                  "x",
+                  (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+                )
+                .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
+                .text((d: MusicGraphNode) => `by ${d.artist ?? ''}`);
+            }
             s.state.selected.add(d.id);
           }
         }
@@ -555,7 +603,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         "class",
         (d: MusicGraphNode) =>
           `${d.id} ${
-            (d.size ?? 0)*this.state.zoomK > this.largeNodeLabel ? "labelAlwaysVisible" : "label"
+            (d.size ?? 0) * this.state.zoomK > this.largeNodeLabel
+              ? "labelAlwaysVisible"
+              : "label"
           }`
       )
       .attr("opacity", 0)
@@ -567,7 +617,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke", "#DCDCDC")
       .style("stroke-width", 0.4 / this.state.zoomK)
       .style("visibility", (d: MusicGraphNode) =>
-        (d.size ?? 0)*this.state.zoomK > this.largeNodeLabel ? "visible" : "hidden"
+        (d.size ?? 0) * this.state.zoomK > this.largeNodeLabel
+          ? "visible"
+          : "hidden"
       );
 
     // animate entering nodes and labels
