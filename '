@@ -4,14 +4,7 @@ import { MusicGraph, MusicGraphNode, MusicGraphLink } from "./model";
 import { clip, capitalize } from "../utils";
 import "./Graph.sass";
 import Minimap, { MinimapData } from "../charts/minimap/Minimap";
-import {
-  Size,
-  Position,
-  NodeType,
-  Recommendation,
-  apiVersion,
-  headerConfig,
-} from "../common";
+import { Size, Position, NodeType, Recommendation, apiVersion, headerConfig } from "../common";
 import axios from "axios";
 import { HeatmapTile } from "../charts/heatmap/Heatmap";
 
@@ -68,7 +61,7 @@ interface GraphState {
   minimapPos: Position;
   minimapSelectionSize: Size;
   data: MusicGraph;
-  recommendations: Recommendation;
+  recommendations: any;
   interests: MinimapData;
   highlighted: string[];
   recs?: [];
@@ -128,7 +121,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         links: [],
       },
       highlighted: [],
-      recommendations: { id: "test" },
+      recommendations: Recommmendation,
       interests: {
         tiles: buildData(20, 20),
         xSize: 20,
@@ -139,19 +132,18 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   }
 
   isRecommended = (id: string) => {
-    return this.state.recommendations?.nodes?.includes(id) ?? false;
+    return this.state.recommendations?.nodes.includes(id);
   };
 
   getRecommendations = (childData: Set<string>) => {
     // var temp: string[] = [];
     // childData.forEach((element) => temp.push(element));
-    this.setState({ selected: new Set(childData) });
-    // this.setState({ selected: new Array.from(childData) });
+    this.setState({ selected: new Array.from(childData) });
     if (this.state.selected.size >= 1) {
       axios
         .get(
           `http://localhost:5000/${apiVersion}/select?node=${
-            Array.from(this.state.selected)[0]
+            this.state.selected[0]
           }&zoom=${this.state.zoom}&dimx=${this.props.dimx}&dimy=${
             this.props.dimy
           }&type=${this.state.levelType}&limit=10`,
@@ -685,7 +677,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
   highlightRecommendations() {
     const s = this;
-    this.graph
+    const nodes = this.graph
       .selectAll(".nodes")
       .selectAll<SVGGElement, MusicGraphNode>(".node")
       .select("circle")

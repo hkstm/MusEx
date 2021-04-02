@@ -28,3 +28,9 @@ export const apiVersion = "v2";
 export const headerConfig = {
   headers: { "Access-Control-Allow-Origin": "*" },
 };
+
+export type Recommendation = {
+  id: string;
+  value?: string;
+  nodes?: string[];
+};
