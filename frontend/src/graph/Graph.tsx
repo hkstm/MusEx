@@ -93,9 +93,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   maxZoom = 15;
   baseTextSize = 15;
   defaultMinimapSize = 100;
+  minLinkStrokeWidth = 0.005;
   baseLinkStrokeWidth = 2;
   baseNodeStrokeWidth = 1.5;
-  minNodeSize = 0.001;
+  minNodeSize = 0.005;
   scalePadding = 30;
   largeNodeLabel = 40;
   gradients = {
@@ -212,16 +213,17 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       // console.log(event.transform.x / k, event.transform.y / k);
       const x =
         (this.props.width - event.transform.x / k) /
-        2.8 /
+        3 /
+        // 2.8 /
         // this.scalePadding * k) /
         this.props.width;
       const y =
         (this.props.height - event.transform.y / k) /
-        2.5 /
+        3 /
+        // 2.5 /
         // this.scalePadding * k) /
         this.props.height;
 
-      const enlarge = Math.min(window.screen.width, window.screen.height);
       const zoomLevel =
         (this.props.zoomLevels * clip(k, 0, this.maxZoom)) / this.maxZoom;
 
@@ -232,7 +234,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
         .select("circle")
         .attr("r", this.radius)
-        .attr("stroke-width", this.baseNodeStrokeWidth / k);
+        .attr("stroke-width", this.baseNodeStrokeWidth / k + "px");
       nodes.select("polygon").attr("points", this.playIconCoordinates);
       nodes.select("text").style("font-size", this.baseTextSize / k + "px");
 
@@ -242,7 +244,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
       links.style(
         "stroke-width",
-        Math.max(1, this.baseLinkStrokeWidth / k) + "px"
+        Math.max(this.minLinkStrokeWidth, this.baseLinkStrokeWidth / k) + "px"
       );
 
       const minimapSelectionSize = {
@@ -437,7 +439,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   coordinateY = (node: MusicGraphNode) => this.coordinate(node.y);
 
   playIconCoordinates = (node: MusicGraphNode) => {
-    const enlarge = Math.min(window.screen.width, window.screen.height);
     const x = this.coordinate(node.x);
     const y = this.coordinate(node.y);
     const offset = (0.3 * (node.size ?? 0)) / (3 * 2 * this.state.zoomK);
@@ -506,7 +507,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             clicked
               .select("circle")
               .style("stroke", "#FFFFFF")
-              .style("stroke-width", 1.5);
+              .style(
+                "stroke-width",
+                s.baseNodeStrokeWidth / s.state.zoomK + "px"
+              );
             clicked.select(".selected-info-tooltip").remove();
 
             s.state.selected.delete(d.id);
@@ -515,34 +519,63 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             clicked
               .select("circle")
               .style("stroke", "#F8FF20")
-              .style("stroke-width", 5);
+              .style(
+                "stroke-width",
+                (2 * s.baseNodeStrokeWidth) / s.state.zoomK + "px"
+              );
 
-            const tooltip = clicked
-              .append("g")
-              .attr("class", "selected-info-tooltip");
+            const metadata: MusicGraphNode[] = clicked.data();
+            if (
+              metadata.length > 0 &&
+              metadata[0].artists &&
+              metadata[0].artists.length > 0
+            ) {
+              console.log("adding tooltip");
+              const tooltip = clicked
+                .append("g")
+                .attr("class", "selected-info-tooltip");
 
-            tooltip
-              .append("rect")
-              .attr("fill", "white")
-              .attr("stroke", "black")
-              .attr(
-                "x",
-                (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
-              )
-              .attr("y", (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d))
-              .attr("height", 25)
-              .attr("width", (d: MusicGraphNode) => {
-                return (
-                  Math.max(d.name.length, d.artist?.length ?? 0) * 10 + "px"
-                );
-              });
+              tooltip
+                .append("rect")
+                .attr("fill", "white")
+                .attr("stroke", "black")
+                .style("z-index", "1000")
+                .style(
+                  "stroke-width",
+                  s.baseNodeStrokeWidth / s.state.zoomK + "px"
+                )
+                .attr(
+                  "x",
+                  (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+                )
+                .attr(
+                  "y",
+                  (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d)
+                )
+                .attr("height", () => {
+                  return (2.5 * s.baseTextSize) / s.state.zoomK + "px";
+                })
+                .attr("width", (d: MusicGraphNode) => {
+                  return (
+                    Math.max(
+                      d.name.length,
+                      d.artists?.map((a) => a.name)?.join(",")?.length ?? 0
+                    ) *
+                      (s.baseTextSize / s.state.zoomK) +
+                    "px"
+                  );
+                });
 
-            if ("artist" in clicked.data()) {
               tooltip
                 .append("text")
-                .attr("font-size", "10px")
-                .attr("fill", "black")
-                .attr("dy", "10px")
+                .style("z-index", "2000")
+                .style("font-size", () => {
+                  return s.baseTextSize / s.state.zoomK + "px";
+                })
+                .attr("dy", () => {
+                  return s.baseTextSize / s.state.zoomK + "px";
+                })
+                .style("fill", "black")
                 .attr(
                   "x",
                   (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
@@ -555,9 +588,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
               tooltip
                 .append("text")
-                .attr("font-size", "10px")
+                .style("z-index", "2000")
+                .style("font-size", () => {
+                  return s.baseTextSize / s.state.zoomK + "px";
+                })
+                .attr("dy", () => {
+                  return (2 * s.baseTextSize) / s.state.zoomK + "px";
+                })
                 .attr("fill", "black")
-                .attr("dy", "20px")
                 .attr(
                   "x",
                   (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
@@ -566,7 +604,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                   "y",
                   (d: MusicGraphNode) => s.coordinate(d.y) + s.radius(d)
                 )
-                .text((d: MusicGraphNode) => `by ${d.artist ?? ""}`);
+                .text(
+                  (d: MusicGraphNode) =>
+                    `by ${d.artists?.map((a) => a.name)?.join(",") ?? ""}`
+                );
             }
             s.state.selected.add(d.id);
             s.sendList();
@@ -597,7 +638,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       )
       .attr("stroke-width", (d: MusicGraphNode) =>
         this.isRecommended(d.id)
-          ? 5
+          ? (2 * this.baseNodeStrokeWidth) / this.state.zoomK
           : this.baseNodeStrokeWidth / this.state.zoomK
       )
       .style("fill", (d: MusicGraphNode) => d.color ?? "white");
@@ -630,7 +671,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("y", this.coordinateY)
       .attr("fill", "white")
       .style("stroke", "#DCDCDC")
-      .style("stroke-width", 0.4 / this.state.zoomK)
+      .style("stroke-width", 0)
       .style("visibility", (d: MusicGraphNode) =>
         (d.size ?? 0) * this.state.zoomK > this.largeNodeLabel
           ? "visible"
@@ -699,7 +740,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .style("stroke-opacity", 0.6)
       .style(
         "stroke-width",
-        Math.max(0.4, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
+        Math.max(
+          this.minLinkStrokeWidth,
+          this.baseLinkStrokeWidth / this.state.zoomK
+        ) + "px"
       );
 
     // nodes.merge(newNewNodes).call(pulse)
@@ -770,8 +814,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     });
   }
 
-  highlightRecommendations() {
-    const s = this;
+  highlightRecommendations = () => {
     this.graph
       .selectAll(".nodes")
       .selectAll<SVGGElement, MusicGraphNode>(".node")
@@ -785,12 +828,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       )
       .attr("stroke-width", (d: MusicGraphNode) =>
         this.isRecommended(d.id)
-          ? 5
-          : s.state.selected.has(d.id)
-          ? 5
-          : this.baseNodeStrokeWidth
+          ? (5 * this.baseNodeStrokeWidth) / this.state.zoomK
+          : this.state.selected.has(d.id)
+          ? (5 * this.baseNodeStrokeWidth) / this.state.zoomK
+          : this.baseNodeStrokeWidth / this.state.zoomK
       );
-  }
+  };
 
   componentDidMount() {
     this.svg = d3

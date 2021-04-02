@@ -498,8 +498,7 @@ def graph_impl_2(x, y, dimx, dimy, zoom=None, limit=None, typ=None):
                 "name": "$name",
                 "preview_url": "$preview_url",
                 "color": "$genre_color",
-                # todo: add the artist
-                # "artist": "$artist",
+                "artists": "$artists",
                 "size": "$popularity",
                 "type": typ,
                 "subgenres": "$genres",
