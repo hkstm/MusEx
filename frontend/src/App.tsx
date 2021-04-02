@@ -1,12 +1,7 @@
 import React, { Component } from "react";
-import axios from "axios";
-import { headerConfig, apiVersion } from "./common";
-import Graph, { GraphDataDimensions } from "./graph/Graph";
 import GraphControl from "./graph/GraphControls";
-import Select from "./Select";
 import Heatmap from "./charts/musicheatmap/heatmap";
 import Wordcloud from "./charts/wordcloud/Wordcloud";
-import Streamgraph from "./charts/streamgraph/Streamgraph";
 import "./App.sass";
 
 import Widget from "./components/expandable-widget/widget";
@@ -42,7 +37,7 @@ class App extends Component<{}, AppState> {
             className={this.state.sideviewExpanded ? "expanded" : ""}
             id="main-view"
           >
-            <GraphControl 
+            <GraphControl
               graphHeight={window.innerHeight - 40}
               graphWidth={
                 window.innerWidth *
