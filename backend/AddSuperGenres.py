@@ -23,6 +23,7 @@ df = df_genres.drop(['tempo', 'labels', 'liveness', 'loudness', 'key', 'mode', '
 # run K-Means Clustering
 
 from sklearn.cluster import KMeans
+
 try:
     Kmean = KMeans(n_clusters=40, init='k-means++', n_init=15, max_iter=300, tol=0.0001, precompute_distances='auto', verbose=0, random_state=0, copy_x=True, n_jobs=None, algorithm='auto')
     Kmean.fit(df)
@@ -122,7 +123,7 @@ try:
             label = sorted(doc['genre_info'], key=lambda k: k['genre_super_freq'])[-1]['genre_super']
             db[f"{coll_name}_api"].update_one({"id": doc['_id']}, {"$set": {"genre_super": label, 'genre_color': label_to_color(label) } } )
 
-    for coll_name in ['genres', 'artists', 'tracks']:
+    for coll_name in ['tracks', 'artists', 'genres']:
         update_coll_genreclustering(coll_name)
         print(f'Done {coll_name}')
 except ValueError:

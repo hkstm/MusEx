@@ -42,9 +42,7 @@ def add_genre_super_info(base_coll_name, local_field, foreign_field):
 def normalize(dim, value, _min=0.0, _max=1.0):
     """ Normalize orignal data values """
     return np.interp(
-        value,
-        (ma.dim_minmax[dim]["min"], ma.dim_minmax[dim]["max"]),
-        (_min, _max),
+        value, (ma.dim_minmax[dim]["min"], ma.dim_minmax[dim]["max"]), (_min, _max),
     )
 
 
@@ -150,12 +148,7 @@ def precompute_nodes(dimx, dimy, typ, zoom, offset=0, limit=None, plot=False):
     pipeline = [
         {"$unwind": "$labels"},
         {"$group": {"_id": "$labels", "members": {"$addToSet": "$id"}}},
-        {
-            "$project": {
-                "id": "$_id",
-                "members": "$members",
-            }
-        },
+        {"$project": {"id": "$_id", "members": "$members",}},
     ]
 
     preprocessed_links = []
@@ -346,8 +339,7 @@ def compute_artist_popularity_per_year(
         {"$out": out},
     ]
     ma.coll_tracks.aggregate(
-        pipeline,
-        allowDiskUse=True,
+        pipeline, allowDiskUse=True,
     )
     ma.db[out].create_index("year")
 
@@ -396,8 +388,7 @@ def compute_genre_popularity_per_year(
         {"$out": out},
     ]
     ma.coll_tracks.aggregate(
-        pipeline,
-        allowDiskUse=True,
+        pipeline, allowDiskUse=True,
     )
     ma.db[out].create_index("year")
 
@@ -457,12 +448,7 @@ def add_labels_to_genres():
     pipeline = [
         {"$unwind": "$genres"},
         {"$unwind": "$labels"},
-        {
-            "$group": {
-                "_id": "$genres",
-                "labels": {"$addToSet": "$labels"},
-            }
-        },
+        {"$group": {"_id": "$genres", "labels": {"$addToSet": "$labels"},}},
         {
             "$lookup": {
                 "from": "genres",
@@ -526,58 +512,22 @@ def compute_min_max():
                     "min": "$min_acousticness",
                     "max": "$max_danceability",
                 },
-                "duration_ms": {
-                    "min": "$min_duration_ms",
-                    "max": "$max_duration_ms",
-                },
-                "energy": {
-                    "min": "$min_energy",
-                    "max": "$max_energy",
-                },
-                "explicit": {
-                    "min": "$min_explicit",
-                    "max": "$max_explicit",
-                },
+                "duration_ms": {"min": "$min_duration_ms", "max": "$max_duration_ms",},
+                "energy": {"min": "$min_energy", "max": "$max_energy",},
+                "explicit": {"min": "$min_explicit", "max": "$max_explicit",},
                 "instrumentalness": {
                     "min": "$min_instrumentalness",
                     "max": "$max_instrumentalness",
                 },
-                "key": {
-                    "min": "$min_key",
-                    "max": "$max_key",
-                },
-                "liveness": {
-                    "min": "$min_liveness",
-                    "max": "$max_liveness",
-                },
-                "loudness": {
-                    "min": "$min_loudness",
-                    "max": "$max_loudness",
-                },
-                "mode": {
-                    "min": "$min_mode",
-                    "max": "$max_mode",
-                },
-                "popularity": {
-                    "min": "$min_popularity",
-                    "max": "$max_popularity",
-                },
-                "speechiness": {
-                    "min": "$min_speechiness",
-                    "max": "$max_speechiness",
-                },
-                "tempo": {
-                    "min": "$min_tempo",
-                    "max": "$max_tempo",
-                },
-                "valence": {
-                    "min": "$min_valence",
-                    "max": "$max_valence",
-                },
-                "year": {
-                    "min": "$min_year",
-                    "max": "$max_year",
-                },
+                "key": {"min": "$min_key", "max": "$max_key",},
+                "liveness": {"min": "$min_liveness", "max": "$max_liveness",},
+                "loudness": {"min": "$min_loudness", "max": "$max_loudness",},
+                "mode": {"min": "$min_mode", "max": "$max_mode",},
+                "popularity": {"min": "$min_popularity", "max": "$max_popularity",},
+                "speechiness": {"min": "$min_speechiness", "max": "$max_speechiness",},
+                "tempo": {"min": "$min_tempo", "max": "$max_tempo",},
+                "valence": {"min": "$min_valence", "max": "$max_valence",},
+                "year": {"min": "$min_year", "max": "$max_year",},
                 "_id": 0,
             }
         },
