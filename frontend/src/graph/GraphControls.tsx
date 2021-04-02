@@ -6,7 +6,8 @@ import Graph, { GraphDataDimensions } from "./Graph";
 import Select from "../Select";
 import "./GraphControls.sass";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+import { faInfoCircle, faUser, faMusic  } from "@fortawesome/free-solid-svg-icons";
+
 
 type SearchResult = {
   matches: MusicGraphNode[];
@@ -187,9 +188,13 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
             <tr
               key={result.id}
               onClick={() => this.viewSearchResult(result)}
-              style={{ backgroundColor: result.color }}
+              style={{ color: result.color }}
+              // style={{ backgroundColor: result.color }}
             >
-              <td>{result.name}</td>
+              <td>
+                <FontAwesomeIcon className="result-icon" title={result.type} icon={result.type.toString() == 'Artist' ? faUser : faMusic}/>
+                {result.name}
+              </td>
               <td>{result.type}</td>
             </tr>
           ))}

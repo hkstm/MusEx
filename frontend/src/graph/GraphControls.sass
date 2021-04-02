@@ -50,7 +50,9 @@ nav
   .overlay
     z-index: 9999999999 !important
     position: fixed
-    background-color: black
+    background-color: #242424 //black
+    border: 2px solid white;
+    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.5), 0 12px 40px 0 rgba(0, 0, 0, 0.5);
     top: 50px
     max-height: calc(100vh - 100px)
     left: 15%
@@ -68,7 +70,7 @@ nav
 
     &.search-results
       table
-        background-color: blue
+        //background-color: blue
         width: 100%
         tr
           cursor: pointer
@@ -77,6 +79,8 @@ nav
               font-weight: bolder
         tr
         td
+          border: none
+          border-bottom: 1px solid lightgray
           // display: block
 
         
@@ -86,6 +90,7 @@ nav
         border-bottom: 1px solid white
         display: inline-block
         cursor: pointer
+
   
   .graph-controls
     height: $nav-bar-height
@@ -126,3 +131,6 @@ nav
   position: absolute
   top: 3px !important
   right: -10px
+
+.result-icon
+  margin: 0 4px;
