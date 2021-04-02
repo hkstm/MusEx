@@ -51,14 +51,13 @@ nav
     z-index: 9999999999 !important
     position: fixed
     background-color: black
-
-  .help-menu
     top: 50px
     max-height: calc(100vh - 100px)
     left: 15%
     width: 60%
     overflow: hidden
     padding: 5%
+
     table
       border-collapse: collapse
       text-align: left
@@ -66,10 +65,27 @@ nav
         border-spacing: 0
         padding: 15px
         border: 1px solid white
-    .close:hover
-      border-bottom: 1px solid white
-      display: inline-block
-      cursor: pointer
+
+    &.search-results
+      table
+        background-color: blue
+        width: 100%
+        tr
+          cursor: pointer
+          &:hover
+            td
+              font-weight: bolder
+        tr
+        td
+          // display: block
+
+        
+
+    &.help-menu
+      .close:hover
+        border-bottom: 1px solid white
+        display: inline-block
+        cursor: pointer
   
   .graph-controls
     height: $nav-bar-height

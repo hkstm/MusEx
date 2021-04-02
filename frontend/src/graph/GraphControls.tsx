@@ -1,11 +1,16 @@
 import React, { Component } from "react";
 import axios from "axios";
 import { headerConfig, apiVersion } from "../common";
+import { MusicGraphNode } from "./model";
 import Graph, { GraphDataDimensions } from "./Graph";
 import Select from "../Select";
 import "./GraphControls.sass";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+
+type SearchResult = {
+  matches: MusicGraphNode[];
+};
 
 type GraphControlProps = {
   graphWidth: number;
@@ -17,6 +22,8 @@ type GraphControlState = {
   dimx?: string;
   dimy?: string;
   helpMenuOpened: boolean;
+  foundNode?: MusicGraphNode;
+  searchResults: MusicGraphNode[];
   searchQuery: string;
   searchType: string;
 };
@@ -29,6 +36,7 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
     this.state = {
       dimensions: {},
       helpMenuOpened: false,
+      searchResults: [],
       searchQuery: "",
       searchType: "artist",
     };
@@ -70,9 +78,8 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
     if (this.state.searchQuery.length < 1) return;
     let searchURL = `http://localhost:5000/${apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
     console.log(searchURL);
-    axios.get(searchURL, headerConfig).then((res) => {
-      console.log(res.data);
-      // this.setState({ graph: res.data });
+    axios.get(searchURL, headerConfig).then((res: { data: SearchResult }) => {
+      this.setState({ searchResults: res.data.matches });
     });
   };
 
@@ -88,9 +95,32 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
     this.updateDimensions();
   }
 
+  viewSearchResult = (result: MusicGraphNode) => {
+    this.setState({ searchResults: [], foundNode: result });
+  };
+
   render() {
     return (
       <div className="graph-container">
+        {this.state.searchResults.length > 0 && (
+          <div className="overlay search-results">
+            <h3>Search Results</h3>
+            <table>
+              <tbody>
+                {this.state.searchResults.map((result) => (
+                  <tr
+                    key={result.id}
+                    onClick={() => this.viewSearchResult(result)}
+                    style={{ backgroundColor: result.color }}
+                  >
+                    <td>{result.name}</td>
+                    <td>{result.type}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         {this.state.helpMenuOpened && (
           <div className="overlay help-menu">
             <h3>FAQ</h3>
@@ -198,6 +228,7 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
         ) : (
           <Graph
             enabled={true}
+            highlight={this.state.foundNode}
             zoomLevels={this.zoomLevels}
             width={this.props.graphWidth}
             height={this.props.graphHeight}

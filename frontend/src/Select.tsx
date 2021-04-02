@@ -34,14 +34,11 @@ export default class Select extends Component<SelectProps, SelectState> {
   };
 
   onOptionClicked = (value: string) => () => {
-    // console.log("selecting", value);
-    this.setState({ selected: value });
-    this.setState({ isOpen: false });
+    this.setState({ selected: value, isOpen: false });
     this.props.onChange(value);
   };
 
   componentDidUpdate(prevProps: SelectProps) {
-    // console.log(this.props.default, this.state.selected, this.props.options);
     if (
       this.props.default !== prevProps.default ||
       this.props.options !== prevProps.options

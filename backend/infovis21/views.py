@@ -118,7 +118,11 @@ def search(version):
         },
     ]
 
-    d.update({"matches": list(collection.aggregate(pipeline))})
+    matches = list(collection.aggregate(pipeline))
+    for m in matches:
+        m["x"] = mongo_to_vis(dimx, m["x"])
+        m["y"] = mongo_to_vis(dimy, m["y"])
+    d.update({"matches": matches})
     return jsonify(d)
 
 
