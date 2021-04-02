@@ -38,11 +38,8 @@ class App extends Component<{}, AppState> {
             id="main-view"
           >
             <GraphControl
-              graphHeight={window.innerHeight - 40}
-              graphWidth={
-                window.innerWidth *
-                (this.state.sideviewExpanded ? this.mainViewWidthPercent : 1.0)
-              }
+              sideviewExpanded={this.state.sideviewExpanded}
+              mainViewWidthPercent={this.mainViewWidthPercent}
             ></GraphControl>
           </div>
           <div

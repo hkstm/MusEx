@@ -47,6 +47,8 @@ interface GraphProps {
   enabled: boolean;
   width: number;
   height: number;
+  sideviewExpanded?: boolean;
+  mainViewWidthPercent?: number;
   minimapWidth?: number;
   minimapHeight?: number;
   zoomLevels: number;
@@ -437,11 +439,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     return (coord ?? 0) * enlarge;
   };
 
-  coordinateX = (node: MusicGraphNode) => this.coordinate(node.x);
+  coordinateX = (node: MusicGraphNode) => this.coordinateX_Expandable(node.x); // this.coordinate(node.x);
   coordinateY = (node: MusicGraphNode) => this.coordinate(node.y);
 
+  coordinateX_Expandable = (coord: number) => this.coordinate(coord) / (this.props?.sideviewExpanded ? 1 : this.props?.mainViewWidthPercent ?? 1);  
+  
   playIconCoordinates = (node: MusicGraphNode) => {
-    const x = this.coordinate(node.x);
+    const x = this.coordinateX_Expandable(node.x);
     const y = this.coordinate(node.y);
     const offset = (0.3 * (node.size ?? 0)) / (3 * 2 * this.state.zoomK);
     return `${x - 2 * offset},${y + 3 * offset} ${x - 2 * offset},${
@@ -523,6 +527,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("cy", this.coordinateY);
 
     nodes
+      .select("polygon")
+      .attr("points", this.playIconCoordinates);
+
+    nodes
       .select("text")
       .attr("x", this.coordinateX)
       .attr("y", this.coordinateY);
@@ -594,7 +602,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                 )
                 .attr(
                   "x",
-                  (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+                  (d: MusicGraphNode) => s.coordinateX_Expandable(d.x) + 0.7 * s.radius(d)
                 )
                 .attr(
                   "y",
@@ -626,7 +634,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                 .style("fill", "black")
                 .attr(
                   "x",
-                  (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+                  (d: MusicGraphNode) => s.coordinateX_Expandable(d.x) + 0.7 * s.radius(d)
                 )
                 .attr(
                   "y",
@@ -646,7 +654,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                 .attr("fill", "black")
                 .attr(
                   "x",
-                  (d: MusicGraphNode) => s.coordinate(d.x) + 0.7 * s.radius(d)
+                  (d: MusicGraphNode) => s.coordinateX_Expandable(d.x) + 0.7 * s.radius(d)
                 )
                 .attr(
                   "y",
@@ -821,6 +829,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.updateGraph({ links: [], nodes: [] } as MusicGraph);
       this.loadGraphData();
       this.updateGraph(this.state.data);
+    }
+    if (prevProps.sideviewExpanded !== this.props.sideviewExpanded) 
+    {
+      this.updateGraph(this.state.data);
+      this.updateAxis(this.transform);
     }
     // if (
     //   prevProps.dimx !== this.props.dimx ||

@@ -8,8 +8,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 type GraphControlProps = {
-  graphWidth: number;
-  graphHeight: number;
+  sideviewExpanded: boolean;
+  mainViewWidthPercent: number;
 };
 
 type GraphControlState = {
@@ -203,11 +203,16 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
           <Graph
             enabled={true}
             zoomLevels={this.zoomLevels}
-            width={this.props.graphWidth}
-            height={this.props.graphHeight}
             dimx={this.state.dimx}
             dimy={this.state.dimy}
             dimensions={this.state.dimensions}
+            height={window.innerHeight - 40}
+            width={
+                window.innerWidth *
+                (this.props.sideviewExpanded ? this.props.mainViewWidthPercent : 1.0)
+              }
+            mainViewWidthPercent={this.props.mainViewWidthPercent}
+            sideviewExpanded={this.props.sideviewExpanded}  
           ></Graph>
         )}
       </div>
