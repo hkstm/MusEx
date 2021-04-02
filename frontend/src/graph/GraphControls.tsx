@@ -42,21 +42,26 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
     };
   }
 
-  openHelp = (event?: React.FormEvent) => {
-    this.setState({ helpMenuOpened: true });
+  updateSidePanelZIndex = (value: number = 1) => {
     const sidePanelElem: any = document.getElementById('side-view');
     if (sidePanelElem){
-      sidePanelElem.style.zIndex = 1;
+      sidePanelElem.style.zIndex = value;
     }
+  }
+
+  resetSidePanelZIndex = () => {
+    this.updateSidePanelZIndex(20);
+  }
+
+  openHelp = (event?: React.FormEvent) => {
+    this.setState({ helpMenuOpened: true });
+    this.updateSidePanelZIndex(1)
     event?.preventDefault();
   };
 
   closeHelp = (event?: React.FormEvent) => {
     this.setState({ helpMenuOpened: false });
-    const sidePanelElem: any = document.getElementById('side-view');
-    if (sidePanelElem){
-      sidePanelElem.style.zIndex = 20;
-    }
+    this.resetSidePanelZIndex();
     event?.preventDefault();
   };
 
@@ -87,6 +92,7 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
     let searchURL = `http://localhost:5000/${apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
     console.log(searchURL);
     axios.get(searchURL, headerConfig).then((res: { data: SearchResult }) => {
+      this.updateSidePanelZIndex(1);
       this.setState({ searchResults: res.data.matches });
     });
   };
@@ -104,91 +110,100 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
   }
 
   viewSearchResult = (result: MusicGraphNode) => {
+    this.resetSidePanelZIndex();
     this.setState({ searchResults: [], foundNode: result });
   };
+
+  helpMenu = () => {
+    return (
+      <div className="overlay help-menu">
+      <h3>FAQ</h3>
+      <table>
+        <tr>
+          <td>Need help searching for specific genres or artists?</td>
+          <td>
+            Type in the top right search bar and pick from artist or genre
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Want to see stats of audio features throughout the years?
+          </td>
+          <td>Try the slidebar underneath the heatmap!</td>
+        </tr>
+        <tr>
+          <td>Want to focus only on the graph?</td>
+          <td>
+            Click the three stacked bars next to the wordcloud to blend
+            them out!
+          </td>
+        </tr>
+        <tr>
+          <td>Need to know how to click?</td>
+          <td>
+            <table>
+              <tr>
+                <td>
+                  <b>LeftClick</b>
+                </td>
+                <td>
+                  <i>(Un)highlight node</i>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <b>Shift + LeftClick</b>
+                </td>
+                <td>
+                  <i>Play/Stop music</i>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <b>Double LeftClick</b>
+                </td>
+                <td>
+                  <i>Zooming</i>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <p className="close" onClick={this.closeHelp}>
+        Got it
+      </p>
+    </div>
+    );
+  }
+
+  searchResults = () => {
+    return (
+      <div className="overlay search-results">
+      <h3>Search Results</h3>
+      <table>
+        <tbody>
+          {this.state.searchResults.map((result) => (
+            <tr
+              key={result.id}
+              onClick={() => this.viewSearchResult(result)}
+              style={{ backgroundColor: result.color }}
+            >
+              <td>{result.name}</td>
+              <td>{result.type}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    );
+  }
 
   render() {
     return (
       <div className="graph-container">
-        {this.state.searchResults.length > 0 && (
-          <div className="overlay search-results">
-            <h3>Search Results</h3>
-            <table>
-              <tbody>
-                {this.state.searchResults.map((result) => (
-                  <tr
-                    key={result.id}
-                    onClick={() => this.viewSearchResult(result)}
-                    style={{ backgroundColor: result.color }}
-                  >
-                    <td>{result.name}</td>
-                    <td>{result.type}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {this.state.helpMenuOpened && (
-          <div className="overlay help-menu">
-            <h3>FAQ</h3>
-            <table>
-              <tr>
-                <td>Need help searching for specific genres or artists?</td>
-                <td>
-                  Type in the top right search bar and pick from artist or genre
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  Want to see stats of audio features throughout the years?
-                </td>
-                <td>Try the slidebar underneath the heatmap!</td>
-              </tr>
-              <tr>
-                <td>Want to focus only on the graph?</td>
-                <td>
-                  Click the three stacked bars next to the wordcloud to blend
-                  them out!
-                </td>
-              </tr>
-              <tr>
-                <td>Need to know how to click?</td>
-                <td>
-                  <table>
-                    <tr>
-                      <td>
-                        <b>LeftClick</b>
-                      </td>
-                      <td>
-                        <i>(Un)highlight node</i>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <b>Shift + LeftClick</b>
-                      </td>
-                      <td>
-                        <i>Play/Stop music</i>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <b>Double LeftClick</b>
-                      </td>
-                      <td>
-                        <i>Zooming</i>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-            <p className="close" onClick={this.closeHelp}>
-              Got it
-            </p>
-          </div>
-        )}
+        {this.state.searchResults.length > 0 && this.searchResults()}
+        {this.state.helpMenuOpened && this.helpMenu()}
         <nav className="graph-controls">
           <span id="app-name">MusEx</span>
           <div className="dimensions">
