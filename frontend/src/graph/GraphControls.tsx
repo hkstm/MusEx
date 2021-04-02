@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import axios from "axios";
-import {  Node, NodeType } from "../common";
+import {  Node, NodeType, Recommendations } from "../common";
 import Graph, { GraphDataDimensions } from "../graph/Graph";
 import { MusicGraph } from "../graph/model";
 import Select, { SelectOptions } from "../Select";
@@ -66,6 +66,8 @@ type AppState = {
   type: NodeType;
   dimx?: string;
   dimy?: string;
+  selected?: String[];
+  recommendation?: Recommendations;
 };
 
 class App extends Component<{sideviewExpanded: boolean, mainViewWidthPercent: number}, AppState> {
@@ -132,6 +134,8 @@ class App extends Component<{sideviewExpanded: boolean, mainViewWidthPercent: nu
       zoom: 0,
       zoomLevel: 0,
       type: "genre",
+      selected: [],
+      recommendation:{ nodes: []},
     };
   }
 
@@ -250,6 +254,23 @@ class App extends Component<{sideviewExpanded: boolean, mainViewWidthPercent: nu
     });
   };
 
+  getRecommendations=(childData:Set<string>)=>{
+    var temp:string[] =[]
+    childData.forEach(element => temp.push(element))
+    this.setState({selected: temp})
+    if (this.state.selected!.length >= 1){ 
+    axios
+      .get(
+        `http://localhost:5000/${this.apiVersion}/select?node=${this.state.selected![0]}&zoom=${this.state.zoom}&dimx=${this.state.dimx}&dimy=${this.state.dimy}&type=${this.state.type}&limit=10`, config)
+        .then((res)=>{
+          console.log(res.data)
+          this.setState({recommendation: res.data})
+          console.log(this.state.recommendation)
+        })}else{
+          console.log("We are not getting anything rn")
+        }
+  }
+
   updateGraph = () => {
     console.log(
       "updating graph for ",
@@ -350,6 +371,11 @@ class App extends Component<{sideviewExpanded: boolean, mainViewWidthPercent: nu
                 dimensions={this.state.dimensions}
                 onZoom={this.handleZoom}
                 data={this.state.graph}
+                
+                recommendations={this.state.recommendation}
+                onClick = {this.getRecommendations}
+                // sendRecommendations={this.getRecommendations.bind(this)}
+
             ></Graph>
           </div>
         </div>

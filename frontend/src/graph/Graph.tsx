@@ -26,10 +26,13 @@ interface GraphProps {
   dimensions: GraphDataDimensions;
   data: MusicGraph;
   interests: MinimapData;
+  recommendations: any;
   minimapWidth?: number;
   minimapHeight?: number;
   useForce?: boolean;
   onZoom?: (zoom: number) => void;
+  //sendRecommendations?:any;//  TBA. get the recommendations from app.tsx
+  onClick: any;
 }
 
 interface GraphState {
@@ -39,6 +42,8 @@ interface GraphState {
   selected: Set<string>;
   minimapPos: Position;
   minimapSelectionSize: Size;
+  recs?:[];
+ 
 }
 
 export default class Graph extends React.Component<GraphProps, GraphState> {
@@ -56,7 +61,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   baseNodeStrokeWidth = 1.5;
   scalePadding = 30;
   // threshold for the node labels that should always remain visible
-  largeNodeLabel = 45;
+  largeNodeLabel = 50;
 
   constructor(props: GraphProps) {
     super(props);
@@ -73,12 +78,22 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       minimapSelectionSize: minimapSelectionSize,
       zoomK: 1,
       selected: new Set<string>(),
+      recs: [],
     };
+
+  }
+
+  sendList = () => {
+    this.props.onClick(this.state.selected);
   }
 
   getCoordinateX(y: number = 0){
     const offset =  0.99971815107 * this.props.width - 61.9177001127;
     return 46 + (y * offset);
+  }
+
+  isRecommended(id: string) {
+    return this.props.recommendations?.nodes.indexOf(id) > -1;
   }
 
   getCoordinateY(y: number = 0){
@@ -349,17 +364,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         } else {
           // toggle selection of the node
           if (s.state.selected.has(d.id)) {
+          
             clicked
               .select("circle")
               .style("stroke", "#FFFFFF")
               .style("stroke-width", 1.5);
-            s.state.selected.delete(d.id);
+              s.state.selected.delete(d.id);
+              s.sendList()
           } else {
+           
             clicked
               .select("circle")
               .style("stroke", "#F8FF20")
               .style("stroke-width", 5);
-            s.state.selected.add(d.id);
+              s.state.selected.add(d.id);
+              s.sendList();
           }
         }
       })
@@ -383,9 +402,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("r", 0)
       .attr("opacity", 0)
       .style("stroke", (d: MusicGraphNode) =>
-        this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
+        // this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
+        this.isRecommended(d.id) || this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF"
       )
-      .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
+      // .attr("stroke-width", this.baseNodeStrokeWidth / this.state.zoomK)
+      .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 5 : this.baseNodeStrokeWidth  )
       // .style("stroke-width", 1.5)
       .style("fill", (d: MusicGraphNode) => d.color ?? "white");
 
@@ -420,8 +441,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .attr("x", (d: MusicGraphNode) => this.getCoordinateX(d.x ?? 0))
       .attr("y", (d: MusicGraphNode) => (this.getCoordinateY(d.y)) + 5)
       .attr("fill", "white")
-      // .style("stroke", "black")
-      // .style("stroke-width", 0.4)
+      .style("stroke", "#DCDCDC")
+      .style("stroke-width", 0.4/this.state.zoomK)
       .style("visibility", (d: MusicGraphNode) =>
         d.size! > this.largeNodeLabel ? "visible" : "hidden"
       );
@@ -456,7 +477,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .data(data.links, (d) => d.id);
 
     // remove links that are no longer required
-    links.exit().transition("exit").duration(300).style("opacity", 0).remove();
+    links.exit().transition("exit").duration(300).style("opacity", 0.6).remove();
 
     // update the position for links that will survive the update
     links
@@ -476,7 +497,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       .append("line")
       .attr("class", (d: MusicGraphLink) => `link ${d.name}-${d.id}`)
       .style("stroke", "#FFFFFF")
-      .style("stroke-opacity", 0)
+      .style("stroke-opacity", 0.6)
       .style("stroke-width", "0px")
       // .attr("x1", (d: MusicGraphLink) => (d.x1 ?? 0) * enlarge)
       // .attr("y1", (d: MusicGraphLink) => (d.y1 ?? 0) * enlarge)
@@ -491,7 +512,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     newLinks
       .transition("enter")
       .duration(300)
-      .style("stroke-opacity", 1)
+      .style("stroke-opacity", 0.6)
       .style(
         "stroke-width",
         Math.max(0.4, this.baseLinkStrokeWidth / this.state.zoomK) + "px"
@@ -526,6 +547,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     if (prevProps.highlighted !== this.props.highlighted) {
       this.highlightNodes();
     }
+    if (prevProps.recommendations !== this.props.recommendations) {
+      this.highlightRecos();
+    }
   }
 
   highlightNodes() {
@@ -539,6 +563,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         console.log("found", node.attr("id"));
       }
     });
+  }
+  highlightRecos() {
+    const s = this;
+    const nodes = this.graph
+      .selectAll(".nodes")
+      .selectAll<SVGGElement, MusicGraphNode>(".node")
+      .select("circle")
+      .style("stroke", (d: MusicGraphNode) => this.isRecommended(d.id)? "#800080":this.state.selected.has(d.id) ? "#F8FF20" : "#FFFFFF")
+    .attr("stroke-width", (d: MusicGraphNode) => this.isRecommended(d.id) ? 5 : s.state.selected.has(d.id) ? 5 : this.baseNodeStrokeWidth  )
   }
 
   componentDidMount() {
@@ -602,8 +635,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     // );
   };
 
+  // onGetRecommendations(){
+  //   this.props.sendRecommendations(this.state.recs);
+  // };
+
   render() {
     return (
+
+      
       <div>
         <div className="minimap-container">
           <Minimap

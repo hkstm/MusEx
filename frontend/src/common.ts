@@ -21,4 +21,10 @@ export type Genre = {
   value: number;
 };
 
-export type Node = {};
+export type Node = string[];
+
+export type Recommendations = {
+  id?:  string;
+  value?: number;
+  nodes?: any;
+}
