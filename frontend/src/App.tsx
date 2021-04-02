@@ -38,7 +38,7 @@ class App extends Component<{}, AppState> {
     };
   }
 
-  onButtonClickHandler = () => {
+  onButtonClickHandler = (event?: React.FormEvent) => {
     window.alert(
       "FAQ\n" +
         "\n??Need help searching for specific genres or artists??\n--Type in the top right search bar and pick from artist or genre!" +
@@ -46,6 +46,8 @@ class App extends Component<{}, AppState> {
         "\n??Want to focus only on the graph??\n--Click the three stacked bars next to the wordcloud to blend them out!" +
         "\n??Need to know how to click??\n--LeftClick -> (Un)highlight node\n--Shift + LeftClick -> Play/stop music\n--Double LeftClick -> Zooming\n"
     );
+    event?.preventDefault();
+    event?.nativeEvent.stopImmediatePropagation();
   };
 
   setSearchQuery = (event: React.FormEvent) => {
@@ -76,6 +78,7 @@ class App extends Component<{}, AppState> {
 
   search = (event?: React.FormEvent<HTMLFormElement>) => () => {
     console.log("searching");
+    event?.nativeEvent.stopImmediatePropagation();
     event?.preventDefault();
     let searchURL = `http://localhost:5000/${apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
     console.log(searchURL);
