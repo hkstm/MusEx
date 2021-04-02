@@ -88,69 +88,73 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
     this.updateDimensions();
   }
 
-  render() {
+  helpMenu(){
     return (
-      <div className="graph-container">
-        {this.state.helpMenuOpened && (
-          <div className="overlay help-menu">
-            <h3>FAQ</h3>
+      <div className="overlay help-menu">
+      <h3>FAQ</h3>
+      <table>
+        <tr>
+          <td>Need help searching for specific genres or artists?</td>
+          <td>
+            Type in the top right search bar and pick from artist or genre
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Want to see stats of audio features throughout the years?
+          </td>
+          <td>Try the slidebar underneath the heatmap!</td>
+        </tr>
+        <tr>
+          <td>Want to focus only on the graph?</td>
+          <td>
+            Click the three stacked bars next to the wordcloud to blend
+            them out!
+          </td>
+        </tr>
+        <tr>
+          <td>Need to know how to click?</td>
+          <td>
             <table>
               <tr>
-                <td>Need help searching for specific genres or artists?</td>
                 <td>
-                  Type in the top right search bar and pick from artist or genre
+                  <b>LeftClick</b>
+                </td>
+                <td>
+                  <i>(Un)highlight node</i>
                 </td>
               </tr>
               <tr>
                 <td>
-                  Want to see stats of audio features throughout the years?
+                  <b>Shift + LeftClick</b>
                 </td>
-                <td>Try the slidebar underneath the heatmap!</td>
-              </tr>
-              <tr>
-                <td>Want to focus only on the graph?</td>
                 <td>
-                  Click the three stacked bars next to the wordcloud to blend
-                  them out!
+                  <i>Play/Stop music</i>
                 </td>
               </tr>
               <tr>
-                <td>Need to know how to click?</td>
                 <td>
-                  <table>
-                    <tr>
-                      <td>
-                        <b>LeftClick</b>
-                      </td>
-                      <td>
-                        <i>(Un)highlight node</i>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <b>Shift + LeftClick</b>
-                      </td>
-                      <td>
-                        <i>Play/Stop music</i>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <b>Double LeftClick</b>
-                      </td>
-                      <td>
-                        <i>Zooming</i>
-                      </td>
-                    </tr>
-                  </table>
+                  <b>Double LeftClick</b>
+                </td>
+                <td>
+                  <i>Zooming</i>
                 </td>
               </tr>
             </table>
-            <p className="close" onClick={this.closeHelp}>
-              Got it
-            </p>
-          </div>
-        )}
+          </td>
+        </tr>
+      </table>
+      <p className="close" onClick={this.closeHelp}>
+        Got it
+      </p>
+    </div>
+    );
+  }
+
+  render() {
+    return (
+      <div className="graph-container">
+        {this.state.helpMenuOpened && this.helpMenu()}
         <nav className="graph-controls">
           <span id="app-name">MusEx</span>
           <div className="dimensions">
