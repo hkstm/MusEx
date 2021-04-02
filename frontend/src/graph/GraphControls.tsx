@@ -36,11 +36,19 @@ class GraphControl extends Component<GraphControlProps, GraphControlState> {
 
   openHelp = (event?: React.FormEvent) => {
     this.setState({ helpMenuOpened: true });
+    const sidePanelElem: any = document.getElementById('side-view');
+    if (sidePanelElem){
+      sidePanelElem.style.zIndex = 1;
+    }
     event?.preventDefault();
   };
 
   closeHelp = (event?: React.FormEvent) => {
     this.setState({ helpMenuOpened: false });
+    const sidePanelElem: any = document.getElementById('side-view');
+    if (sidePanelElem){
+      sidePanelElem.style.zIndex = 20;
+    }
     event?.preventDefault();
   };
 
