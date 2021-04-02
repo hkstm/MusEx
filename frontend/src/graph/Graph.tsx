@@ -284,9 +284,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             Math.abs(this.state.zoomK - this.lastUpdate?.zoomK) >=
               1 / (2 * this.props.zoomLevels) ||
             Math.abs(this.state.x - this.lastUpdate?.position.x) >=
-              k / this.maxZoom ||
+              1 / k / this.maxZoom ||
             Math.abs(this.state.y - this.lastUpdate?.position.y) >=
-              k / this.maxZoom
+              1 / k / this.maxZoom
           ) {
             this.loadGraphData();
             this.updateGraph(this.state.data);
@@ -439,7 +439,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   };
 
   coordinate = (coord: number): number => {
-    const enlarge = Math.min(window.screen.width, window.screen.height);
+    const enlarge = Math.min(this.props.width, this.props.height);
     return (coord ?? 0) * enlarge;
   };
 
@@ -813,8 +813,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
   zoomTo = (x: number, y: number, level: NodeType) => {
     console.log(x, y, level);
-    const newTransform = d3.zoomIdentity.translate(x, y).scale(2);
-    this.svg.call(this.zoom.transform, newTransform);
+    // this does not work now unfortunately
+    // const newTransform = d3.zoomIdentity.translate(x, y).scale(2);
+    // this.svg.call(this.zoom.transform, newTransform);
   };
 
   componentDidUpdate(prevProps: GraphProps, prevState: any) {
