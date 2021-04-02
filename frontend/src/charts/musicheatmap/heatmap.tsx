@@ -1,25 +1,11 @@
 import React, { Component } from "react";
 import axios from "axios";
+import { apiVersion } from "../../common";
 import Slider from "../../components/slider/Slider";
 import "./heatmap.sass";
 import "./heatmap-animate.css";
 
-// type Year = {
-//   acousticness: number,
-//   danceability: number,
-//   duration_ms: number,
-//   energy: number,
-//   instrumentalness: number,
-//   liveness: number,
-//   loudness: number,
-//   popularity: number,
-//   speechiness: number,
-//   tempo: number,
-//   valence: number,
-//   year: number
-// }
-
-class MusicHeatmap extends Component<{ apiVersion: string }, any> {
+class MusicHeatmap extends Component<{}, any> {
   constructor(props: any) {
     super(props);
     this.state = {
@@ -54,7 +40,7 @@ class MusicHeatmap extends Component<{ apiVersion: string }, any> {
 
   getData() {
     axios
-      .get(`http://localhost:5000/${this.props.apiVersion}/years?limit=200`)
+      .get(`http://localhost:5000/${apiVersion}/years?limit=200`)
       .then((res) => {
         this.setState({ data: res.data.data }, () => {
           this.setAxes(res.data.data, 30);

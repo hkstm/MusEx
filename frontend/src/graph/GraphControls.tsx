@@ -5,6 +5,11 @@ import Graph, { GraphDataDimensions } from "./Graph";
 import Select from "../Select";
 import "./GraphControls.sass";
 
+type GraphControlProps = {
+  graphWidth: number;
+  graphHeight: number;
+};
+
 type GraphControlState = {
   dimensions: GraphDataDimensions;
   dimx?: string;
@@ -13,14 +18,10 @@ type GraphControlState = {
   searchType: string;
 };
 
-class GraphControl extends Component<
-  { sideviewExpanded: boolean },
-  GraphControlState
-> {
-  mainViewWidthPercent = 0.6;
-  zoomLevels = 5;
+class GraphControl extends Component<GraphControlProps, GraphControlState> {
+  zoomLevels = 6;
 
-  constructor(props: { sideviewExpanded: true }) {
+  constructor(props: GraphControlProps) {
     super(props);
     this.state = {
       dimensions: {},
@@ -29,7 +30,7 @@ class GraphControl extends Component<
     };
   }
 
-  onButtonClickHandler = () => {
+  showHelp = (event?: React.FormEvent) => {
     window.alert(
       "FAQ\n" +
         "\n??Need help searching for specific genres or artists??\n--Type in the top right search bar and pick from artist or genre!" +
@@ -37,6 +38,7 @@ class GraphControl extends Component<
         "\n??Want to focus only on the graph??\n--Click the three stacked bars next to the wordcloud to blend them out!" +
         "\n??Need to know how to click??\n--LeftClick -> (Un)highlight node\n--Shift + LeftClick -> Play/stop music\n--Double LeftClick -> Zooming\n"
     );
+    event?.preventDefault();
   };
 
   setSearchQuery = (event: React.FormEvent) => {
@@ -59,9 +61,10 @@ class GraphControl extends Component<
     this.setState({ searchType: typ }, this.search);
   };
 
-  search = (event?: React.FormEvent<HTMLFormElement>) => () => {
-    console.log("searching");
+  search = (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
+    event?.nativeEvent.stopImmediatePropagation();
+    if (this.state.searchQuery.length < 1) return;
     let searchURL = `http://localhost:5000/${apiVersion}/search?dimx=${this.state.dimx}&dimy=${this.state.dimy}&searchterm=${this.state.searchQuery}&type=${this.state.searchType}`;
     console.log(searchURL);
     axios.get(searchURL, headerConfig).then((res) => {
@@ -85,7 +88,11 @@ class GraphControl extends Component<
   render() {
     return (
       <div className="graph-container">
-        <div className="graph-controls">
+        <div className="help-menu"></div>
+        <nav className="graph-controls">
+          <span id="app-name" onClick={this.showHelp}>
+            MusEx
+          </span>
           <div className="dimensions">
             <Select
               id="select-dimx"
@@ -117,22 +124,19 @@ class GraphControl extends Component<
             <button id="app-search" type="submit">
               Search
             </button>
-            <button id="app-help" onClick={this.onButtonClickHandler}>
+            <button type="button" id="app-help" onClick={this.showHelp}>
               Help
             </button>
           </form>
-        </div>
+        </nav>
         {this.state.dimx === this.state.dimy ? (
           <h1>Please select two different dimensions</h1>
         ) : (
           <Graph
             enabled={true}
             zoomLevels={this.zoomLevels}
-            width={
-              window.innerWidth *
-              (this.props.sideviewExpanded ? this.mainViewWidthPercent : 1.0)
-            }
-            height={window.innerHeight - 40}
+            width={this.props.graphWidth}
+            height={this.props.graphHeight}
             dimx={this.state.dimx}
             dimy={this.state.dimy}
             dimensions={this.state.dimensions}

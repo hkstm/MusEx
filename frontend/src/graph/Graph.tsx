@@ -490,10 +490,12 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           const isPlaying = !s.audio?.paused ?? false;
           const isNewAudio = !s.audio || s.audio.currentSrc !== d.preview_url;
           s.audio.pause();
+          clicked.select(".playIcon").style("opacity", 1);
           if (isNewAudio) {
             s.audio.src = d.preview_url;
             s.audio.load();
             s.audio.play();
+            clicked.select(".playIcon").style("opacity", 0);
           } else if (!isPlaying) {
             s.audio.play();
           } else {

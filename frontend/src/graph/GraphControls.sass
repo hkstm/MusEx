@@ -1,5 +1,48 @@
 @import "../global.scss"
 
+a
+  color: #61dafb
+
+button
+  background-color: black
+  border: 1px solid white
+  color: white
+  padding: 4px 8px
+  text-align: center
+  text-decoration: none
+  display: inline-block
+  cursor: pointer
+
+.loading-spinner
+  svg
+    position: relative
+    margin: 0 auto
+
+input
+  background-color: black
+  border: 1px solid white
+  color: white
+  text-decoration: none
+
+  &.numeric-input
+
+  &[type=number]::-webkit-inner-spin-button,
+  &[type=number]::-webkit-outer-spin-button
+    -webkit-appearance:none
+
+nav
+  height: $nav-bar-height
+  background-color: black
+  position: relative
+
+  #app-name
+    line-height: $nav-bar-height
+    position: absolute
+    top: 0
+    left: 0
+    font-weight: 700
+    font-size: 1.5rem
+
 .graph-container
   position: fixed
   
