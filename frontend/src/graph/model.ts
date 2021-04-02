@@ -1,16 +1,17 @@
 import * as d3 from "d3";
+import { NodeType } from "../common";
 
 export interface MusicGraphNode extends d3.SimulationNodeDatum {
   id: string;
   x: number;
   y: number;
   name: string;
-  type: "Artist" | "Track" | "Genre";
+  type: NodeType;
   genre?: string[];
   artists?: { name: string }[];
   size?: number;
   preview_url?: string;
-  color?: number;
+  color?: string;
 }
 
 export interface MusicGraphLink {

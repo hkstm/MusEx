@@ -54,6 +54,7 @@ interface GraphProps {
   zoomLevels: number;
   dimx?: string;
   dimy?: string;
+  highlight?: MusicGraphNode;
   dimensions: GraphDataDimensions;
   onZoom?: (zoom: number) => void;
   onClick?: (node: MusicGraphNode) => void;
@@ -285,9 +286,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             Math.abs(this.state.zoomK - this.lastUpdate?.zoomK) >=
               1 / (2 * this.props.zoomLevels) ||
             Math.abs(this.state.x - this.lastUpdate?.position.x) >=
-              k / this.maxZoom ||
+              1 / k / this.maxZoom ||
             Math.abs(this.state.y - this.lastUpdate?.position.y) >=
-              k / this.maxZoom
+              1 / k / this.maxZoom
           ) {
             this.loadGraphData();
             this.updateGraph(this.state.data);
@@ -298,7 +299,8 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       );
     });
 
-    this.svg.call(this.zoom).call(this.zoom.transform, d3.zoomIdentity);
+    this.svg.call(this.zoom);
+    this.svg.call(this.zoom.transform, d3.zoomIdentity);
   };
 
   updateAxis = (transform: d3.ZoomTransform) => {
@@ -419,11 +421,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     }&dimy=${this.props.dimy}&type=${this.state.levelType}&limit=1000`;
     // console.log(graphDataURL);
     axios.get(graphDataURL, headerConfig).then((res) => {
-      // console.log(res.data.nodes.length + " nodes");
-      // console.log(res.data.links.length + " links");
-      this.setState({ data: res.data }, () => {
-        this.updateGraph(res.data);
-      });
+      const data = res.data;
+      if (data && data.nodes && data.links) {
+        // console.log(data.nodes.length + " nodes");
+        // console.log(data.links.length + " links");
+        if (this.props.highlight) data.nodes.push(this.props.highlight);
+        this.setState({ data }, () => {
+          this.updateGraph(data);
+        });
+      }
     });
   };
 
@@ -435,15 +441,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   };
 
   coordinate = (coord: number): number => {
-    const enlarge = Math.min(window.screen.width, window.screen.height);
+    const enlarge = Math.min(this.props.width, this.props.height);
     return (coord ?? 0) * enlarge;
   };
 
   coordinateX = (node: MusicGraphNode) => this.coordinateX_Expandable(node.x); // this.coordinate(node.x);
   coordinateY = (node: MusicGraphNode) => this.coordinate(node.y);
 
-  coordinateX_Expandable = (coord: number) => this.coordinate(coord) / (this.props?.sideviewExpanded ? 1 : this.props?.mainViewWidthPercent ?? 1);  
-  
+  coordinateX_Expandable = (coord: number) => this.coordinate(coord) / (this.props?.sideviewExpanded ? 1 : this.props?.mainViewWidthPercent ?? 1);
+
   playIconCoordinates = (node: MusicGraphNode) => {
     const x = this.coordinateX_Expandable(node.x);
     const y = this.coordinate(node.y);
@@ -456,28 +462,24 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   musicPlaying = (
     clicked: d3.Selection<SVGGElement, MusicGraphNode, null, any>
   ) => {
-    let strokeWidth = 2;
+    let unit = this.baseNodeStrokeWidth / this.state.zoomK;
+    let strokeWidth = unit;
     function animate() {
       clicked
         .select("polygon")
         .style("fill", "black")
         .style("stroke-width", strokeWidth);
       strokeWidth =
-        strokeWidth === 2
-          ? 3.2
-          : strokeWidth === 3.2
-          ? 4
-          : strokeWidth === 4
-          ? 3
-          : 2;
+        strokeWidth === 2 * unit
+          ? 3.2 * unit
+          : strokeWidth === 3.2 * unit
+          ? 4 * unit
+          : strokeWidth === 4 * unit
+          ? 3 * unit
+          : 2 * unit;
     }
     const i = setInterval(animate, 200);
     this.musicStopped(this.lastPlayed, this.lastPlayLoop);
-    // const x =
-    //   this &&
-    //   this.lastPlayed &&
-    //   this.lastPlayed.__groups &&
-    //   this.lastPlayed.__groups[0];
     this.lastPlayed = clicked;
     this.lastPlayLoop = i;
     setTimeout(() => {
@@ -802,7 +804,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
         ) + "px"
       );
 
-    // nodes.merge(newNewNodes).call(pulse)
     const backgroundGradient = this.svg.select("defs").select("#mainGradient");
     const gradient = this.gradients[this.state.levelType];
     if (gradient) {
@@ -811,16 +812,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     }
   };
 
+  showHighlightedNode = (node: MusicGraphNode) => {
+    console.log("adding to graph data", node);
+    this.state.data.nodes.push(node);
+    this.updateGraph(this.state.data);
+    this.zoomTo(node.x, node.y, node.type);
+  };
+
+  zoomTo = (x: number, y: number, level: NodeType) => {
+    console.log(x, y, level);
+    // this does not work now unfortunately
+    // const newTransform = d3.zoomIdentity.translate(x, y).scale(2);
+    // this.svg.call(this.zoom.transform, newTransform);
+  };
+
   componentDidUpdate(prevProps: GraphProps, prevState: any) {
-    // if (
-    //   prevProps.width !== this.props.width ||
-    //   prevProps.height !== this.props.height ||
-    //   prevProps.dimx !== this.props.dimx ||
-    //   prevProps.dimx !== this.props.dimx ||
-    //   prevProps.dimensions !== this.props.dimensions ||
-    //   prevProps.zoomLevels !== this.props.zoomLevels ||
-    //   prevProps.enabled !== this.props.enabled
-    // ) {
     if (!this.props.enabled) return;
     if (
       this.props.dimx !== this.state.data.dimx ||
@@ -830,33 +836,14 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       this.loadGraphData();
       this.updateGraph(this.state.data);
     }
-    if (prevProps.sideviewExpanded !== this.props.sideviewExpanded) 
+    if (prevProps.sideviewExpanded !== this.props.sideviewExpanded)
     {
       this.updateGraph(this.state.data);
       this.updateAxis(this.transform);
     }
-    // if (
-    //   prevProps.dimx !== this.props.dimx ||
-    //   prevProps.dimy !== this.props.dimy ||
-    //   prevState.x !== this.state.x ||
-    //   prevState.y !== this.state.y ||
-    //   prevState.y !== this.state.y ||
-    //   prevState.zoom !== this.state.zoom ||
-    //   prevState.zoomLevel !== this.state.zoomLevel ||
-    //   prevState.levelType !== this.state.levelType
-    // ) {
-    //   this.loadGraphData();
-    //   this.updateGraph(this.state.data);
-    // }
-    // if (
-    //   prevState.data !== this.state.data ||
-    //   prevProps.width !== this.props.width ||
-    //   prevProps.height !== this.props.height
-    // ) {
-    //   this.updateGraph(this.state.data);
-    //   this.updateAxis(this.transform);
-    // }
-    // }
+    if (prevProps.highlight !== this.props.highlight) {
+      if (this.props.highlight) this.showHighlightedNode(this.props.highlight);
+    }
     if (prevState.recommendations !== this.state.recommendations) {
       this.highlightRecommendations();
     }
@@ -939,26 +926,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     this.loadGraphData();
     this.updateGraph(this.state.data);
   }
-
-  handleMinimapUpdate = (pos: Position, size: Size) => {
-    // // this code can be used for zooming to the seletion
-    // console.log(pos, size);
-    // this.setState(
-    //   {
-    //     minimapPos: pos,
-    //     minimapSelectionSize: size,
-    //   },
-    //   () => {
-    //     this.svg.call(
-    //       // .transition().duration(750).call(
-    //       this.zoom.transform,
-    //       // d3.zoomIdentity.translate(pos.x, pos.y).scale(size.width)
-    //       d3.zoomIdentity
-    //       // d3.mouse(svg.node())
-    //     );
-    //   }
-    // );
-  };
 
   render() {
     return (
